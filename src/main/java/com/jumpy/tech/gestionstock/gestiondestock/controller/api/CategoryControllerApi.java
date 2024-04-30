@@ -11,7 +11,7 @@ import static com.jumpy.tech.gestionstock.gestiondestock.utils.Constants.APP_ROO
 
 public interface CategoryControllerApi {
     @PostMapping(value = APP_ROOT+"/category/create",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
-    CategoryDto save(@RequestBody ArticleDto dto);
+    CategoryDto save(@RequestBody CategoryDto dto);
     @GetMapping(value = APP_ROOT+"/category/{idCat}",produces = MediaType.APPLICATION_JSON_VALUE)
     CategoryDto findById(@PathVariable("idCat") Long id);
     @GetMapping(value = APP_ROOT+"/category/{codeCat}",produces = MediaType.APPLICATION_JSON_VALUE)

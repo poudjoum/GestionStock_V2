@@ -9,4 +9,6 @@ public interface CategoryService {
     CategoryDto findById(Long id);
     List<CategoryDto> findAll();
     CategoryDto findByCode(String code);
+
+    void delete(Long id);
 }

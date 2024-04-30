@@ -1,7 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.CategoryControllerApi;
-import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CategoryDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.CategoryService;
 import org.springframework.web.bind.annotation.RestController;
@@ -16,27 +15,27 @@ public class CategoryController implements CategoryControllerApi {
      }
 
     @Override
-    public CategoryDto save(ArticleDto dto) {
-        return null;
+    public CategoryDto save(CategoryDto dto) {
+        return catService.save(dto);
     }
 
     @Override
     public CategoryDto findById(Long id) {
-        return null;
+        return catService.findById(id);
     }
 
     @Override
-    public CategoryDto findByCodeCat(String codeArticle) {
-        return null;
+    public CategoryDto findByCodeCat(String codeCat) {
+        return catService.findByCode(codeCat);
     }
 
     @Override
     public List<CategoryDto> findAll() {
-        return List.of();
+        return catService.findAll();
     }
 
     @Override
     public void delete(Long id) {
-
+    catService.delete(id);
     }
 }

@@ -58,7 +58,7 @@ public class CategoryServiceImpl implements CategoryService {
             log.error("Category Code is null");
             return null;
         }
-        return categoryRepository.findByCode(code)
+        return categoryRepository.findCategoriesByCodeCat(code)
                 .map(CategoryDto::fromEntity)
                 .orElseThrow(()-> new EntityNotFoundException(
                         "Aucune Catégory avec le code "+code+ " n'a été trouvé dans la base de donnée",
@@ -66,6 +66,8 @@ public class CategoryServiceImpl implements CategoryService {
                 );
     }
 
+
+    @Override
     public void delete(Long id){
         if(id==null){
             log.error("Catégory Id is null");
