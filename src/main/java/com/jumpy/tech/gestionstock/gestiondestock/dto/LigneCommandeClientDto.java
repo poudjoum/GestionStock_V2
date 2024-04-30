@@ -6,10 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
-
 @Data
 @Builder
-public class LigneCmndeFournisseurDto {
+public class LigneCommandeClientDto {
     private Long id;
     private ArticleDto article;
     @JsonIgnore
@@ -22,12 +21,12 @@ public class LigneCmndeFournisseurDto {
             return null;
         }
         return LigneCommandeClientDto.builder()
-                .id(ligneCmndeClient.getId())
-                .article(ArticleDto.fromEntity(ligneCmndeClient.getArticles()))
-                .cmndeClient(CommandeClientDto.fromEntity(ligneCmndeClient.getCommandeClient()))
-                .quantite(ligneCmndeClient.getQuantite())
-                .prixUnitaire(ligneCmndeClient.getPrixUnitaire())
-                .build();
+                        .id(ligneCmndeClient.getId())
+                                .article(ArticleDto.fromEntity(ligneCmndeClient.getArticles()))
+                                        .cmndeClient(CommandeClientDto.fromEntity(ligneCmndeClient.getCommandeClient()))
+                                                .quantite(ligneCmndeClient.getQuantite())
+                                                        .prixUnitaire(ligneCmndeClient.getPrixUnitaire())
+                                                                .build();
     }
     public static LigneCmndeClient toEntity(LigneCommandeClientDto dto){
         if(dto==null){
@@ -42,4 +41,3 @@ public class LigneCmndeFournisseurDto {
 
     }
 }
-

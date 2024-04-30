@@ -18,6 +18,7 @@ public class CommandeFourDto {
     private Instant dateCommande;
 
     private FournisseurDto fournisseur;
+    private Long idEntreprise;
 
     private List<LigneCmndeFournisseurDto> ligneCmndeFournisseur;
 
@@ -30,6 +31,7 @@ public class CommandeFourDto {
                 .code(cmdeF.getCode())
                 .dateCommande(cmdeF.getDateCommande())
                 .fournisseur(FournisseurDto.fromEntity(cmdeF.getFournisseur()))
+                .idEntreprise(cmdeF.getIdEntreprise())
                 .build();
     }
     public static CommandeFour toEntity(CommandeFourDto dto) {
@@ -41,6 +43,7 @@ public class CommandeFourDto {
         cf.setCode(dto.getCode());
         cf.setDateCommande(dto.getDateCommande());
         cf.setFournisseur(FournisseurDto.toEntity(dto.getFournisseur()));
+        cf.setIdEntreprise(dto.getIdEntreprise());
         return cf;
     }
 }
