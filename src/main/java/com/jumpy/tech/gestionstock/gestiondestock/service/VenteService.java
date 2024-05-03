@@ -9,5 +9,6 @@ public interface VenteService {
     VenteDto save(VenteDto dto);
     VenteDto findById(Long Id);
     List<VenteDto> findAll();
+    VenteDto findVenteByCode(String codeVente);
     void delete(Long id);
 }

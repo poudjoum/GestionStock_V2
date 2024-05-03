@@ -1,7 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneCmndeClient;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneCmndeFournisseur;
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,27 +13,27 @@ public class LigneCmndeFournisseurDto {
     private Long id;
     private ArticleDto article;
     @JsonIgnore
-    private CommandeClientDto cmndeClient;
+    private CommandeFourDto cmndeFour;
     private BigDecimal quantite;
     private BigDecimal prixUnitaire;
 
-    public static LigneCommandeClientDto fromEntity(LigneCmndeClient ligneCmndeClient){
-        if(ligneCmndeClient==null){
+    public static LigneCmndeFournisseurDto fromEntity(LigneCmndeFournisseur ligneCmndeFour){
+        if(ligneCmndeFour==null){
             return null;
         }
-        return LigneCommandeClientDto.builder()
-                .id(ligneCmndeClient.getId())
-                .article(ArticleDto.fromEntity(ligneCmndeClient.getArticles()))
-                .cmndeClient(CommandeClientDto.fromEntity(ligneCmndeClient.getCommandeClient()))
-                .quantite(ligneCmndeClient.getQuantite())
-                .prixUnitaire(ligneCmndeClient.getPrixUnitaire())
+        return LigneCmndeFournisseurDto.builder()
+                .id(ligneCmndeFour.getId())
+                .article(ArticleDto.fromEntity(ligneCmndeFour.getArticles()))
+                .cmndeFour(CommandeFourDto.fromEntity(ligneCmndeFour.getCommandeFournisseur()))
+                .quantite(ligneCmndeFour.getQuantite())
+                .prixUnitaire(ligneCmndeFour.getPrixUnitaire())
                 .build();
     }
-    public static LigneCmndeClient toEntity(LigneCommandeClientDto dto){
+    public static LigneCmndeFournisseur toEntity(LigneCmndeFournisseurDto dto){
         if(dto==null){
             return null;
         }
-        LigneCmndeClient lcc=new LigneCmndeClient();
+        LigneCmndeFournisseur lcc=new LigneCmndeFournisseur();
         lcc.setId(dto.getId());
         lcc.setArticles(ArticleDto.toEntity(dto.getArticle()));
         lcc.setPrixUnitaire(dto.getPrixUnitaire());

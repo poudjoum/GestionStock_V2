@@ -19,4 +19,13 @@ spring:
       max-request-size: 5MB
       file-size-threshold: 2KB
 
+flickr:
+  apiKey: 232e1419f7d13e2129d0cbb96f579f0d
+  apiSecret: ef376497ece67811
+  appKey: 72157720898351182-f8719838af94436c
+  appSecret: e46cdaa9d54bb173
+
+springdoc:
+  api-docs:
+    path: /api-GestionStock
 

@@ -39,7 +39,4 @@ public class CategoryController implements CategoryControllerApi {
     catService.delete(id);
     }
 
-    /**
-     * ce code est produit par Gedeon Rodrigue Poudjoum Leutcho
-     */
 }
