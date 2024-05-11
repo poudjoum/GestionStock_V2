@@ -1,6 +1,5 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 
-import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CategoryDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
@@ -11,6 +10,7 @@ import java.util.List;
 import static com.jumpy.tech.gestionstock.gestiondestock.utils.Constants.APP_ROOT;
 
 public interface CategoryControllerApi {
+
     @Tag(name="Post",description = "Post Methods of Gestion de Stock APIs")
     @PostMapping(value = APP_ROOT+"/category/create",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
     CategoryDto save(@RequestBody CategoryDto dto);
