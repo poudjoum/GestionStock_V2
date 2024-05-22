@@ -10,5 +10,5 @@ public interface CommandeFourService {
     CommandeFourDto findById(Long id);
     CommandeFourDto findByCode(String code);
     List< CommandeFourDto> findAll();
-    void delte(Long id);
+    void delete(Long id);
 }

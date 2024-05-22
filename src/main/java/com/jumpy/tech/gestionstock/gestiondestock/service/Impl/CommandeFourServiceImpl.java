@@ -109,7 +109,7 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     }
 
     @Override
-    public void delte(Long id) {
+    public void delete(Long id) {
         if(id==null){
             log.error("Commande Client ID is null");
         }

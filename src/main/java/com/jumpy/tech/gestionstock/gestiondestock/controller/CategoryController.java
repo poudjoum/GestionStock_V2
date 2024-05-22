@@ -3,6 +3,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.CategoryControllerApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CategoryDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.CategoryService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -13,30 +15,31 @@ public class CategoryController implements CategoryControllerApi {
     public CategoryController(CategoryService catS){
          this.catService=catS;
      }
-     
+
+
     @Override
-    public CategoryDto save(CategoryDto dto) {
-        return catService.save(dto);
+    public ResponseEntity<CategoryDto> save(CategoryDto dto) {
+        return ResponseEntity.status(HttpStatus.OK).body(catService.save(dto));
     }
 
     @Override
-    public CategoryDto findById(Long id) {
-        return catService.findById(id);
+    public ResponseEntity<CategoryDto> findById(Long id) {
+        return ResponseEntity.status(HttpStatus.OK).body(catService.findById(id));
     }
 
     @Override
-    public CategoryDto findByCodeCat(String codeCat) {
-        return catService.findByCode(codeCat);
+    public ResponseEntity<CategoryDto> findByCodeCat(String codeArticle) {
+        return ResponseEntity.status(HttpStatus.OK).body(catService.findByCode(codeArticle));
     }
 
     @Override
-    public List<CategoryDto> findAll() {
-        return catService.findAll();
+    public ResponseEntity<List<CategoryDto>> findAll() {
+        return ResponseEntity.status(HttpStatus.OK).body(catService.findAll());
     }
 
     @Override
-    public void delete(Long id) {
-    catService.delete(id);
+    public ResponseEntity delete(Long id) {
+        catService.delete(id);
+        return ResponseEntity.ok().build();
     }
-
 }

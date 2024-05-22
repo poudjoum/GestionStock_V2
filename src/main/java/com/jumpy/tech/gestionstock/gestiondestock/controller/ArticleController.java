@@ -3,6 +3,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.ArticleControllerApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.ArticleService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -15,28 +17,30 @@ public class ArticleController implements ArticleControllerApi {
         this.articleService=articleService;
     }
 
+
     @Override
-    public ArticleDto save(ArticleDto dto) {
-        return articleService.save(dto);
+    public ResponseEntity<ArticleDto> save(ArticleDto dto) {
+        return ResponseEntity.status(HttpStatus.OK).body(articleService.save(dto));
     }
 
     @Override
-    public ArticleDto findById(Long id) {
-        return articleService.findById(id);
+    public ResponseEntity<ArticleDto> findById(Long id) {
+        return ResponseEntity.status(HttpStatus.OK).body(articleService.findById(id));
     }
 
     @Override
-    public ArticleDto findByCodeArticle(String codeArticle) {
-        return articleService.findByCodeArticle(codeArticle);
+    public ResponseEntity<ArticleDto> findByCodeArticle(String codeArticle) {
+        return ResponseEntity.status(HttpStatus.OK).body(articleService.findByCodeArticle(codeArticle));
     }
 
     @Override
-    public List<ArticleDto> findAll() {
-        return articleService.findAll();
+    public ResponseEntity<List<ArticleDto>> findAll() {
+        return ResponseEntity.status(HttpStatus.OK).body(articleService.findAll());
     }
 
     @Override
-    public void delete(Long id) {
+    public ResponseEntity delete(Long id) {
         articleService.delete(id);
+        return ResponseEntity.ok().build();
     }
 }
