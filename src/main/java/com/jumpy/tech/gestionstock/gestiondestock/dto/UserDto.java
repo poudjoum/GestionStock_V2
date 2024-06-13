@@ -1,6 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.dto;
 
-import com.jumpy.tech.gestionstock.gestiondestock.entities.User;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Utilisateur;
 import lombok.Builder;
 import lombok.Data;
 
@@ -29,7 +29,7 @@ public class UserDto {
 
     private List<RoleDto> roles;
 
-    public static UserDto fromEntity(User ut) {
+    public static UserDto fromEntity(Utilisateur ut) {
         if(ut==null) {
             return null;
             // TODO Auto-generated method stub
@@ -54,12 +54,12 @@ public class UserDto {
                 .build();
     }
 
-    public static User toEntity(UserDto dto) {
+    public static Utilisateur toEntity(UserDto dto) {
         if(dto==null) {
             return null;
             // TODO Auto-generated method stub
         }
-        User us=new User();
+        Utilisateur us=new Utilisateur();
         us.setId(dto.getId());
         us.setNom(dto.getNom());
         us.setPrenoms(dto.getPrenoms());

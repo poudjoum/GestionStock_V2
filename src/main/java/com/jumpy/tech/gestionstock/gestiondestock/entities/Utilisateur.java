@@ -13,7 +13,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper=true)
 @Entity
 @Table(name="user")
-public class User extends AbstractEntity{
+public class Utilisateur extends AbstractEntity{
     @Column(name="nom")
     private String nom;
     @Column(name="prenoms")
@@ -26,6 +26,8 @@ public class User extends AbstractEntity{
     private String photo;
     @Column(name="Motdepasse")
     private String motdepasse;
+    @Column(name="username")
+    private String username;
     @Embedded
     private Adresse adresse;
     private String numTel;

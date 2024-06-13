@@ -33,5 +33,5 @@ public class Entreprise extends AbstractEntity{
     @Column(name="Siteweb")
     private String siteWeb;
     @OneToMany(mappedBy="entreprise")
-    private List<User> users;
+    private List<Utilisateur> users;
 }
