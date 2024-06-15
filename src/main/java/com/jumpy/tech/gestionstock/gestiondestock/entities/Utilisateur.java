@@ -1,10 +1,13 @@
 package com.jumpy.tech.gestionstock.gestiondestock.entities;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Builder
@@ -34,6 +37,10 @@ public class Utilisateur extends AbstractEntity{
     @ManyToOne
     @JoinColumn(name="idEntreprise")
     private Entreprise entreprise;
-    @OneToMany(mappedBy="user")
-    private List<Role> roles;
+   @ManyToMany(fetch = FetchType.LAZY)
+   @JoinTable(name="user_roles",joinColumns = @JoinColumn(name="user_id"),inverseJoinColumns = @JoinColumn(name="role_id"))
+    private Set<Role> roles=new HashSet<>();
+
+    public Utilisateur(String username, String email, String encode) {
+    }
 }

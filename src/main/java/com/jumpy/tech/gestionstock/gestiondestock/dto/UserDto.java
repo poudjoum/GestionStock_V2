@@ -1,11 +1,13 @@
 package com.jumpy.tech.gestionstock.gestiondestock.dto;
 
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Role;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Utilisateur;
 import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Builder
@@ -70,9 +72,9 @@ public class UserDto {
         us.setNumTel(dto.getNumTel());
         us.setEntreprise(EntrepriseDto.toEntity(dto.getEntreprise()));
         us.setRoles(dto.getRoles()!=null?
-                dto.getRoles().stream()
+                (Set<Role>) dto.getRoles().stream()
                         .map(RoleDto::toEntity)
-                        .collect(Collectors.toList()):null);
+                        .collect(Collectors.toList()) :null);
 
         return us;
     }

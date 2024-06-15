@@ -14,10 +14,9 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name="Role")
 public class Role extends AbstractEntity{
-    private String roleName;
-    @ManyToOne
-    @JoinColumn(name="idUser")
-    private Utilisateur user;
+    @Enumerated(EnumType.STRING)
+    private ERole roleName;
+
     @Column(name="idEntreprise")
     private Long idEntreprise;
 }

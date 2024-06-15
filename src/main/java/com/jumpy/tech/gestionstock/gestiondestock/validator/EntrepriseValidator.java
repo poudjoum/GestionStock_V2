@@ -20,7 +20,7 @@ public class EntrepriseValidator {
         if(!StringUtils.hasLength(dto.getRegistreCommerce())){
             errors.add("Veuillez renseigner le registre  de commerce");
         }
-        if(StringUtils.hasLength(dto.getEmail())){
+        if(!StringUtils.hasLength(dto.getEmail())){
             errors.add("Veuillez renseigner l' email de l'entreprise");
         }
         if(!StringUtils.hasLength(dto.getTel())){

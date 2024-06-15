@@ -37,9 +37,8 @@ public class EntrepriseDto {
                 .id(en.getId())
                 .nom(en.getNom())
                 .description(en.getDescription())
-                .photo(en.getPhoto())
                 .registreCommerce(en.getRegistreCommerce())
-                .email(en.getEmail())
+                .email(en.getEmail_Entreprise())
                 .siteWeb(en.getSiteWeb())
                 .tel(en.getTel())
                 .adresse(AdresseDto.fromEntity(en.getAdresse()))
@@ -54,9 +53,9 @@ public class EntrepriseDto {
         en.setId(dto.getId());
         en.setNom(dto.getNom());
         en.setDescription(dto.getDescription());
-        en.setPhoto(dto.getPhoto());
+
         en.setRegistreCommerce(dto.getRegistreCommerce());
-        en.setEmail(dto.getEmail());
+        en.setEmail_Entreprise(dto.getEmail());
         en.setSiteWeb(dto.getSiteWeb());
         en.setTel(dto.getTel());
         en.setAdresse(AdresseDto.toEntity(dto.getAdresse()));

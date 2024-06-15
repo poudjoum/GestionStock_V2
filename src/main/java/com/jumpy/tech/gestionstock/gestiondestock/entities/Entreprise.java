@@ -25,9 +25,8 @@ public class Entreprise extends AbstractEntity{
     @Column(name="RegistreCommerce")
     private String registreCommerce;
     @Column(name="Email")
-    private String email;
-    @Column(name="photo")
-    private String photo;
+    private String email_Entreprise;
+
     @Column(name="telephone")
     private String tel;
     @Column(name="Siteweb")

@@ -1,23 +1,23 @@
 server:
-  port: 9092
+   port: 9092
 spring:
-  application:
-    name: Gestion de Stock
-  datasource:
-    username: root
-    password: Jumpy07A2668
-    url: jdbc:mysql://localhost:3306/GestionStk
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    show-sql: true
-    hibernate:
-      ddl-auto: update
+   application:
+     name: Gestion de Stock
+   datasource:
+     username: root
+     password: Jumpy07A2668
+     url: jdbc:mysql://localhost:3306/GestionStk
+     driver-class-name: com.mysql.cj.jdbc.Driver
+   jpa:
+     show-sql: true
+     hibernate:
+       ddl-auto: update
       #format_sql: true
-  servlet:
-    multipart:
-      max-file-size: 5MB
-      max-request-size: 5MB
-      file-size-threshold: 2KB
+   servlet:
+     multipart:
+       max-file-size: 5MB
+       max-request-size: 5MB
+       file-size-threshold: 2KB
 
 flickr:
   apiKey: 232e1419f7d13e2129d0cbb96f579f0d
@@ -25,7 +25,9 @@ flickr:
   appKey: 72157720898351182-f8719838af94436c
   appSecret: e46cdaa9d54bb173
 
+
 springdoc:
   api-docs:
     path: /api-GestionStock
 
+app: { jwtSecret: 1c5f8e446d9839e739d85feaaca5a956ec415abfa6a207a6c5e0685d2ab629e38a7a64e748a9eaec517c43bb5015ba1dbe3fe1636e68355e9e3807c807f1a24a, jwtExpirationMS: 3600 }
