@@ -39,7 +39,10 @@ public interface FactureApi {
 
     /** Liste paginee : `?page=0&size=20&sort=dateEmission,desc`. */
     @GetMapping(value = APP_ROOT + "/factures", produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<Page<FactureDto>> findAll(Pageable pageable);
+    ResponseEntity<Page<FactureDto>> findAll(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String q,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String statut,
+            Pageable pageable);
 
     /** Annule la facture sans la supprimer, et rouvre la vente a la correction. */
     @PostMapping(value = APP_ROOT + "/factures/{idFacture}/annulation", produces = MediaType.APPLICATION_JSON_VALUE)

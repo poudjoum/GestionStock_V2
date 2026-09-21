@@ -34,6 +34,15 @@ public interface FactureService {
     Page<FactureDto> findAll(Pageable pageable);
 
     /**
+     * Les factures, filtrables.
+     *
+     * `q` porte sur le numero et le nom du client ; `statut` vaut IMPAYEE,
+     * PARTIELLEMENT_REGLEE, REGLEE, ANNULEE, ou DUES — ce dernier reunissant tout ce sur quoi il
+     * reste a encaisser, qui est la question que le comptable pose vraiment.
+     */
+    Page<FactureDto> rechercher(String q, String statut, Pageable pageable);
+
+    /**
      * Annule une facture.
      *
      * Elle n'est pas supprimee — un numero emis puis disparu est exactement ce qu'une

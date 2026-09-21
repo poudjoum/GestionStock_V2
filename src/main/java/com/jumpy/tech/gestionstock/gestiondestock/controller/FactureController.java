@@ -41,8 +41,8 @@ public class FactureController implements FactureApi {
     }
 
     @Override
-    public ResponseEntity<Page<FactureDto>> findAll(Pageable pageable) {
-        return ResponseEntity.ok(factureService.findAll(pageable));
+    public ResponseEntity<Page<FactureDto>> findAll(String q, String statut, Pageable pageable) {
+        return ResponseEntity.ok(factureService.rechercher(q, statut, pageable));
     }
 
     @Override

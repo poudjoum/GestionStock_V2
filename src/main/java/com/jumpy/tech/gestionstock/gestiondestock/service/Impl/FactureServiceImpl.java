@@ -329,10 +329,24 @@ public class FactureServiceImpl implements FactureService {
 
     @Override
     public Page<FactureDto> findAll(Pageable pageable) {
+        return rechercher(null, null, pageable);
+    }
+
+    /**
+     * Les factures, filtrables par numero, par client et par ce qu'il reste a encaisser.
+     *
+     * « Qui me doit de l'argent » est la question du comptable, et la liste paginee n'y repondait
+     * pas : il fallait feuilleter toutes les factures en lisant les statuts un par un.
+     */
+    @Override
+    public Page<FactureDto> rechercher(String q, String statut, Pageable pageable) {
         // Sans les lignes : une liste de factures affiche des totaux, pas le detail de chacune.
-        Page<Facture> page = cloisonnement.filtre()
-                ? factureRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
-                : factureRepository.findAll(pageable);
+        Page<Facture> page = factureRepository.rechercher(
+                cloisonnement.filtre(),
+                cloisonnement.filtre() ? cloisonnement.entrepriseCourante() : null,
+                RechercheUtils.normaliser(q),
+                RechercheUtils.normaliser(statut),
+                pageable);
 
         // Les montants regles de toute la page en une requete : les demander facture par facture
         // ferait une requete par ligne affichee.
