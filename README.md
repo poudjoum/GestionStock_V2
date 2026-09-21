@@ -58,6 +58,9 @@ demarrage :
   anterieures y naissent `LIVREE` et non `EN_PREPARATION` : elles ont ete saisies quand
   l'enregistrement faisait entrer la marchandise, leur stock est donc deja compte, et les livrer a
   nouveau le doublerait.
+- `V5__annulation_de_vente_et_motif.sql` — l'annulation d'une vente, et le motif porte par chaque
+  mouvement de stock. Le motif est nullable : les mouvements anterieurs n'en ont pas, et leur en
+  inventer un serait pire que de reconnaitre qu'on l'ignore.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -80,6 +83,28 @@ traitement interrompu, une somme de mouvements non.
   engagement, pas une sortie.
 - Le sens d'un mouvement vient de la route appelee (`/mouvements/entree`, `/mouvements/sortie`) et
   jamais du corps de la requete, sans quoi il suffirait de mentir sur le type pour creer du stock.
+  Le **motif** obeit a la meme regle : il dit ce qui a reellement eu lieu (livraison, vente,
+  annulation, correction, saisie manuelle) et non ce que l'appelant declare. Sans lui, deux
+  entrees de 15 sur un article, l'une venue du fournisseur et l'autre d'une vente annulee, seraient
+  indiscernables — et c'est justement ce qu'on cherche a comprendre quand un stock ne tombe pas
+  juste.
+
+## Corriger une vente
+
+Une vente a deja sorti sa marchandise : contrairement a une commande, on ne peut pas reecrire une
+ligne et s'en tenir la. Chaque correction ecrit un mouvement de compensation.
+
+```
+GET    /gestiondestock/v1/ventes/{id}/lignes
+POST   /gestiondestock/v1/ventes/{id}/annulation
+PATCH  /gestiondestock/v1/ventes/{id}/lignes/{idLigne}?quantite=5
+DELETE /gestiondestock/v1/ventes/{id}/lignes/{idLigne}
+```
+
+Augmenter une quantite sort le complement, et **echoue si le magasin ne l'a pas** — c'est le
+comportement voulu ; diminuer remet la difference. L'annulation rend toute la marchandise et
+marque la vente **sans l'effacer** : une recette encaissee puis rendue doit pouvoir se retrouver.
+Une vente annulee ne se corrige plus, sous peine de rendre deux fois.
 
 ```
 GET  /gestiondestock/v1/mouvements/stockreel/{idArticle}
@@ -131,6 +156,7 @@ et une route ajoutee demain naitra fermee.
 | Entrer ou sortir du stock | ADMIN, MANAGER, MAGASINIER |
 | Faire avancer une commande (PATCH) | ADMIN, MANAGER, MAGASINIER |
 | Vendre, enregistrer un client | ADMIN, MANAGER, CAISSIER |
+| Corriger ou annuler une vente | ADMIN, MANAGER, CAISSIER |
 | Creer articles, categories, commandes | ADMIN, MANAGER, MAGASINIER |
 | Supprimer | ADMIN, MANAGER |
 | Comptes et entreprises | ADMIN |
@@ -145,7 +171,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-48 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+56 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -214,9 +240,9 @@ pour Spring, et n'etaient donc pas joignables.
 
 A savoir avant de reprendre le developpement :
 
-- **Une vente ne se modifie pas.** Contrairement a une commande, sa sortie de stock est immediate :
-  corriger une ligne demanderait un mouvement de compensation, et non une simple reecriture. Les
-  commandes, elles, se corrigent tant qu'elles ne sont pas figees.
+- On ne peut pas **ajouter** une ligne a une vente enregistree : il faut en saisir une seconde.
+  Corriger et retirer sont possibles, ajouter ne l'est pas encore.
+- Les mouvements anterieurs a la V5 n'ont pas de motif, et aucun ne leur a ete invente.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra
   une operation dediee plutot qu'un retour en arriere.
 - **Spring Boot 4 est disponible et n'est pas pris.** Il repose sur Spring Framework 7, deplace des

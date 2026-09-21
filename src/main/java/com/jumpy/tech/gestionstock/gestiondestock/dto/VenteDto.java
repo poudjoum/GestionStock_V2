@@ -14,6 +14,7 @@ public class VenteDto {
     private String code;
     private Instant datevente;
     private String Commentaires;
+    private boolean annulee;
     private List<LigneVenteDto> ligneVente;
     public static VenteDto fromEntity(Vente vente) {
         if(vente==null) {
@@ -26,6 +27,7 @@ public class VenteDto {
                 .code(vente.getCode())
                 .datevente(vente.getDatevente())
                 .Commentaires(vente.getCommentaires())
+                .annulee(vente.isAnnulee())
                 .build();
     }
     public static Vente toEntity(VenteDto dto) {

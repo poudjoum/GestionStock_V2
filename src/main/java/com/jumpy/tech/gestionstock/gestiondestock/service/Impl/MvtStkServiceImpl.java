@@ -2,6 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.MvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
@@ -77,6 +78,9 @@ public class MvtStkServiceImpl implements MvtStkService {
         mvtStk.setArticles(article);
         mvtStk.setQuantite(quantite);
         mvtStk.setTypMvt(sens);
+        // Un mouvement sans motif connu est une saisie a la main : c'est le cas des deux routes
+        // publiques, ou personne ne peut dire quel document porte le mouvement.
+        mvtStk.setMotif(dto.getMotif() == null ? MotifMvtStk.SAISIE_MANUELLE : dto.getMotif());
         // Un mouvement est date du moment ou il a lieu. Laisser le client fournir la date
         // permettrait d'antidater une sortie, et donc de fabriquer un stock qui n'a jamais existe.
         mvtStk.setDateMvt(Instant.now());

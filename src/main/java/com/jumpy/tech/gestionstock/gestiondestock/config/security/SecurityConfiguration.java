@@ -110,6 +110,14 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, API + "/ventes/**", API + "/clients/**")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER)
 
+                        // Corriger ou annuler une vente revient aux memes roles que la vendre :
+                        // c'est au comptoir que l'erreur se constate, et les regles generiques
+                        // plus bas en auraient exclu le caissier, qui pouvait pourtant vendre.
+                        .requestMatchers(HttpMethod.PATCH, API + "/ventes/**")
+                            .hasAnyRole(ADMIN, MANAGER, CAISSIER)
+                        .requestMatchers(HttpMethod.DELETE, API + "/ventes/*/lignes/**")
+                            .hasAnyRole(ADMIN, MANAGER, CAISSIER)
+
                         // Faire avancer une commande — la declarer livree, donc faire entrer la
                         // marchandise en stock — est un geste de magasin, pas une consultation.
                         // Sans cette ligne, PATCH tombait dans le authenticated() final et tout

@@ -122,6 +122,7 @@ public class CommandeFourServiceImpl implements CommandeFourService {
                     .forEach(ligne -> mvtStkService.entreeStock(MvtStkDto.builder()
                             .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
                             .quantite(ligne.getQuantite())
+                            .motif(MotifMvtStk.LIVRAISON_COMMANDE)
                             .build()));
         }
 

@@ -2,6 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.MvtStkControllerApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,11 +31,24 @@ public class MvtStkController implements MvtStkControllerApi {
 
     @Override
     public ResponseEntity<MvtStkDto> entreeStock(MvtStkDto dto) {
-        return ResponseEntity.ok(mvtStkService.entreeStock(dto));
+        return ResponseEntity.ok(mvtStkService.entreeStock(saisieManuelle(dto)));
     }
 
     @Override
     public ResponseEntity<MvtStkDto> sortieStock(MvtStkDto dto) {
-        return ResponseEntity.ok(mvtStkService.sortieStock(dto));
+        return ResponseEntity.ok(mvtStkService.sortieStock(saisieManuelle(dto)));
+    }
+
+    /**
+     * Un mouvement poste sur ces routes est une saisie a la main, quoi qu'en dise le corps de la
+     * requete. Le motif se decide comme le sens : par ce qui a reellement eu lieu, et non par ce
+     * que l'appelant declare — sinon une saisie pourrait se faire passer pour une livraison et
+     * l'historique ne voudrait plus rien dire.
+     */
+    private MvtStkDto saisieManuelle(MvtStkDto dto) {
+        if (dto != null) {
+            dto.setMotif(MotifMvtStk.SAISIE_MANUELLE);
+        }
+        return dto;
     }
 }

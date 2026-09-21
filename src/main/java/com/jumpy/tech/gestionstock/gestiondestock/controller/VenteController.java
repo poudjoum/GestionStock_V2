@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.VenteControllerApi;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.VenteService;
 import org.springframework.data.domain.Page;
@@ -9,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 @RestController
 public class VenteController implements VenteControllerApi {
@@ -41,6 +43,27 @@ public class VenteController implements VenteControllerApi {
     @Override
     public ResponseEntity<VenteDto> findVenteByCode(String codeVente) {
         return ResponseEntity.status(HttpStatus.OK).body(venteService.findVenteByCode(codeVente));
+    }
+
+    @Override
+    public ResponseEntity<List<LigneVenteDto>> lignes(Long idVente) {
+        return ResponseEntity.ok(venteService.lignes(idVente));
+    }
+
+    @Override
+    public ResponseEntity<VenteDto> annuler(Long idVente) {
+        return ResponseEntity.ok(venteService.annuler(idVente));
+    }
+
+    @Override
+    public ResponseEntity<LigneVenteDto> modifierQuantite(Long idVente, Long idLigne, BigDecimal quantite) {
+        return ResponseEntity.ok(venteService.modifierQuantite(idVente, idLigne, quantite));
+    }
+
+    @Override
+    public ResponseEntity<Void> retirerLigne(Long idVente, Long idLigne) {
+        venteService.retirerLigne(idVente, idLigne);
+        return ResponseEntity.noContent().build();
     }
 
     @Override

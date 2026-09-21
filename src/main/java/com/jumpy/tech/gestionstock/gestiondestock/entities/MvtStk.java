@@ -3,6 +3,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import lombok.AllArgsConstructor;
@@ -30,6 +32,11 @@ public class MvtStk extends  AbstractEntity{
     private Article articles;
     @Column(name="typeMvt")
     private TypeMvtStk typMvt;
+    // En clair : un motif mappe en rang se reinterpreterait si l'on intercalait une valeur, et
+    // tout l'historique changerait de sens en silence.
+    @Enumerated(EnumType.STRING)
+    @Column(name="motif", length = 40)
+    private MotifMvtStk motif;
     @Column(name="idEntreprise")
     private Integer idEntreprise;
 }

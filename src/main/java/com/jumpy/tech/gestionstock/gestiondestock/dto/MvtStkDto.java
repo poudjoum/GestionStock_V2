@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.dto;
 
+import com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.MvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeMvtStk;
 import lombok.Builder;
@@ -17,6 +18,7 @@ public class MvtStkDto {
     private BigDecimal quantite;
     private ArticleDto article;
     private TypeMvtStk typeMvt;
+    private MotifMvtStk motif;
     private Integer idEntreprise;
 
     public static MvtStkDto fromEntity(MvtStk mvtStk) {
@@ -29,6 +31,7 @@ public class MvtStkDto {
                 .quantite(mvtStk.getQuantite())
                 .article(ArticleDto.fromEntity(mvtStk.getArticles()))
                 .typeMvt(mvtStk.getTypMvt())
+                .motif(mvtStk.getMotif())
                 .idEntreprise(mvtStk.getIdEntreprise())
                 .build();
     }
@@ -43,6 +46,7 @@ public class MvtStkDto {
         mvtStk.setQuantite(dto.getQuantite());
         mvtStk.setArticles(ArticleDto.toEntity(dto.getArticle()));
         mvtStk.setTypMvt(dto.getTypeMvt());
+        mvtStk.setMotif(dto.getMotif());
         mvtStk.setIdEntreprise(dto.getIdEntreprise());
         return mvtStk;
     }

@@ -6,6 +6,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneVente;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Vente;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -114,8 +116,120 @@ public class VenteServiceImpl implements VenteService {
         mvtStkService.sortieStock(MvtStkDto.builder()
                 .article(ArticleDto.builder().Id(ligne.getArticle().getId()).build())
                 .quantite(ligne.getQuantite())
+                .motif(MotifMvtStk.VENTE)
                 .idEntreprise(vente.getIdEntreprise() == null ? null : vente.getIdEntreprise().intValue())
                 .build());
+    }
+
+    @Override
+    public List<LigneVenteDto> lignes(Long idVente) {
+        vente(idVente);
+        return ligneVenteRepository.findAllByVenteId(idVente).stream()
+                .map(LigneVenteDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public VenteDto annuler(Long idVente) {
+        Vente vente = venteModifiable(idVente);
+
+        // Chaque ligne retourne en magasin. Le motif distingue cette entree d'une livraison :
+        // sans lui, l'historique d'un article montrerait deux entrees identiques dont l'une
+        // n'a jamais rien fait venir du fournisseur.
+        ligneVenteRepository.findAllByVenteId(idVente).forEach(ligne ->
+                mvtStkService.entreeStock(MvtStkDto.builder()
+                        .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
+                        .quantite(ligne.getQuantite())
+                        .motif(MotifMvtStk.ANNULATION_VENTE)
+                        .build()));
+
+        // La vente reste en base : une recette encaissee puis rendue doit pouvoir se retrouver.
+        vente.setAnnulee(true);
+        return VenteDto.fromEntity(venteRepository.save(vente));
+    }
+
+    @Override
+    @Transactional
+    public LigneVenteDto modifierQuantite(Long idVente, Long idLigne, BigDecimal quantite) {
+        venteModifiable(idVente);
+        LigneVente ligne = ligne(idVente, idLigne);
+        BigDecimal nouvelle = quantiteValide(quantite);
+        BigDecimal ancienne = ligne.getQuantite();
+
+        // La marchandise est deja sortie : seule la difference se rattrape. Augmenter sort le
+        // complement — et echoue si le magasin ne l'a pas, ce qui est bien le comportement
+        // attendu ; diminuer remet la difference.
+        int comparaison = nouvelle.compareTo(ancienne);
+        if (comparaison > 0) {
+            mvtStkService.sortieStock(mouvementDe(ligne, nouvelle.subtract(ancienne)));
+        } else if (comparaison < 0) {
+            mvtStkService.entreeStock(mouvementDe(ligne, ancienne.subtract(nouvelle)));
+        }
+
+        ligne.setQuantite(nouvelle);
+        return LigneVenteDto.fromEntity(ligneVenteRepository.save(ligne));
+    }
+
+    @Override
+    @Transactional
+    public void retirerLigne(Long idVente, Long idLigne) {
+        venteModifiable(idVente);
+        LigneVente ligne = ligne(idVente, idLigne);
+        mvtStkService.entreeStock(mouvementDe(ligne, ligne.getQuantite()));
+        ligneVenteRepository.delete(ligne);
+    }
+
+    private MvtStkDto mouvementDe(LigneVente ligne, BigDecimal quantite) {
+        return MvtStkDto.builder()
+                .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
+                .quantite(quantite)
+                .motif(MotifMvtStk.CORRECTION_VENTE)
+                .build();
+    }
+
+    private Vente vente(Long id) {
+        if (id == null) {
+            throw new InvalidEntityException("Aucune vente ne peut être cherchée sans identifiant",
+                    ErrorCodes.VENTE_NOT_VALID);
+        }
+        return venteRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune vente avec l'identifiant " + id + " n'a été trouvée",
+                        ErrorCodes.VENTE_NOT_FOUND));
+    }
+
+    /** Une vente annulee a deja rendu sa marchandise : la corriger la rendrait une seconde fois. */
+    private Vente venteModifiable(Long id) {
+        Vente vente = vente(id);
+        if (vente.isAnnulee()) {
+            throw new InvalidEntityException("Une vente annulée ne se modifie plus",
+                    ErrorCodes.VENTE_NOT_VALID,
+                    List.of("La vente " + id + " a déjà été annulée"));
+        }
+        return vente;
+    }
+
+    private LigneVente ligne(Long idVente, Long idLigne) {
+        LigneVente ligne = ligneVenteRepository.findById(idLigne)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune ligne avec l'identifiant " + idLigne + " n'a été trouvée",
+                        ErrorCodes.LIGNE_VENTE_NOT_FOUND));
+        if (ligne.getVente() == null || !idVente.equals(ligne.getVente().getId())) {
+            throw new InvalidEntityException(
+                    "La ligne " + idLigne + " n'appartient pas à la vente " + idVente,
+                    ErrorCodes.LIGNE_VENTE_NOT_VALID);
+        }
+        return ligne;
+    }
+
+    private BigDecimal quantiteValide(BigDecimal quantite) {
+        if (quantite == null || quantite.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidEntityException(
+                    "La quantité d'une ligne de vente doit être strictement positive",
+                    ErrorCodes.LIGNE_VENTE_NOT_VALID);
+        }
+        return quantite;
     }
 
     @Override
