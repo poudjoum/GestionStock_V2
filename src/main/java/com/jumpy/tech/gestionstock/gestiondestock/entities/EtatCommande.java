@@ -16,11 +16,23 @@ public enum EtatCommande {
 
     EN_PREPARATION,
     VALIDEE,
+    /**
+     * Une partie de la marchandise est arrivee, le reste est attendu.
+     *
+     * Cet etat ne s'annule pas : du stock est deja entre, et l'annulation laisserait des
+     * quantites sans commande pour les expliquer. Ce qui reste attendu se lit ligne par ligne.
+     */
+    PARTIELLEMENT_LIVREE,
     LIVREE,
     ANNULEE;
 
     public boolean estTerminal() {
         return this == LIVREE || this == ANNULEE;
+    }
+
+    /** Une commande dont une partie est deja arrivee est engagee : ses lignes ne bougent plus. */
+    public boolean estEngagee() {
+        return estTerminal() || this == PARTIELLEMENT_LIVREE;
     }
 
     /**
@@ -33,7 +45,10 @@ public enum EtatCommande {
         }
         return switch (this) {
             case EN_PREPARATION -> cible == VALIDEE || cible == ANNULEE;
-            case VALIDEE -> cible == LIVREE || cible == ANNULEE;
+            case VALIDEE -> cible == LIVREE || cible == PARTIELLEMENT_LIVREE || cible == ANNULEE;
+            // Le reliquat arrive, ou il n'arrive pas : dans les deux cas, ce qui est deja entre
+            // interdit de revenir en arriere.
+            case PARTIELLEMENT_LIVREE -> cible == LIVREE;
             case LIVREE, ANNULEE -> false;
         };
     }

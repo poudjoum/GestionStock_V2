@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import org.springframework.data.domain.Page;
@@ -59,6 +60,17 @@ public interface VenteControllerApi {
      */
     @PostMapping(path = APP_ROOT+"/commandes-clients/{idCommandeClient}/vente")
     ResponseEntity<VenteDto> servirCommandeClient(@PathVariable Long idCommandeClient);
+
+    /**
+     * Sert une partie de la commande : `[{ "idLigne": 12, "quantite": 3 }]`.
+     *
+     * Un corps vide vaut « tout ce qui reste du ». La commande passe partiellement livree tant
+     * qu'il reste quelque chose, et se sert a nouveau quand la marchandise arrive.
+     */
+    @PostMapping(path = APP_ROOT+"/commandes-clients/{idCommandeClient}/vente-partielle",
+            consumes = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<VenteDto> servirPartiellement(@PathVariable Long idCommandeClient,
+                                                 @RequestBody List<LigneReceptionDto> partiel);
 
     /** Annule la vente et remet sa marchandise en magasin. La vente reste lisible. */
     @PostMapping(path = APP_ROOT+"/ventes/{idVente}/annulation")

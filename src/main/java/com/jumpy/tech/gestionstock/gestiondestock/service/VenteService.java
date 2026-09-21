@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service;
 
 
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import org.springframework.data.domain.Page;
@@ -44,6 +45,14 @@ public interface VenteService {
      * faite — la vente, seule, ne connait pas son client.
      */
     VenteDto servirCommandeClient(Long idCommandeClient);
+
+    /**
+     * Sert une partie seulement de la commande : ce que nomme la liste, et rien de plus.
+     *
+     * Une liste vide vaut « tout ce qui reste du ». L'etat de la commande est constate a partir
+     * du reliquat, jamais declare : il reste quelque chose, elle est partiellement livree.
+     */
+    VenteDto servirCommandeClient(Long idCommandeClient, List<LigneReceptionDto> partiel);
 
     /**
      * Annule une vente et remet sa marchandise en magasin.

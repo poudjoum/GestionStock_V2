@@ -2,6 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
@@ -36,7 +37,9 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -241,12 +244,21 @@ public class VenteServiceImpl implements VenteService {
     @Override
     @Transactional
     public VenteDto servirCommandeClient(Long idCommandeClient) {
+        return servirCommandeClient(idCommandeClient, null);
+    }
+
+    @Override
+    @Transactional
+    public VenteDto servirCommandeClient(Long idCommandeClient, List<LigneReceptionDto> partiel) {
         CommandeClient commande = commandeClientRepository.findById(idCommandeClient)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucune commande client avec l'identifiant " + idCommandeClient + " n'a été trouvée",
                         ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
 
-        if (commande.getEtat() != EtatCommande.VALIDEE) {
+        // Une commande deja servie en partie se sert encore : c'est tout l'interet du service
+        // partiel, le reliquat part quand la marchandise arrive.
+        if (commande.getEtat() != EtatCommande.VALIDEE
+                && commande.getEtat() != EtatCommande.PARTIELLEMENT_LIVREE) {
             throw new InvalidEntityException(
                     "Seule une commande VALIDEE se sert, celle-ci est " + commande.getEtat(),
                     ErrorCodes.COMMANDE_CLIENT_NOT_VALID,
@@ -256,6 +268,14 @@ public class VenteServiceImpl implements VenteService {
         List<LigneCmndeClient> lignesCommande = ligneCmndeClientRepository.findAllByCommandeClientId(idCommandeClient);
         if (lignesCommande.isEmpty()) {
             throw new InvalidEntityException("Une commande sans ligne ne se sert pas",
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID);
+        }
+
+        // Sans precision, on sert tout ce qui reste du : c'est le geste ordinaire, et l'exiger
+        // ligne par ligne alourdirait le cas courant pour servir le cas rare.
+        Map<Long, BigDecimal> aServir = quantitesAServir(lignesCommande, partiel, idCommandeClient);
+        if (aServir.isEmpty()) {
+            throw new InvalidEntityException("Cette commande n'a plus rien à servir",
                     ErrorCodes.COMMANDE_CLIENT_NOT_VALID);
         }
 
@@ -270,29 +290,91 @@ public class VenteServiceImpl implements VenteService {
         Vente enregistree = venteRepository.save(vente);
 
         for (LigneCmndeClient ligneCommande : lignesCommande) {
+            BigDecimal quantite = aServir.get(ligneCommande.getId());
+            if (quantite == null || quantite.signum() <= 0) {
+                continue;
+            }
             LigneVente ligneVente = new LigneVente();
             ligneVente.setVente(enregistree);
             ligneVente.setArticles(ligneCommande.getArticles());
-            ligneVente.setQuantite(ligneCommande.getQuantite());
+            ligneVente.setQuantite(quantite);
             ligneVente.setPrixUnitaire(ligneCommande.getPrixUnitaire());
             ligneVente.setIdEntreprise(commande.getIdEntreprise());
             ligneVenteRepository.save(ligneVente);
 
             mvtStkService.sortieStock(MvtStkDto.builder()
                     .article(ArticleDto.builder().Id(ligneCommande.getArticles().getId()).build())
-                    .quantite(ligneCommande.getQuantite())
+                    .quantite(quantite)
                     .motif(MotifMvtStk.VENTE)
                     .build());
+
+            ligneCommande.setQuantiteLivree(dejaServi(ligneCommande).add(quantite));
+            ligneCmndeClientRepository.save(ligneCommande);
         }
 
-        // Tout est dans la meme transaction : si une ligne manque de stock, ni la vente ni le
-        // changement d'etat ne subsistent. Servir a moitie une commande sans le dire serait pire
-        // que de refuser.
-        commande.setEtat(EtatCommande.LIVREE);
+        // L'etat est constate, pas declare : tout est parti, la commande est livree ; il reste
+        // quelque chose, elle est partiellement livree. Le tout dans la meme transaction — si une
+        // ligne manque de stock, ni la vente ni le changement d'etat ne subsistent.
+        boolean toutServi = lignesCommande.stream().allMatch(ligne -> resteAServir(ligne).signum() <= 0);
+        commande.setEtat(toutServi ? EtatCommande.LIVREE : EtatCommande.PARTIELLEMENT_LIVREE);
         commandeClientRepository.save(commande);
 
-        log.info("Commande client {} servie par la vente {}", idCommandeClient, enregistree.getId());
+        log.info("Commande client {} servie par la vente {} ({})",
+                idCommandeClient, enregistree.getId(), commande.getEtat());
         return VenteDto.fromEntity(enregistree);
+    }
+
+    /**
+     * Ce qui part maintenant, ligne par ligne.
+     *
+     * Sans precision, tout le reliquat. Avec une liste, seulement ce qu'elle nomme — et jamais
+     * plus que ce qui reste du : servir au-dela de la commande n'est pas une livraison, c'est une
+     * commande a corriger.
+     */
+    private Map<Long, BigDecimal> quantitesAServir(List<LigneCmndeClient> lignes,
+                                                   List<LigneReceptionDto> partiel,
+                                                   Long idCommande) {
+        Map<Long, BigDecimal> quantites = new HashMap<>();
+        if (partiel == null || partiel.isEmpty()) {
+            lignes.forEach(ligne -> {
+                BigDecimal reste = resteAServir(ligne);
+                if (reste.signum() > 0) {
+                    quantites.put(ligne.getId(), reste);
+                }
+            });
+            return quantites;
+        }
+
+        for (LigneReceptionDto demande : partiel) {
+            LigneCmndeClient ligne = lignes.stream()
+                    .filter(l -> l.getId().equals(demande.getIdLigne()))
+                    .findFirst()
+                    .orElseThrow(() -> new InvalidEntityException(
+                            "La ligne " + demande.getIdLigne() + " n'appartient pas à la commande " + idCommande,
+                            ErrorCodes.LIGNE_COMMANDE_CLIENT_NOT_VALID));
+            BigDecimal quantite = demande.getQuantite();
+            if (quantite == null || quantite.signum() <= 0) {
+                throw new InvalidEntityException("La quantité servie doit être strictement positive",
+                        ErrorCodes.LIGNE_COMMANDE_CLIENT_NOT_VALID);
+            }
+            if (quantite.compareTo(resteAServir(ligne)) > 0) {
+                throw new InvalidEntityException(
+                        "La quantité servie dépasse ce qui reste dû : " + resteAServir(ligne)
+                                + " attendus, " + quantite + " servis",
+                        ErrorCodes.LIGNE_COMMANDE_CLIENT_NOT_VALID);
+            }
+            quantites.put(ligne.getId(), quantite);
+        }
+        return quantites;
+    }
+
+    private BigDecimal dejaServi(LigneCmndeClient ligne) {
+        return ligne.getQuantiteLivree() == null ? BigDecimal.ZERO : ligne.getQuantiteLivree();
+    }
+
+    private BigDecimal resteAServir(LigneCmndeClient ligne) {
+        BigDecimal commandee = ligne.getQuantite() == null ? BigDecimal.ZERO : ligne.getQuantite();
+        return commandee.subtract(dejaServi(ligne)).max(BigDecimal.ZERO);
     }
 
     @Override

@@ -4,6 +4,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeFourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.*;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
@@ -116,25 +117,109 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     @Override
     @Transactional
     public CommandeFourDto mettreAJourEtat(Long id, EtatCommande etat) {
-        CommandeFour commande = commandeFourRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucune commande fournisseur avec l'identifiant " + id + " n'a été trouvée",
-                        ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
-
+        CommandeFour commande = commande(id);
         verifierTransition(commande.getEtat(), etat);
 
         if (etat == EtatCommande.LIVREE) {
-            ligneCmndeFourRepository.findAllByCommandeFournisseurId(id)
-                    .forEach(ligne -> mvtStkService.entreeStock(MvtStkDto.builder()
-                            .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
-                            .quantite(ligne.getQuantite())
-                            .motif(MotifMvtStk.LIVRAISON_COMMANDE)
-                            .build()));
+            // Declarer une commande livree, c'est recevoir tout ce qui restait attendu. Passer par
+            // la meme operation que la reception partielle evite d'avoir deux chemins qui
+            // ecrivent le stock, et qui divergeraient a la premiere correction.
+            List<LigneReceptionDto> reliquat = ligneCmndeFourRepository.findAllByCommandeFournisseurId(id).stream()
+                    .filter(ligne -> reste(ligne).signum() > 0)
+                    .map(ligne -> {
+                        LigneReceptionDto reception = new LigneReceptionDto();
+                        reception.setIdLigne(ligne.getId());
+                        reception.setQuantite(reste(ligne));
+                        return reception;
+                    })
+                    .collect(Collectors.toList());
+            if (!reliquat.isEmpty()) {
+                return recevoir(id, reliquat);
+            }
         }
 
+        EtatCommande precedent = commande.getEtat();
         commande.setEtat(etat);
-        log.info("Commande fournisseur {} : {} -> {}", id, commande.getEtat(), etat);
+        log.info("Commande fournisseur {} : {} -> {}", id, precedent, etat);
         return CommandeFourDto.fromEntity(commandeFourRepository.save(commande));
+    }
+
+    /**
+     * Enregistre ce qui est reellement arrive.
+     *
+     * Une commande se soldait d'un coup : recevoir 6 unites sur 10 obligeait a mentir en declarant
+     * tout livre, ou a ne rien enregistrer en attendant le reste — les deux faussent le stock.
+     *
+     * Chaque quantite recue entre en magasin, et l'etat se deduit de ce qui reste attendu : tout
+     * est arrive, la commande est livree ; il manque quelque chose, elle est partiellement livree.
+     * L'etat n'est donc jamais declare par l'appelant, il est constate.
+     */
+    @Override
+    @Transactional
+    public CommandeFourDto recevoir(Long id, List<LigneReceptionDto> receptions) {
+        CommandeFour commande = commande(id);
+
+        if (commande.getEtat() != EtatCommande.VALIDEE
+                && commande.getEtat() != EtatCommande.PARTIELLEMENT_LIVREE) {
+            throw new InvalidEntityException(
+                    "On ne reçoit une marchandise que sur une commande validée, celle-ci est "
+                            + commande.getEtat(),
+                    ErrorCodes.COMMANDE_FOURNISSEUR_NOT_VALID);
+        }
+        if (receptions == null || receptions.isEmpty()) {
+            throw new InvalidEntityException("Une réception porte au moins une ligne",
+                    ErrorCodes.COMMANDE_FOURNISSEUR_NOT_VALID);
+        }
+
+        List<LigneCmndeFournisseur> lignes = ligneCmndeFourRepository.findAllByCommandeFournisseurId(id);
+        for (LigneReceptionDto reception : receptions) {
+            LigneCmndeFournisseur ligne = lignes.stream()
+                    .filter(l -> l.getId().equals(reception.getIdLigne()))
+                    .findFirst()
+                    .orElseThrow(() -> new InvalidEntityException(
+                            "La ligne " + reception.getIdLigne() + " n'appartient pas à la commande " + id,
+                            ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID));
+
+            BigDecimal recue = reception.getQuantite();
+            if (recue == null || recue.signum() <= 0) {
+                throw new InvalidEntityException(
+                        "La quantité reçue doit être strictement positive",
+                        ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID);
+            }
+            // Recevoir plus que commande n'est pas une livraison, c'est une erreur de comptage ou
+            // une commande a corriger : le stock ne doit pas en porter la trace en silence.
+            if (recue.compareTo(reste(ligne)) > 0) {
+                throw new InvalidEntityException(
+                        "La quantité reçue dépasse ce qui reste attendu : " + reste(ligne)
+                                + " attendus, " + recue + " reçus",
+                        ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID,
+                        List.of("Ligne " + ligne.getId() + " : commandé " + ligne.getQuantite()
+                                + ", déjà livré " + ligne.getQuantiteLivree()));
+            }
+
+            mvtStkService.entreeStock(MvtStkDto.builder()
+                    .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
+                    .quantite(recue)
+                    .motif(MotifMvtStk.LIVRAISON_COMMANDE)
+                    .build());
+            ligne.setQuantiteLivree(dejaLivre(ligne).add(recue));
+            ligneCmndeFourRepository.save(ligne);
+        }
+
+        boolean toutRecu = lignes.stream().allMatch(ligne -> reste(ligne).signum() <= 0);
+        commande.setEtat(toutRecu ? EtatCommande.LIVREE : EtatCommande.PARTIELLEMENT_LIVREE);
+        log.info("Commande fournisseur {} : reception de {} ligne(s), etat {}",
+                id, receptions.size(), commande.getEtat());
+        return CommandeFourDto.fromEntity(commandeFourRepository.save(commande));
+    }
+
+    private BigDecimal dejaLivre(LigneCmndeFournisseur ligne) {
+        return ligne.getQuantiteLivree() == null ? BigDecimal.ZERO : ligne.getQuantiteLivree();
+    }
+
+    private BigDecimal reste(LigneCmndeFournisseur ligne) {
+        BigDecimal commandee = ligne.getQuantite() == null ? BigDecimal.ZERO : ligne.getQuantite();
+        return commandee.subtract(dejaLivre(ligne)).max(BigDecimal.ZERO);
     }
 
     @Override
@@ -197,7 +282,9 @@ public class CommandeFourServiceImpl implements CommandeFourService {
      */
     private CommandeFour commandeModifiable(Long id) {
         CommandeFour commande = commande(id);
-        if (commande.getEtat().estTerminal()) {
+        // `estEngagee` et non `estTerminal` : une commande dont une partie est deja arrivee ne se
+        // corrige plus non plus, sans quoi le reste attendu ne voudrait plus rien dire.
+        if (commande.getEtat().estEngagee()) {
             throw new InvalidEntityException(
                     "Une commande " + commande.getEtat() + " ne se modifie plus",
                     ErrorCodes.COMMANDE_FOURNISSEUR_NOT_VALID,

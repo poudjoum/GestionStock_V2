@@ -3,6 +3,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.CommandFourApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeFourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import com.jumpy.tech.gestionstock.gestiondestock.service.CommandeFourService;
 import org.springframework.http.HttpStatus;
@@ -44,6 +45,11 @@ public class CommandeFourController implements CommandFourApi {
     @Override
     public ResponseEntity<CommandeFourDto> mettreAJourEtat(Long idCommandFour, EtatCommande etat) {
         return ResponseEntity.ok(cmndeFourServ.mettreAJourEtat(idCommandFour, etat));
+    }
+
+    @Override
+    public ResponseEntity<CommandeFourDto> recevoir(Long idCommandFour, List<LigneReceptionDto> receptions) {
+        return ResponseEntity.ok(cmndeFourServ.recevoir(idCommandFour, receptions));
     }
 
     @Override

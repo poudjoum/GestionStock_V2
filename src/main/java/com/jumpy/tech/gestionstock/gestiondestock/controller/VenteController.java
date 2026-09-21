@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.VenteControllerApi;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.VenteService;
@@ -63,6 +64,11 @@ public class VenteController implements VenteControllerApi {
     @Override
     public ResponseEntity<VenteDto> servirCommandeClient(Long idCommandeClient) {
         return ResponseEntity.ok(venteService.servirCommandeClient(idCommandeClient));
+    }
+
+    @Override
+    public ResponseEntity<VenteDto> servirPartiellement(Long idCommandeClient, List<LigneReceptionDto> partiel) {
+        return ResponseEntity.ok(venteService.servirCommandeClient(idCommandeClient, partiel));
     }
 
     @Override

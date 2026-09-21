@@ -26,6 +26,13 @@ public class LigneCmndeFournisseur extends AbstractEntity{
     private CommandeFour commandeFournisseur;
     @Column(name="Quantite")
     private BigDecimal quantite;
+    /**
+     * Ce qui est deja arrive sur cette ligne ; le reste attendu en est la difference. La quantite
+     * livree se porte sur la ligne et non sur la commande : un compteur global ne dirait pas quel
+     * article manque.
+     */
+    @Column(name="quantite_livree", nullable = false)
+    private BigDecimal quantiteLivree = BigDecimal.ZERO;
     @Column(name="prixUnitaire")
     private BigDecimal prixUnitaire;
     @Column(name="idEntreprise")

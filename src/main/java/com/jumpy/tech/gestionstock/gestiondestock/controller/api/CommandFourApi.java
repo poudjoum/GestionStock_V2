@@ -2,6 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeFourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
@@ -49,6 +50,16 @@ public interface CommandFourApi {
     @PatchMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/etat/{etat}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CommandeFourDto> mettreAJourEtat(@PathVariable Long idCommandFour,
                                                     @PathVariable EtatCommande etat);
+
+    /**
+     * Enregistre ce qui est reellement arrive : `[{ "idLigne": 12, "quantite": 6 }]`.
+     *
+     * La quantite est celle de cette arrivee, pas le cumul. L'etat de la commande n'est pas a
+     * declarer — il se deduit de ce qui reste attendu.
+     */
+    @PostMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/receptions",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<CommandeFourDto> recevoir(@PathVariable Long idCommandFour,
+                                             @RequestBody List<LigneReceptionDto> receptions);
 
     // --- Lignes de la commande ------------------------------------------------------------
     // Une commande enregistree ne se corrigeait pas : ni ajout, ni retrait, ni changement de

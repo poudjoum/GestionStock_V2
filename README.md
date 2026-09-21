@@ -83,6 +83,10 @@ demarrage :
   solde : ce qui a ete paye se somme a la lecture.
 - `V14__seuil_d_alerte.sql` — la quantite sous laquelle un article est signale. Nullable : tous
   n'ont pas a etre surveilles.
+- `V15__livraison_partielle.sql` — la quantite livree par ligne et l'etat `PARTIELLEMENT_LIVREE`.
+  Les lignes des commandes deja livrees y sont marquees livrees en entier, sans quoi elles
+  paraitraient attendre encore toute leur marchandise — et l'on pourrait la recevoir une seconde
+  fois.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -200,9 +204,9 @@ POST /gestiondestock/v1/mouvements/sortie
 ## Cycle de vie des commandes
 
 ```
-EN_PREPARATION ──> VALIDEE ──> LIVREE
-       │              │
-       └──────────────┴──────> ANNULEE
+EN_PREPARATION ──> VALIDEE ──> PARTIELLEMENT_LIVREE ──> LIVREE
+       │              │    └──────────────────────────────┘
+       └──────────────┴──> ANNULEE
 ```
 
 ```
@@ -222,6 +226,36 @@ DELETE /gestiondestock/v1/commandes-fournisseurs/{id}/lignes/{idLigne}
 Ces operations n'ecrivent aucun mouvement de stock et n'ont rien a rattraper : la marchandise
 n'entre qu'a la livraison, qui relit les lignes telles qu'elles sont a ce moment-la. Les memes
 routes existent sous `/commandes-clients`.
+
+### Livraison partielle
+
+Une commande se soldait d'un coup : recevoir 6 unites sur 10 obligeait a mentir en declarant tout
+livre, ou a ne rien enregistrer en attendant le reste — les deux faussent le stock, et le second
+plus longtemps.
+
+```
+POST /gestiondestock/v1/commandes-fournisseurs/{id}/receptions
+POST /gestiondestock/v1/commandes-clients/{id}/vente-partielle
+
+[ { "idLigne": 12, "quantite": 6 } ]
+```
+
+La quantite est celle de **cette arrivee**, pas le cumul : c'est ce qui a ete compte au
+dechargement. Chaque ligne porte `quantiteLivree` et `resteALivrer` — un compteur global sur la
+commande ne dirait pas quel article manque.
+
+**L'etat n'est pas declare, il est constate** : tout est arrive, la commande passe `LIVREE` ; il
+manque quelque chose, elle passe `PARTIELLEMENT_LIVREE` et se sert a nouveau quand le reste
+arrive. Recevoir au-dela de ce qui reste attendu est refuse : ce n'est pas une livraison, c'est
+une erreur de comptage ou une commande a corriger.
+
+Declarer une commande `LIVREE` revient a recevoir tout le reliquat — le raccourci passe par la
+meme operation, pour qu'un seul chemin ecrive le stock. Une commande partiellement livree ne se
+corrige plus et ne s'annule plus : du stock est deja entre.
+
+Une commande client peut donc etre servie par **plusieurs ventes**. L'index unique qui l'interdisait
+est tombe avec ce lot ; ce qu'il protegeait — sortir deux fois la meme marchandise — est desormais
+garanti par le reliquat.
 
 Une commande nait `EN_PREPARATION`. `LIVREE` et `ANNULEE` sont **definitifs** : une commande
 livree ne se deprogramme pas — la marchandise a bouge, et l'annuler laisserait le stock mentir —
@@ -492,7 +526,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-135 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+145 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -566,7 +600,8 @@ A savoir avant de reprendre le developpement :
   comptes qui n'en ont pas eux-memes, et du super-administrateur ; une reprise les rattacherait.
 - Le taux applique est fige a l'emission de la facture, mais deux ventes du meme article au meme
   moment ne peuvent pas avoir deux taux : l'exception se porte sur l'article, pas sur la ligne.
-- Servir une commande la solde d'un coup : pas de livraison partielle.
+- Un reliquat ne s'abandonne pas : une commande partiellement livree dont le reste n'arrivera
+  jamais reste `PARTIELLEMENT_LIVREE`, sans moyen de la clore.
 - Rien ne rapproche les encaissements d'un relevé : le mode et la reference sont saisis, personne
   ne les confronte a ce que la banque ou l'operateur mobile a reellement recu.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra

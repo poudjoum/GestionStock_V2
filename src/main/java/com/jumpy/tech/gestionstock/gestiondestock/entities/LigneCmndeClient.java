@@ -25,6 +25,9 @@ public class LigneCmndeClient extends AbstractEntity{
     private CommandeClient commandeClient;
     @Column(name="Quantite")
     private BigDecimal quantite;
+    /** Ce qui a deja ete servi sur cette ligne ; le reste du client en est la difference. */
+    @Column(name="quantite_livree", nullable = false)
+    private BigDecimal quantiteLivree = BigDecimal.ZERO;
     @Column(name="prixUnitaire")
     private BigDecimal prixUnitaire;
     @Column(name="idEntreprise")
