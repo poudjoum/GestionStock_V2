@@ -12,6 +12,26 @@ import java.util.List;
 
 public interface VenteService {
     VenteDto save(VenteDto dto);
+
+    /**
+     * Enregistre une vente qui a deja eu lieu, sur un poste sans reseau.
+     *
+     * Trois choses la distinguent d'une vente ordinaire, et une seule raison : elle est un fait a
+     * constater, non une transaction a autoriser. La marchandise est partie.
+     *
+     * Elle porte une reference tiree par le poste de vente, et reposter la meme rend la vente
+     * deja enregistree plutot que d'en creer une seconde. Un telephone qui perd le reseau au
+     * milieu d'un envoi ne sait pas si l'envoi est passe : il reessaie.
+     *
+     * Elle porte sa date reelle, et non celle de l'envoi — une vente de 9 h synchronisee a midi
+     * doit peser sur la caisse de 9 h.
+     *
+     * Le stock ne s'y oppose pas. Deux caisses vendent hors ligne le dernier sac de ciment ; la
+     * seconde serait refusee, alors que le sac est parti. Refuser n'empecherait rien : cela
+     * effacerait seulement la trace de ce qui a eu lieu. Le stock passe sous zero, et l'article
+     * remonte dans /stock/alertes comme reclamant un comptage.
+     */
+    VenteDto synchroniser(VenteDto dto);
     VenteDto findById(Long id);
     List<VenteDto> findAll();
     Page<VenteDto> findAll(Pageable pageable);

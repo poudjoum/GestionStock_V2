@@ -98,7 +98,10 @@ public class StockServiceImpl implements StockService {
     @Override
     public List<LigneInventaireDto> alertes() {
         return inventaireDe(tousLesArticles()).stream()
-                .filter(ligne -> ligne.getStatut() == StatutStock.RUPTURE
+                // Le negatif figure en tete : il n'attend pas une commande mais un comptage, et
+                // il est vrai quel que soit le seuil — un article non surveille peut y tomber.
+                .filter(ligne -> ligne.getStatut() == StatutStock.NEGATIF
+                        || ligne.getStatut() == StatutStock.RUPTURE
                         || ligne.getStatut() == StatutStock.SOUS_SEUIL)
                 .collect(Collectors.toList());
     }
@@ -144,11 +147,16 @@ public class StockServiceImpl implements StockService {
     /**
      * Le statut au regard du seuil.
      *
-     * Une quantite negative compte comme une rupture : elle ne devrait pas exister — les sorties
-     * sont refusees au-dela du stock — mais si elle apparait, c'est bien qu'il n'y a plus rien.
+     * Une quantite negative se distingue d'une rupture. Elle etait rangee avec elle tant que les
+     * sorties etaient toutes refusees au-dela du stock ; une vente faite hors ligne et
+     * synchronisee apres coup peut desormais la faire passer sous zero. Les deux n'appellent pas
+     * le meme geste : la rupture se commande au fournisseur, le negatif se compte sur l'etagere.
      */
     private StatutStock statut(BigDecimal quantite, BigDecimal seuil) {
-        if (quantite.signum() <= 0) {
+        if (quantite.signum() < 0) {
+            return StatutStock.NEGATIF;
+        }
+        if (quantite.signum() == 0) {
             return StatutStock.RUPTURE;
         }
         if (seuil == null) {

@@ -63,10 +63,29 @@ public class MvtStkServiceImpl implements MvtStkService {
     }
 
     /**
+     * Une sortie qui a deja eu lieu ailleurs. Datee de ce moment-la, et non opposable au stock :
+     * la marchandise est partie, refuser n'effacerait que la trace de ce qui a eu lieu.
+     */
+    @Override
+    @Transactional
+    public MvtStkDto sortieConstatee(MvtStkDto dto, Instant quand) {
+        if (quand == null) {
+            throw new InvalidEntityException(
+                    "Une sortie constatée porte la date à laquelle elle a eu lieu",
+                    ErrorCodes.MVT_STK_NOT_VALID);
+        }
+        return enregistrer(dto, TypeMvtStk.SORTIE, quand, false);
+    }
+
+    /**
      * Le sens du mouvement vient de la methode appelee, jamais du DTO : un client qui poste une
      * sortie en la marquant « entree » augmenterait le stock au lieu de le diminuer.
      */
     private MvtStkDto enregistrer(MvtStkDto dto, TypeMvtStk sens) {
+        return enregistrer(dto, sens, Instant.now(), true);
+    }
+
+    private MvtStkDto enregistrer(MvtStkDto dto, TypeMvtStk sens, Instant quand, boolean opposerLeStock) {
         if (dto == null || dto.getArticle() == null || dto.getArticle().getId() == null) {
             throw new InvalidEntityException("Un mouvement de stock désigne un article",
                     ErrorCodes.MVT_STK_NOT_VALID);
@@ -74,7 +93,7 @@ public class MvtStkServiceImpl implements MvtStkService {
         Article article = article(dto.getArticle().getId());
         BigDecimal quantite = quantiteValide(dto.getQuantite());
 
-        if (sens == TypeMvtStk.SORTIE) {
+        if (sens == TypeMvtStk.SORTIE && opposerLeStock) {
             verifierStockDisponible(article, quantite);
         }
 
@@ -88,12 +107,25 @@ public class MvtStkServiceImpl implements MvtStkService {
         // Le mouvement herite de l'entreprise de l'article, pas de ce que dit la requete :
         // l'article vient d'etre verifie, il fait donc foi.
         mvtStk.setIdEntreprise(article.getIdEntreprise());
-        // Un mouvement est date du moment ou il a lieu. Laisser le client fournir la date
-        // permettrait d'antidater une sortie, et donc de fabriquer un stock qui n'a jamais existe.
-        mvtStk.setDateMvt(Instant.now());
+        // Un mouvement est date du moment ou il a lieu. Les deux routes publiques passent par
+        // `enregistrer(dto, sens)`, qui impose l'heure du serveur : laisser un appelant
+        // quelconque antidater une sortie permettrait de fabriquer un stock qui n'a jamais
+        // existe. Seule une sortie constatee — une vente faite hors ligne, deja survenue — porte
+        // sa propre date, et elle ne vient pas d'une requete mais du service des ventes.
+        mvtStk.setDateMvt(quand);
 
         MvtStk enregistre = mvtStkRepository.save(mvtStk);
         log.info("Mouvement {} de {} sur l'article {}", sens, quantite, article.getId());
+
+        if (!opposerLeStock) {
+            BigDecimal restant = stockReel(article.getId());
+            if (restant.signum() < 0) {
+                // Pas une erreur : la marchandise est partie. C'est le signal qu'un inventaire
+                // est a faire sur cet article, et il se lit sur /stock/alertes.
+                log.warn("Stock negatif sur l'article {} apres une sortie constatee : {}",
+                        article.getCodeArticle(), restant);
+            }
+        }
         return MvtStkDto.fromEntity(enregistre);
     }
 

@@ -17,4 +17,12 @@ public interface VenteRepository extends JpaRepository<Vente,Long> {
     Page<Vente> findAllByIdEntreprise(Long idEntreprise, Pageable pageable);
 
     Optional<Vente> findVenteByCodeAndIdEntreprise(String codeVente, Long idEntreprise);
+
+    /**
+     * La vente deja enregistree sous cette reference, s'il y en a une.
+     *
+     * C'est ce qui rend un envoi rejouable : un poste qui perd le reseau au milieu d'un envoi
+     * reessaie sans savoir si le premier est passe.
+     */
+    Optional<Vente> findVenteByReferenceClient(String referenceClient);
 }

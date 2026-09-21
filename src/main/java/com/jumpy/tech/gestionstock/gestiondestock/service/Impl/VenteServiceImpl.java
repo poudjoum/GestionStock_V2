@@ -28,6 +28,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
 import com.jumpy.tech.gestionstock.gestiondestock.service.VenteService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.VenteValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,6 +48,15 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class VenteServiceImpl implements VenteService {
+
+    /**
+     * De combien l'horloge d'un poste de vente peut avancer sans qu'on refuse ses ventes.
+     *
+     * Celle d'un telephone derive, et refuser une vente pour deux minutes d'avance rendrait la
+     * synchronisation capricieuse. Au-dela, la date est fausse, et la retenir fausserait la
+     * caisse d'une journee entiere.
+     */
+    private static final Duration TOLERANCE_HORLOGE = Duration.ofMinutes(5);
 
     private final VenteRepository venteRepository;
     private final ArticleRepository articleRepository;
@@ -90,11 +101,72 @@ public class VenteServiceImpl implements VenteService {
     @Override
     @Transactional
     public VenteDto save(VenteDto dto) {
+        return enregistrer(dto, null);
+    }
+
+    /**
+     * Une vente qui a deja eu lieu, sur un poste sans reseau.
+     *
+     * La reference et la date sont exigees ici, la ou elles sont facultatives en vente directe :
+     * sans reference, un envoi rejoue ferait une seconde vente ; sans date, la vente se rangerait
+     * dans la caisse du moment ou elle arrive, et non de celui ou elle a eu lieu.
+     */
+    @Override
+    @Transactional
+    public VenteDto synchroniser(VenteDto dto) {
+        if (dto == null || !StringUtils.hasText(dto.getReferenceClient())) {
+            throw new InvalidEntityException(
+                    "Une vente synchronisée porte la référence tirée par le poste de vente",
+                    ErrorCodes.VENTE_NOT_VALID,
+                    List.of("Sans elle, un envoi rejoué enregistrerait une seconde vente"));
+        }
+        if (dto.getDatevente() == null) {
+            throw new InvalidEntityException(
+                    "Une vente synchronisée porte la date à laquelle elle a eu lieu",
+                    ErrorCodes.VENTE_NOT_VALID,
+                    List.of("Sans elle, la vente pèserait sur la caisse du jour de l'envoi"));
+        }
+        return enregistrer(dto, dateDeVenteValide(dto.getDatevente()));
+    }
+
+    /**
+     * Une vente ne se date pas dans l'avenir.
+     *
+     * Quelques minutes de tolerance : l'horloge d'un telephone derive, et refuser une vente pour
+     * deux minutes d'avance rendrait la synchronisation capricieuse. Au-dela, la date est fausse
+     * et la retenir fausserait durablement la caisse.
+     */
+    private Instant dateDeVenteValide(Instant datevente) {
+        Instant limite = Instant.now().plus(TOLERANCE_HORLOGE);
+        if (datevente.isAfter(limite)) {
+            throw new InvalidEntityException(
+                    "Une vente ne peut pas être datée dans le futur : " + datevente,
+                    ErrorCodes.VENTE_NOT_VALID,
+                    List.of("L'horloge du poste de vente est probablement à régler"));
+        }
+        return datevente;
+    }
+
+    /**
+     * Le chemin commun aux deux facons d'enregistrer une vente.
+     *
+     * `quand` est nul pour une vente directe — elle a lieu maintenant — et porte la date reelle
+     * pour une vente synchronisee. C'est ce seul parametre qui decide de tout le reste : la date
+     * des mouvements, et si le stock s'oppose ou non a la sortie.
+     */
+    private VenteDto enregistrer(VenteDto dto, Instant quand) {
         List<String> errors = VenteValidator.validate(dto);
         if (!errors.isEmpty()) {
             log.error("Vente not Valid {}", dto);
             // Le code rendu etait VENTE_NOT_FOUND pour une vente invalide.
             throw new InvalidEntityException("La vente n'est pas valide", ErrorCodes.VENTE_NOT_VALID, errors);
+        }
+
+        // Rejouer un envoi rend la vente deja enregistree. C'est ce qui permet a un poste qui a
+        // perdu le reseau de reessayer sans risquer une seconde sortie de stock.
+        VenteDto dejaEnregistree = venteDejaRecue(dto.getReferenceClient());
+        if (dejaEnregistree != null) {
+            return dejaEnregistree;
         }
 
         List<LigneVenteDto> lignes = dto.getLigneVente() == null ? List.of() : dto.getLigneVente();
@@ -130,20 +202,56 @@ public class VenteServiceImpl implements VenteService {
         if (cloisonnement.filtre()) {
             aEnregistrer.setIdEntreprise(cloisonnement.entrepriseCourante());
         }
+        // Une vente directe a lieu maintenant ; une vente synchronisee porte la date qu'elle
+        // avait sur le poste, et la date envoyee ne fait donc foi que dans ce second cas.
+        aEnregistrer.setDatevente(quand == null ? Instant.now() : quand);
         // Le client est facultatif : la vente de comptoir anonyme reste le cas ordinaire.
         if (dto.getClient() != null && dto.getClient().getId() != null) {
             aEnregistrer.setClient(client(dto.getClient().getId()));
         }
-        Vente savedVente = venteRepository.save(aEnregistrer);
+
+        Vente savedVente;
+        try {
+            savedVente = venteRepository.saveAndFlush(aEnregistrer);
+        } catch (DataIntegrityViolationException collision) {
+            // Deux envois de la meme vente partis en meme temps : le premier a gagne l'index
+            // unique. Le second retrouve son travail deja fait, ce qui est exactement ce qu'il
+            // demandait. Sans ce rattrapage, un simple double appui ferait un 500.
+            VenteDto gagnante = venteDejaRecue(dto.getReferenceClient());
+            if (gagnante != null) {
+                log.info("Vente {} deja enregistree par un envoi concurrent", dto.getReferenceClient());
+                return gagnante;
+            }
+            throw collision;
+        }
 
         for (LigneVenteDto ligneDto : lignes) {
             LigneVente ligne = LigneVenteDto.toEntity(ligneDto);
             ligne.setVente(savedVente);
             ligneVenteRepository.save(ligne);
-            sortirDuStock(ligneDto, savedVente);
+            sortirDuStock(ligneDto, savedVente, quand);
         }
 
         return VenteDto.fromEntity(savedVente);
+    }
+
+    /**
+     * La vente deja enregistree sous cette reference, ou `null`.
+     *
+     * Une reference trouvee chez une autre entreprise ne rend rien : elle est traitee comme
+     * inconnue, et l'insertion echouera sur l'index unique. Rendre la vente du voisin parce que
+     * l'on a devine sa reference serait une fuite.
+     */
+    private VenteDto venteDejaRecue(String referenceClient) {
+        if (!StringUtils.hasText(referenceClient)) {
+            return null;
+        }
+        return venteRepository.findVenteByReferenceClient(referenceClient)
+                .filter(vente -> !cloisonnement.filtre()
+                        || java.util.Objects.equals(vente.getIdEntreprise(),
+                                cloisonnement.entrepriseCourante()))
+                .map(VenteDto::fromEntity)
+                .orElse(null);
     }
 
     /**
@@ -151,13 +259,21 @@ public class VenteServiceImpl implements VenteService {
      * commande client, que le stock diminue. Une commande n'est qu'un engagement : tant qu'elle
      * n'est pas servie, rien n'est sorti des rayons.
      */
-    private void sortirDuStock(LigneVenteDto ligne, Vente vente) {
-        mvtStkService.sortieStock(MvtStkDto.builder()
+    private void sortirDuStock(LigneVenteDto ligne, Vente vente, Instant quand) {
+        MvtStkDto mouvement = MvtStkDto.builder()
                 .article(ArticleDto.builder().Id(ligne.getArticle().getId()).build())
                 .quantite(ligne.getQuantite())
                 .motif(MotifMvtStk.VENTE)
                 .idEntreprise(vente.getIdEntreprise())
-                .build());
+                .build();
+        if (quand == null) {
+            mvtStkService.sortieStock(mouvement);
+        } else {
+            // La marchandise est deja partie : le mouvement porte la date de la vente, et le
+            // stock ne s'y oppose pas. S'il passe sous zero, c'est le signal qu'un inventaire est
+            // a faire — pas une raison d'effacer une vente qui a eu lieu.
+            mvtStkService.sortieConstatee(mouvement, quand);
+        }
     }
 
     @Override

@@ -27,6 +27,11 @@ public class VenteController implements VenteControllerApi {
     }
 
     @Override
+    public ResponseEntity<VenteDto> synchroniser(VenteDto dto) {
+        return ResponseEntity.ok(venteService.synchroniser(dto));
+    }
+
+    @Override
     public ResponseEntity<VenteDto> findById(Long id) {
         return ResponseEntity.status(HttpStatus.OK).body(venteService.findById(id));
     }

@@ -24,6 +24,18 @@ public class Vente extends AbstractEntity{
     private String code;
     @Column(name="dateVente")
     private Instant datevente;
+    /**
+     * L'identite que le poste de vente donne a la vente avant de l'envoyer.
+     *
+     * Un telephone qui perd le reseau au milieu d'un envoi ne sait pas si la vente est passee :
+     * il reessaie. Sans identite venue de lui, on obtient deux ventes et une double sortie de
+     * stock. L'identifiant de base ne peut pas servir a cela — il n'existe qu'une fois la vente
+     * ecrite, donc trop tard.
+     *
+     * Nulle pour une vente saisie directement sur le serveur, qui n'a rien a rejouer.
+     */
+    @Column(name="reference_client", length = 64)
+    private String referenceClient;
     @Column(name="commentaire")
     private String Commentaires;
     @Column(name="idEntreprise")

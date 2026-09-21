@@ -8,6 +8,15 @@ package com.jumpy.tech.gestionstock.gestiondestock.entities;
  */
 public enum StatutStock {
 
+    /**
+     * Moins que rien en magasin.
+     *
+     * Distinct de `RUPTURE`, et pas par gout du detail : les deux n'appellent pas le meme geste.
+     * Une rupture se commande au fournisseur ; un stock negatif se compte sur l'etagere. Il
+     * signifie qu'il est sorti plus de marchandise que le magasin n'en avait recu — le cas
+     * ordinaire etant deux caisses qui vendent hors ligne le dernier exemplaire.
+     */
+    NEGATIF,
     RUPTURE,
     SOUS_SEUIL,
     SUFFISANT,

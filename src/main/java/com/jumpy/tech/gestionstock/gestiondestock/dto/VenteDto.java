@@ -13,6 +13,15 @@ public class VenteDto {
     private Long id;
     private String code;
     private Instant datevente;
+    /**
+     * L'identite que le poste de vente donne a la vente avant de l'envoyer — un UUID qu'il tire
+     * lui-meme.
+     *
+     * Elle rend l'envoi rejouable sans risque : reposter la meme reference rend la vente deja
+     * enregistree au lieu d'en creer une seconde. Facultative en vente directe, obligatoire a la
+     * synchronisation.
+     */
+    private String referenceClient;
     private String Commentaires;
     private boolean annulee;
     /** A qui l'on vend, s'il est connu. Une vente de comptoir anonyme n'en a pas. */
@@ -32,6 +41,7 @@ public class VenteDto {
                 .id(vente.getId())
                 .code(vente.getCode())
                 .datevente(vente.getDatevente())
+                .referenceClient(vente.getReferenceClient())
                 .Commentaires(vente.getCommentaires())
                 .annulee(vente.isAnnulee())
                 .client(ClientDto.fromEntity(vente.getClient()))
@@ -49,6 +59,7 @@ public class VenteDto {
         ven.setId(dto.getId());
         ven.setCode(dto.getCode());
         ven.setDatevente(dto.getDatevente());
+        ven.setReferenceClient(dto.getReferenceClient());
         ven.setCommentaires(dto.getCommentaires());
         ven.setIdEntreprise(dto.getIdEntreprise());
 

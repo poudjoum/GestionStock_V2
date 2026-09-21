@@ -19,6 +19,25 @@ public interface VenteControllerApi {
     @PostMapping(path = APP_ROOT+"/ventes/create")
     ResponseEntity<VenteDto> save(@RequestBody VenteDto dto);
 
+    /**
+     * Envoie une vente faite sans reseau : `referenceClient` et `datevente` sont obligatoires.
+     *
+     * ```
+     * { "code": "V-1042", "referenceClient": "3f2a9c1e-...", "datevente": "2026-09-21T09:14:00Z",
+     *   "ligneVente": [ { "article": { "id": 5 }, "quantite": 2, "prixUnitaire": 5000 } ] }
+     * ```
+     *
+     * Rejouer la meme reference rend la vente deja enregistree, sans en creer une seconde ni
+     * sortir le stock deux fois : c'est ce qui permet a un poste qui a perdu le reseau de
+     * reessayer sans savoir si son premier envoi est passe.
+     *
+     * Le stock ne s'oppose pas a cette vente — elle a eu lieu. S'il passe sous zero, l'article
+     * remonte dans `/stock/alertes` avec le statut `NEGATIF` : il reclame un comptage, pas une
+     * commande.
+     */
+    @PostMapping(path = APP_ROOT+"/ventes/synchronisation", consumes = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<VenteDto> synchroniser(@RequestBody VenteDto dto);
+
     @GetMapping(path = APP_ROOT+"/ventes/{id}")
     ResponseEntity<VenteDto> findById(@PathVariable Long id);
 

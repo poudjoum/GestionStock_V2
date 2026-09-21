@@ -91,6 +91,8 @@ demarrage :
   une commande dont le reste n'arrivera jamais.
 - `V17__jetons_de_rafraichissement.sql` — le jeton qui permet d'en obtenir un autre. Il porte le
   motif de sa revocation, parce que c'est lui qui decide de ce qui se passe si ce jeton revient.
+- `V18__ventes_synchronisables.sql` — la reference que le poste de vente donne a une vente avant
+  de l'envoyer, unique, pour qu'un envoi rejoue ne vende pas deux fois.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -153,6 +155,51 @@ une seule transaction — servir a moitie une commande sans le dire serait pire 
 Le client de la commande devient celui de la vente : la lecture n'a ensuite qu'un seul chemin a
 suivre, que la vente vienne du comptoir ou d'une commande. La facture porte le nom du client
 lorsqu'il est connu, et reste anonyme sinon — c'est le ticket de caisse, pas une anomalie.
+
+### Vendre sans reseau
+
+Une vente faite sur un poste hors ligne s'envoie a la reconnexion. Elle est **un fait a constater,
+non une transaction a autoriser** : la marchandise est deja partie.
+
+```
+POST /gestiondestock/v1/ventes/synchronisation
+
+{ "code": "V-1042",
+  "referenceClient": "3f2a9c1e-5b7d-4e8a-9c21-7d4e5f6a8b90",
+  "datevente": "2026-09-21T09:14:00Z",
+  "ligneVente": [ { "article": { "id": 5 }, "quantite": 2, "prixUnitaire": 5000 } ] }
+```
+
+Trois differences avec une vente de comptoir, toutes tirees de cette seule phrase.
+
+**Une identite venue du poste de vente.** `referenceClient` est un UUID que le poste tire
+lui-meme. Rejouer la meme reference rend la vente deja enregistree au lieu d'en creer une
+seconde : un telephone qui perd le reseau au milieu d'un envoi ne sait pas si l'envoi est passe,
+il reessaie. L'identifiant de base ne pouvait pas servir a cela — il n'existe qu'une fois la vente
+ecrite, donc trop tard. Deux envois simultanes de la meme reference sont rattrapes aussi : le
+second retrouve le travail du premier, ce qui est exactement ce qu'il demandait.
+
+La reference est facultative sur `/ventes/create` et y fait le meme office : le comptoir aussi
+peut perdre sa reponse.
+
+**Sa date reelle.** `datevente` fait foi ici, et nulle part ailleurs. Une vente de 9 h
+synchronisee a midi doit peser sur la caisse de 9 h, et son mouvement de stock porte la meme date.
+Une date dans le futur est refusee, avec cinq minutes de tolerance — l'horloge d'un telephone
+derive, et refuser une vente pour deux minutes d'avance rendrait la synchronisation capricieuse.
+Sur `/ventes/create`, la date envoyee est ignoree : antidater une vente de comptoir ferait entrer
+une recette dans une caisse deja arretee.
+
+**Le stock ne s'y oppose pas.** Deux caisses vendent hors ligne le dernier sac de ciment ; la
+seconde synchronise et serait refusee, alors que le sac est parti. Refuser n'empecherait rien —
+cela effacerait seulement la trace de ce qui a eu lieu. Le stock passe donc sous zero.
+
+Ce n'est pas une erreur a masquer mais un **signal** : l'article remonte dans `/stock/alertes`
+avec le statut `NEGATIF`, distinct de `RUPTURE`. Les deux n'appellent pas le meme geste — une
+rupture se commande au fournisseur, un negatif se compte sur l'etagere.
+
+Le reste continue de refuser une sortie au-dela du stock : `/ventes/create`, `/ventes/{id}/lignes`
+et les deux routes de `/mouvements`. Laisser un appelant quelconque antidater une sortie ou passer
+sous zero permettrait de fabriquer un stock qui n'a jamais existe.
 
 ## TVA
 
@@ -496,9 +543,24 @@ avoir.
   encore rien coute.
 
 **Seuil d'alerte** (`seuilAlerte` sur l'article, facultatif). Chaque ligne porte un statut :
-`RUPTURE`, `SOUS_SEUIL`, `SUFFISANT`, ou `SANS_SEUIL` — ce dernier n'est pas un defaut, beaucoup
-d'articles n'ont pas a etre surveilles, et les confondre avec ceux qui vont bien ferait croire a
-une surveillance qui n'existe pas. `/stock/alertes` ne rend que ce qu'il faut recommander.
+
+| Statut | Ce qu'il veut dire | Ce qu'il appelle |
+|---|---|---|
+| `NEGATIF` | il est sorti plus que le magasin n'avait recu | un comptage sur l'etagere |
+| `RUPTURE` | plus rien | une commande au fournisseur |
+| `SOUS_SEUIL` | sous le seuil fixe | une commande au fournisseur |
+| `SUFFISANT` | au-dessus du seuil | rien |
+| `SANS_SEUIL` | article non surveille | rien |
+
+`SANS_SEUIL` n'est pas un defaut : beaucoup d'articles n'ont pas a etre surveilles, et les
+confondre avec ceux qui vont bien ferait croire a une surveillance qui n'existe pas.
+
+`NEGATIF` est apparu avec la vente hors ligne : tant que toutes les sorties etaient refusees
+au-dela du stock, il ne pouvait pas exister et se confondait avec `RUPTURE`. Il est vrai quel que
+soit le seuil — un article non surveille peut y tomber.
+
+`/stock/alertes` rend ces trois premiers statuts : ce qu'il faut recommander, et ce qu'il faut
+compter.
 
 ## Etat de caisse
 
@@ -569,7 +631,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-190 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+207 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -648,10 +710,11 @@ Le serveur n'a ni JDK ni Maven — le Dockerfile en deux temps les apporte le te
 construction, et l'image finale n'embarque qu'un JRE.
 
 ```bash
-# Depuis le poste de developpement : envoi des sources
-tar --exclude=.git --exclude=target --exclude=.env -czf /tmp/src.tgz .
-scp /tmp/src.tgz jumpy@<serveur>:~/apps/gestionstock/
-ssh jumpy@<serveur> 'cd ~/apps/gestionstock && tar -xzf src.tgz -C source && rm src.tgz'
+# Depuis le poste de developpement : envoi de l'arbre commite
+git archive --format=tar HEAD | ssh jumpy@<serveur> \
+  'rm -rf ~/apps/gestionstock/source.new && mkdir -p ~/apps/gestionstock/source.new \
+   && tar -x -C ~/apps/gestionstock/source.new \
+   && cd ~/apps/gestionstock && rm -rf source.old && mv source source.old && mv source.new source'
 
 # Sur le serveur : construction et demarrage
 ssh jumpy@<serveur> 'cd ~/apps/gestionstock/source && docker build -t gestionstock:latest .'
