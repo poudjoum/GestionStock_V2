@@ -129,6 +129,15 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, API + "/ventes/**", API + "/clients/**")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER)
 
+                        // Encaisser se fait au comptoir : le caissier doit pouvoir enregistrer un
+                        // reglement, la ou la regle des factures juste apres l'en exclurait.
+                        .requestMatchers(HttpMethod.POST, API + "/factures/*/reglements")
+                            .hasAnyRole(ADMIN, MANAGER, CAISSIER, COMPTABLE)
+                        // Reprendre un encaissement, en revanche, touche a une recette deja
+                        // constatee : cela ne s'improvise pas au comptoir.
+                        .requestMatchers(HttpMethod.DELETE, API + "/factures/*/reglements/**")
+                            .hasAnyRole(ADMIN, COMPTABLE)
+
                         // Annuler une facture est un geste comptable, pas un geste de magasin :
                         // sans cette ligne, la regle POST generique l'aurait ouvert au magasinier
                         // et ferme au comptable.

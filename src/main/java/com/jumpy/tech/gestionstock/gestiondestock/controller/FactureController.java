@@ -2,11 +2,14 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.FactureApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FactureDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ReglementDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.FactureService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 public class FactureController implements FactureApi {
@@ -45,5 +48,21 @@ public class FactureController implements FactureApi {
     @Override
     public ResponseEntity<FactureDto> annuler(Long idFacture) {
         return ResponseEntity.ok(factureService.annuler(idFacture));
+    }
+
+    @Override
+    public ResponseEntity<ReglementDto> regler(Long idFacture, ReglementDto reglement) {
+        return ResponseEntity.ok(factureService.regler(idFacture, reglement));
+    }
+
+    @Override
+    public ResponseEntity<List<ReglementDto>> reglements(Long idFacture) {
+        return ResponseEntity.ok(factureService.reglements(idFacture));
+    }
+
+    @Override
+    public ResponseEntity<Void> supprimerReglement(Long idFacture, Long idReglement) {
+        factureService.supprimerReglement(idFacture, idReglement);
+        return ResponseEntity.noContent().build();
     }
 }

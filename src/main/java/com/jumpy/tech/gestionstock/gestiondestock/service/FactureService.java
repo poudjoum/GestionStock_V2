@@ -1,8 +1,11 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FactureDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ReglementDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 /**
  * Facturation des ventes.
@@ -37,4 +40,23 @@ public interface FactureService {
      * comptabilite ne doit pas montrer. L'annulation rouvre en revanche la vente a la correction.
      */
     FactureDto annuler(Long id);
+
+    /**
+     * Enregistre un encaissement sur une facture.
+     *
+     * Plusieurs reglements peuvent porter sur la meme facture : un acompte puis le solde est le
+     * cas ordinaire. Ce qui depasse le reste a payer est refuse — un trop-percu est une erreur de
+     * saisie, pas une situation a enregistrer.
+     */
+    ReglementDto regler(Long idFacture, ReglementDto reglement);
+
+    /** Les encaissements d'une facture, du plus ancien au plus recent. */
+    List<ReglementDto> reglements(Long idFacture);
+
+    /**
+     * Efface un encaissement saisi par erreur.
+     *
+     * C'est un geste comptable, et le seul recours : un reglement ne se modifie pas, il se reprend.
+     */
+    void supprimerReglement(Long idFacture, Long idReglement);
 }

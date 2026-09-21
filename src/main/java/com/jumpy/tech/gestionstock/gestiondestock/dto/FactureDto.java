@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.dto;
 
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Facture;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.StatutReglement;
 import lombok.Builder;
 import lombok.Data;
 
@@ -24,6 +25,12 @@ public class FactureDto {
     private boolean annulee;
     /** Faux quand l'entreprise n'est pas assujettie : c'est ce qui explique une TVA a zero. */
     private boolean tvaApplicable;
+
+    // Deduits de la somme des reglements a chaque lecture, jamais stockes : une facture marquee
+    // reglee dont les encaissements ne suivent pas serait pire que pas d'information du tout.
+    private BigDecimal montantRegle;
+    private BigDecimal resteAPayer;
+    private StatutReglement statutReglement;
     private Long idClient;
     private String nomClient;
     private Long idEntreprise;
@@ -63,5 +70,30 @@ public class FactureDto {
         return fromEntity(facture, lignes.stream()
                 .map(LigneFactureDto::fromEntity)
                 .collect(Collectors.toList()));
+    }
+
+    /**
+     * Complete la facture de l'etat de son reglement.
+     *
+     * Une facture annulee n'est jamais « reglee » : elle ne doit plus rien, et l'afficher comme
+     * impayee ferait croire a une creance qui n'existe pas.
+     */
+    public FactureDto avecReglement(BigDecimal montantRegle) {
+        BigDecimal regle = montantRegle == null ? BigDecimal.ZERO : montantRegle;
+        BigDecimal du = totalTtc == null ? BigDecimal.ZERO : totalTtc;
+        BigDecimal reste = du.subtract(regle);
+
+        this.montantRegle = regle;
+        this.resteAPayer = reste.max(BigDecimal.ZERO);
+        if (annulee) {
+            this.statutReglement = null;
+        } else if (reste.signum() <= 0) {
+            this.statutReglement = StatutReglement.REGLEE;
+        } else if (regle.signum() > 0) {
+            this.statutReglement = StatutReglement.PARTIELLEMENT_REGLEE;
+        } else {
+            this.statutReglement = StatutReglement.IMPAYEE;
+        }
+        return this;
     }
 }

@@ -79,6 +79,8 @@ demarrage :
 - `V12__amorcage_super_admin.sql` — promeut le compte le plus ancien non rattache a une entreprise,
   s'il n'existe aucun super-administrateur. Sans lui, une installation deja en service n'aurait
   personne pour ouvrir une entreprise.
+- `V13__reglement_des_factures.sql` — les encaissements. Un reglement est un mouvement, pas un
+  solde : ce qui a ete paye se somme a la lecture.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -347,6 +349,41 @@ PATCH  /gestiondestock/v1/users/moi/motdepasse                son propre mot de 
 - Changer son mot de passe exige l'ancien ; le reinitialiser ne le demande pas, et c'est un geste
   d'administrateur. Huit caracteres au minimum.
 
+## Reglement des factures
+
+```
+POST   /gestiondestock/v1/factures/{id}/reglements
+GET    /gestiondestock/v1/factures/{id}/reglements
+DELETE /gestiondestock/v1/factures/{id}/reglements/{idReglement}
+```
+
+```json
+{ "montant": 5000, "mode": "MOBILE_MONEY", "reference": "MP260921.1432.A12345" }
+```
+
+Une facture etait emise ou annulee, jamais reglee : rien ne disait ce qui avait ete encaisse, ni ce
+qui restait du.
+
+- **Les paiements partiels sont la regle** : un acompte a la commande, le solde a la livraison.
+  Chaque facture porte `montantRegle`, `resteAPayer` et un statut — `IMPAYEE`,
+  `PARTIELLEMENT_REGLEE` ou `REGLEE` — deduits a la lecture. Rien n'est tenu a jour sur la facture :
+  une colonne « deja paye » se desynchronise au premier traitement interrompu, une somme de
+  mouvements non. C'est le meme choix que pour le stock.
+- Le **mode** dit ou aller verifier que l'argent est bien arrive : especes en caisse, mobile money
+  par son numero de transaction, cheque qui peut revenir impaye. `ESPECES`, `MOBILE_MONEY`,
+  `VIREMENT`, `CHEQUE`, `AUTRE`.
+- Ce qui **depasse le reste a payer est refuse** : un trop-percu est une erreur de saisie, pas une
+  situation a enregistrer.
+- La date est celle de l'encaissement, jamais celle que l'appelant declare — antidater un
+  reglement deplacerait une recette d'un exercice a l'autre.
+- Un reglement **ne se modifie pas, il se reprend** (cheque impaye, erreur de saisie), et c'est un
+  geste comptable.
+- **Une facture deja encaissee ne s'annule pas** sans reprendre ses reglements : sinon de l'argent
+  recu resterait sans rien en face.
+
+La liste des factures porte le reste a payer de chacune, charge en une seule requete — les
+demander facture par facture ferait une requete par ligne affichee.
+
 ## Acces et roles
 
 L'API est fermee : toute route inconnue du tableau ci-dessous exige au minimum un compte valide,
@@ -360,6 +397,8 @@ et une route ajoutee demain naitra fermee.
 | Vendre, enregistrer un client | ADMIN, MANAGER, CAISSIER |
 | Corriger ou annuler une vente | ADMIN, MANAGER, CAISSIER |
 | Emettre une facture | ADMIN, MANAGER, CAISSIER |
+| Encaisser un reglement | ADMIN, MANAGER, CAISSIER, COMPTABLE |
+| Reprendre un reglement | ADMIN, COMPTABLE |
 | Annuler une facture | ADMIN, MANAGER, COMPTABLE |
 | Creer articles, categories, commandes | ADMIN, MANAGER, MAGASINIER |
 | Supprimer | ADMIN, MANAGER |
@@ -376,7 +415,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-108 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+120 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -451,7 +490,8 @@ A savoir avant de reprendre le developpement :
 - Le taux applique est fige a l'emission de la facture, mais deux ventes du meme article au meme
   moment ne peuvent pas avoir deux taux : l'exception se porte sur l'article, pas sur la ligne.
 - Servir une commande la solde d'un coup : pas de livraison partielle.
-- Rien ne suit le **paiement** d'une facture : elle est emise ou annulee, jamais reglee.
+- Rien ne rapproche les encaissements d'un relevé : le mode et la reference sont saisis, personne
+  ne les confronte a ce que la banque ou l'operateur mobile a reellement recu.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra
   une operation dediee plutot qu'un retour en arriere.
 - **Spring Boot 4 est disponible et n'est pas pris.** Il repose sur Spring Framework 7, deplace des

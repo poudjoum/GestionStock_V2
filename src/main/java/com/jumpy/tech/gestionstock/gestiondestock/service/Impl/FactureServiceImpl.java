@@ -2,12 +2,14 @@ package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FactureDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ReglementDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Client;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Entreprise;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Facture;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneFacture;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneVente;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Reglement;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Vente;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
@@ -16,6 +18,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepositor
 import com.jumpy.tech.gestionstock.gestiondestock.repository.FactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneFactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneVenteRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.ReglementRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.VenteRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.FactureService;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +34,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -50,6 +55,7 @@ public class FactureServiceImpl implements FactureService {
     private final VenteRepository venteRepository;
     private final LigneVenteRepository ligneVenteRepository;
     private final EntrepriseRepository entrepriseRepository;
+    private final ReglementRepository reglementRepository;
     private final Cloisonnement cloisonnement;
 
     public FactureServiceImpl(FactureRepository factureRepository,
@@ -57,8 +63,10 @@ public class FactureServiceImpl implements FactureService {
                               VenteRepository venteRepository,
                               LigneVenteRepository ligneVenteRepository,
                               EntrepriseRepository entrepriseRepository,
+                              ReglementRepository reglementRepository,
                               Cloisonnement cloisonnement) {
         this.entrepriseRepository = entrepriseRepository;
+        this.reglementRepository = reglementRepository;
         this.cloisonnement = cloisonnement;
         this.factureRepository = factureRepository;
         this.ligneFactureRepository = ligneFactureRepository;
@@ -125,7 +133,8 @@ public class FactureServiceImpl implements FactureService {
 
         log.info("Facture {} emise pour la vente {} : {} TTC",
                 enregistree.getNumero(), idVente, enregistree.getTotalTtc());
-        return FactureDto.avecLignes(factureRepository.save(enregistree), lignes);
+        return FactureDto.avecLignes(factureRepository.save(enregistree), lignes)
+                .avecReglement(BigDecimal.ZERO);
     }
 
     /**
@@ -252,7 +261,8 @@ public class FactureServiceImpl implements FactureService {
     @Override
     public FactureDto findById(Long id) {
         Facture facture = facture(id);
-        return FactureDto.avecLignes(facture, ligneFactureRepository.findAllByFactureId(id));
+        return FactureDto.avecLignes(facture, ligneFactureRepository.findAllByFactureId(id))
+                .avecReglement(reglementRepository.totalReglePour(id));
     }
 
     @Override
@@ -267,7 +277,8 @@ public class FactureServiceImpl implements FactureService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucune facture portant le numéro " + numero + " n'a été trouvée",
                         ErrorCodes.VENTE_NOT_FOUND));
-        return FactureDto.avecLignes(facture, ligneFactureRepository.findAllByFactureId(facture.getId()));
+        return FactureDto.avecLignes(facture, ligneFactureRepository.findAllByFactureId(facture.getId()))
+                .avecReglement(reglementRepository.totalReglePour(facture.getId()));
     }
 
     @Override
@@ -279,16 +290,31 @@ public class FactureServiceImpl implements FactureService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "La vente " + idVente + " n'a pas été facturée",
                         ErrorCodes.VENTE_NOT_FOUND));
-        return FactureDto.avecLignes(facture, ligneFactureRepository.findAllByFactureId(facture.getId()));
+        return FactureDto.avecLignes(facture, ligneFactureRepository.findAllByFactureId(facture.getId()))
+                .avecReglement(reglementRepository.totalReglePour(facture.getId()));
     }
 
     @Override
     public Page<FactureDto> findAll(Pageable pageable) {
         // Sans les lignes : une liste de factures affiche des totaux, pas le detail de chacune.
-        return (cloisonnement.filtre()
+        Page<Facture> page = cloisonnement.filtre()
                 ? factureRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
-                : factureRepository.findAll(pageable))
-                .map(FactureDto::fromEntity);
+                : factureRepository.findAll(pageable);
+
+        // Les montants regles de toute la page en une requete : les demander facture par facture
+        // ferait une requete par ligne affichee.
+        Map<Long, BigDecimal> regles = totauxRegles(page.getContent());
+        return page.map(facture -> FactureDto.fromEntity(facture)
+                .avecReglement(regles.getOrDefault(facture.getId(), BigDecimal.ZERO)));
+    }
+
+    private Map<Long, BigDecimal> totauxRegles(List<Facture> factures) {
+        if (factures.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> ids = factures.stream().map(Facture::getId).collect(Collectors.toList());
+        return reglementRepository.totauxRegles(ids).stream()
+                .collect(Collectors.toMap(ligne -> (Long) ligne[0], ligne -> (BigDecimal) ligne[1]));
     }
 
     @Override
@@ -299,9 +325,95 @@ public class FactureServiceImpl implements FactureService {
             throw new InvalidEntityException("Cette facture est déjà annulée",
                     ErrorCodes.VENTE_NOT_VALID);
         }
+        // Annuler une facture deja encaissee laisserait de l'argent recu sans rien en face. Les
+        // reglements se reprennent d'abord — c'est le moment ou l'on decide de rembourser.
+        if (reglementRepository.existsByFactureId(id)) {
+            throw new InvalidEntityException(
+                    "Cette facture porte des règlements : reprenez-les avant de l'annuler",
+                    ErrorCodes.VENTE_NOT_VALID,
+                    List.of("Encaissé sur " + facture.getNumero() + " : "
+                            + reglementRepository.totalReglePour(id)));
+        }
         facture.setAnnulee(true);
         return FactureDto.avecLignes(factureRepository.save(facture),
-                ligneFactureRepository.findAllByFactureId(id));
+                ligneFactureRepository.findAllByFactureId(id))
+                .avecReglement(BigDecimal.ZERO);
+    }
+
+    @Override
+    @Transactional
+    public ReglementDto regler(Long idFacture, ReglementDto demande) {
+        Facture facture = facture(idFacture);
+
+        if (facture.isAnnulee()) {
+            throw new InvalidEntityException("Une facture annulée ne se règle pas",
+                    ErrorCodes.VENTE_NOT_VALID,
+                    List.of("La facture " + facture.getNumero() + " a été annulée"));
+        }
+        if (demande == null || demande.getMontant() == null || demande.getMontant().signum() <= 0) {
+            throw new InvalidEntityException("Le montant d'un règlement doit être strictement positif",
+                    ErrorCodes.VENTE_NOT_VALID);
+        }
+        if (demande.getMode() == null) {
+            throw new InvalidEntityException("Un règlement dit par quel moyen il a été reçu",
+                    ErrorCodes.VENTE_NOT_VALID);
+        }
+
+        BigDecimal dejaRegle = reglementRepository.totalReglePour(idFacture);
+        BigDecimal reste = facture.getTotalTtc().subtract(dejaRegle);
+        if (reste.signum() <= 0) {
+            throw new InvalidEntityException("Cette facture est déjà réglée",
+                    ErrorCodes.VENTE_NOT_VALID);
+        }
+        // Un trop-percu est une erreur de saisie, pas une situation a enregistrer : le refuser
+        // evite d'avoir a inventer plus tard une notion de rendu de monnaie.
+        if (demande.getMontant().compareTo(reste) > 0) {
+            throw new InvalidEntityException(
+                    "Le règlement dépasse le reste à payer : " + reste + " attendus, "
+                            + demande.getMontant() + " présentés",
+                    ErrorCodes.VENTE_NOT_VALID,
+                    List.of("Reste à payer sur " + facture.getNumero() + " : " + reste));
+        }
+
+        Reglement reglement = new Reglement();
+        reglement.setFacture(facture);
+        reglement.setMontant(demande.getMontant());
+        reglement.setMode(demande.getMode());
+        reglement.setReference(demande.getReference());
+        // La date est celle de l'encaissement, pas celle que l'appelant declare : antidater un
+        // reglement deplacerait une recette d'un exercice a l'autre.
+        reglement.setDateReglement(Instant.now());
+        reglement.setIdEntreprise(facture.getIdEntreprise());
+
+        log.info("Reglement de {} sur la facture {} ({})",
+                demande.getMontant(), facture.getNumero(), demande.getMode());
+        return ReglementDto.fromEntity(reglementRepository.save(reglement));
+    }
+
+    @Override
+    public List<ReglementDto> reglements(Long idFacture) {
+        facture(idFacture);
+        return reglementRepository.findAllByFactureIdOrderByDateReglementAsc(idFacture).stream()
+                .map(ReglementDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void supprimerReglement(Long idFacture, Long idReglement) {
+        facture(idFacture);
+        Reglement reglement = reglementRepository.findById(idReglement)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun règlement avec l'identifiant " + idReglement + " n'a été trouvé",
+                        ErrorCodes.VENTE_NOT_FOUND));
+        // Sans ce controle, connaitre un identifiant de reglement suffirait a effacer une recette
+        // portee par la facture d'un autre.
+        if (reglement.getFacture() == null || !idFacture.equals(reglement.getFacture().getId())) {
+            throw new InvalidEntityException(
+                    "Le règlement " + idReglement + " ne porte pas sur la facture " + idFacture,
+                    ErrorCodes.VENTE_NOT_VALID);
+        }
+        reglementRepository.delete(reglement);
     }
 
     private Facture facture(Long id) {
