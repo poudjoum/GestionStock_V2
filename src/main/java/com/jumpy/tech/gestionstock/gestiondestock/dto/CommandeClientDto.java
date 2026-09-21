@@ -2,6 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.dto;
 
 
 import com.jumpy.tech.gestionstock.gestiondestock.entities.CommandeClient;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import lombok.Builder;
 import lombok.Data;
 
@@ -19,6 +20,7 @@ public class CommandeClientDto {
 
     private ClientDto client;
     private Long idEntreprise;
+    private EtatCommande etat;
 
 
     private List<LigneCommandeClientDto> ligneCmndeClients;
@@ -33,6 +35,7 @@ public class CommandeClientDto {
                 .dateCmnde(cmdClient.getDateCommande())
                 .client(ClientDto.fromEntity(cmdClient.getClient()))
                 .idEntreprise(cmdClient.getIdEntreprise())
+                .etat(cmdClient.getEtat())
                 .build();
     }
     public static  CommandeClient toEntity(CommandeClientDto dto) {
@@ -45,6 +48,7 @@ public class CommandeClientDto {
         cl.setDateCommande(dto.getDateCmnde());
         cl.setClient(ClientDto.toEntity(dto.getClient()));
         cl.setIdEntreprise(dto.getIdEntreprise());
+        cl.setEtat(dto.getEtat());
 
         return cl;
     }

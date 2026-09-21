@@ -54,6 +54,10 @@ demarrage :
 - `V3__unicite_des_comptes.sql` — identifiant et courriel uniques. La verification existait en
   Java avant insertion, mais entre le controle et l'ecriture une seconde requete passe : seule la
   base voit les deux insertions. Un doublon rend un **409**.
+- `V4__etat_des_commandes.sql` — le cycle de vie des commandes. Les commandes fournisseur
+  anterieures y naissent `LIVREE` et non `EN_PREPARATION` : elles ont ete saisies quand
+  l'enregistrement faisait entrer la marchandise, leur stock est donc deja compte, et les livrer a
+  nouveau le doublerait.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -70,10 +74,10 @@ traitement interrompu, une somme de mouvements non.
 - Une **vente** sort la marchandise du magasin. Vente, lignes et mouvements sont ecrits dans une
   seule transaction : si une ligne manque de stock, la vente entiere est refusee. Vendre la moitie
   d'un panier sans le dire serait pire que refuser.
-- Une **commande fournisseur** fait entrer la marchandise. Le modele n'ayant pas d'etat de
-  commande, l'enregistrement vaut reception ; le jour ou la commande aura un cycle de vie, l'entree
-  devra se faire au passage en « livree ».
-- Une **commande client** ne bouge pas le stock : c'est un engagement, pas une sortie.
+- Une **commande fournisseur** fait entrer la marchandise **a sa livraison**, pas a son
+  enregistrement : le stock ne monte plus avant que le camion n'arrive.
+- Une **commande client** ne bouge pas le stock, a aucun moment de son cycle : c'est un
+  engagement, pas une sortie.
 - Le sens d'un mouvement vient de la route appelee (`/mouvements/entree`, `/mouvements/sortie`) et
   jamais du corps de la requete, sans quoi il suffirait de mentir sur le type pour creer du stock.
 
@@ -84,6 +88,25 @@ POST /gestiondestock/v1/mouvements/entree
 POST /gestiondestock/v1/mouvements/sortie
 ```
 
+## Cycle de vie des commandes
+
+```
+EN_PREPARATION ──> VALIDEE ──> LIVREE
+       │              │
+       └──────────────┴──────> ANNULEE
+```
+
+```
+PATCH /gestiondestock/v1/commandes-fournisseurs/{id}/etat/{etat}
+PATCH /gestiondestock/v1/commandes-clients/{id}/etat/{etat}
+```
+
+Une commande nait `EN_PREPARATION`. `LIVREE` et `ANNULEE` sont **definitifs** : une commande
+livree ne se deprogramme pas — la marchandise a bouge, et l'annuler laisserait le stock mentir —
+et une commande annulee ne se reprend pas, on en saisit une nouvelle. C'est aussi ce qui garantit
+qu'une commande fournisseur n'entre en stock qu'une fois : une seconde livraison est refusee avant
+d'avoir relu la moindre ligne.
+
 ## Acces et roles
 
 L'API est fermee : toute route inconnue du tableau ci-dessous exige au minimum un compte valide,
@@ -93,6 +116,7 @@ et une route ajoutee demain naitra fermee.
 |---|---|
 | Consulter (GET) | tout compte connecte |
 | Entrer ou sortir du stock | ADMIN, MANAGER, MAGASINIER |
+| Faire avancer une commande (PATCH) | ADMIN, MANAGER, MAGASINIER |
 | Vendre, enregistrer un client | ADMIN, MANAGER, CAISSIER |
 | Creer articles, categories, commandes | ADMIN, MANAGER, MAGASINIER |
 | Supprimer | ADMIN, MANAGER |
@@ -108,7 +132,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-33 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+40 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -177,10 +201,10 @@ pour Spring, et n'etaient donc pas joignables.
 
 A savoir avant de reprendre le developpement :
 
-- Pas de cycle de vie des commandes (commandee, livree, annulee), d'ou le choix de faire entrer la
-  marchandise des l'enregistrement d'une commande fournisseur.
 - Une commande ou une vente ne se modifie pas : ni ajout de ligne, ni retrait, ni correction de
   quantite.
+- Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra
+  une operation dediee plutot qu'un retour en arriere.
 - **Spring Boot 4 est disponible et n'est pas pris.** Il repose sur Spring Framework 7, deplace des
   modules et retire les API depreciees de toute la ligne 3.x : c'est une migration en soi, a mener
   une fois celle-ci eprouvee. springdoc devra alors passer en 3.x, sa ligne 2.x etant alignee sur

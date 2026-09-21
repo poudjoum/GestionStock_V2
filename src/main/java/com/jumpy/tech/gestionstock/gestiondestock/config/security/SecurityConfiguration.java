@@ -110,6 +110,13 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, API + "/ventes/**", API + "/clients/**")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER)
 
+                        // Faire avancer une commande — la declarer livree, donc faire entrer la
+                        // marchandise en stock — est un geste de magasin, pas une consultation.
+                        // Sans cette ligne, PATCH tombait dans le authenticated() final et tout
+                        // compte connecte pouvait livrer une commande.
+                        .requestMatchers(HttpMethod.PATCH, API + "/**")
+                            .hasAnyRole(ADMIN, MANAGER, MAGASINIER)
+
                         // Supprimer engage plus que creer : deux roles, pas cinq.
                         .requestMatchers(HttpMethod.DELETE, API + "/**").hasAnyRole(ADMIN, MANAGER)
                         .requestMatchers(HttpMethod.POST, API + "/**").hasAnyRole(ADMIN, MANAGER, MAGASINIER)

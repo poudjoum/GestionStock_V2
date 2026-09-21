@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.dto;
 
 import com.jumpy.tech.gestionstock.gestiondestock.entities.CommandeFour;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import lombok.Builder;
 import lombok.Data;
 
@@ -19,6 +20,7 @@ public class CommandeFourDto {
 
     private FournisseurDto fournisseur;
     private Long idEntreprise;
+    private EtatCommande etat;
 
     private List<LigneCmndeFournisseurDto> ligneCmndeFournisseur;
 
@@ -32,6 +34,7 @@ public class CommandeFourDto {
                 .dateCommande(cmdeF.getDateCommande())
                 .fournisseur(FournisseurDto.fromEntity(cmdeF.getFournisseur()))
                 .idEntreprise(cmdeF.getIdEntreprise())
+                .etat(cmdeF.getEtat())
                 .build();
     }
     public static CommandeFour toEntity(CommandeFourDto dto) {
@@ -44,6 +47,7 @@ public class CommandeFourDto {
         cf.setDateCommande(dto.getDateCommande());
         cf.setFournisseur(FournisseurDto.toEntity(dto.getFournisseur()));
         cf.setIdEntreprise(dto.getIdEntreprise());
+        cf.setEtat(dto.getEtat());
         return cf;
     }
 }

@@ -5,6 +5,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Client;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.CommandeClient;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneCmndeClient;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
@@ -83,7 +84,9 @@ public class CommandeClientServiceImpl implements CommandeClientService {
             log.error("");
             throw new InvalidEntityException("Un ou plusieurs articles de la commande n'existent pas",ErrorCodes.ARTICLE_NOT_FOUND,articleErrors);
         }
-        CommandeClient saveCmndClt=commandeClientRepository.save(CommandeClientDto.toEntity(dto));
+        CommandeClient aEnregistrer = CommandeClientDto.toEntity(dto);
+        aEnregistrer.setEtat(EtatCommande.EN_PREPARATION);
+        CommandeClient saveCmndClt=commandeClientRepository.save(aEnregistrer);
         if(dto.getLigneCmndeClients()!=null) {
             dto.getLigneCmndeClients().forEach(ligCmdClt -> {
                 LigneCmndeClient ligneCmndeClient = LigneCommandeClientDto.toEntity(ligCmdClt);
@@ -124,6 +127,37 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         return commandeClientRepository.findAll().stream()
                 .map(CommandeClientDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Fait avancer la commande dans son cycle de vie.
+     *
+     * Aucune transition n'ecrit de mouvement, pas meme la livraison : c'est la vente qui sort la
+     * marchandise du magasin. La decompter ici aussi la retirerait deux fois.
+     */
+    @Override
+    @Transactional
+    public CommandeClientDto mettreAJourEtat(Long id, EtatCommande etat) {
+        CommandeClient commande = commandeClientRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune commande client avec l'identifiant " + id + " n'a été trouvée",
+                        ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
+
+        if (etat == null) {
+            throw new InvalidEntityException("L'état visé doit être renseigné",
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID);
+        }
+        if (!commande.getEtat().peutPasserA(etat)) {
+            throw new InvalidEntityException(
+                    "Une commande " + commande.getEtat() + " ne peut pas passer à " + etat,
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID,
+                    List.of(commande.getEtat().estTerminal()
+                            ? "L'état " + commande.getEtat() + " est définitif"
+                            : "Transition interdite : " + commande.getEtat() + " vers " + etat));
+        }
+
+        commande.setEtat(etat);
+        return CommandeClientDto.fromEntity(commandeClientRepository.save(commande));
     }
 
     @Override

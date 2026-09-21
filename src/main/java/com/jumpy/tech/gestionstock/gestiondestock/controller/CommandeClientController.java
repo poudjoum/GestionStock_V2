@@ -2,6 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.CommandeClientApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeClientDto;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import com.jumpy.tech.gestionstock.gestiondestock.service.CommandeClientService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,11 @@ public class CommandeClientController implements CommandeClientApi {
     @Override
     public ResponseEntity<List<CommandeClientDto>> findAll() {
         return ResponseEntity.status(HttpStatus.OK).body(cmdeCliService.findAll());
+    }
+
+    @Override
+    public ResponseEntity<CommandeClientDto> mettreAJourEtat(Long idCommandClient, EtatCommande etat) {
+        return ResponseEntity.ok(cmdeCliService.mettreAJourEtat(idCommandClient, etat));
     }
 
     @Override

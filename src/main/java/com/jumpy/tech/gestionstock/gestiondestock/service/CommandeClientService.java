@@ -1,18 +1,23 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeClientDto;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 
 import java.util.List;
 
-import static com.jumpy.tech.gestionstock.gestiondestock.utils.Constants.APP_ROOT;
-
+// Cette interface de service tirait les annotations web de Spring et Swagger — @GetMapping,
+// @RequestBody, APP_ROOT — sans en employer aucune : des imports de la couche HTTP dans le
+// contrat metier.
 public interface CommandeClientService {
+
+    /**
+     * Fait avancer la commande dans son cycle de vie.
+     *
+     * Aucune transition ne touche au stock, pas meme la livraison : c'est la vente qui sort la
+     * marchandise du magasin. Decompter ici aussi la retirerait deux fois.
+     */
+    CommandeClientDto mettreAJourEtat(Long id, EtatCommande etat);
+
     CommandeClientDto save(CommandeClientDto dto);
     CommandeClientDto findById(Long id);
     CommandeClientDto findByCode(String code);

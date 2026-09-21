@@ -48,10 +48,9 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     /**
      * Enregistre la commande, ses lignes, et l'entree en stock de chaque ligne.
      *
-     * Le modele ne connait pas d'etat de commande : une commande fournisseur enregistree vaut donc
-     * marchandise recue, et alimente le magasin. Le jour ou la commande recevra un cycle de vie
-     * (commandee, livree, annulee), c'est au passage en « livree » que l'entree devra se faire ;
-     * en attendre un aujourd'hui laisserait simplement le stock a zero pour toujours.
+     * La marchandise n'entre plus en stock ici. Une commande nait EN_PREPARATION, et c'est son
+     * passage en LIVREE qui alimente le magasin — le stock ne monte donc plus avant que le camion
+     * n'arrive. C'etait l'approximation assumee tant que la commande n'avait pas d'etat.
      */
     @Override
     @Transactional
@@ -85,23 +84,64 @@ public class CommandeFourServiceImpl implements CommandeFourService {
             log.error("");
             throw new InvalidEntityException("Un ou plusieurs articles de la commande n'existent pas",ErrorCodes.ARTICLE_NOT_FOUND,articleErrors);
         }
-        CommandeFour saveCmndFour=commandeFourRepository.save(CommandeFourDto.toEntity(dto));
+        CommandeFour aEnregistrer = CommandeFourDto.toEntity(dto);
+        // L'etat ne se choisit pas a la creation : une commande que l'on pourrait declarer LIVREE
+        // d'emblee ferait entrer en stock une marchandise que personne n'a vue arriver.
+        aEnregistrer.setEtat(EtatCommande.EN_PREPARATION);
+        CommandeFour saveCmndFour=commandeFourRepository.save(aEnregistrer);
         if(dto.getLigneCmndeFournisseur()!=null) {
             dto.getLigneCmndeFournisseur().forEach(ligCmdFour -> {
                 LigneCmndeFournisseur ligneCmndeFour = LigneCmndeFournisseurDto.toEntity(ligCmdFour);
                 ligneCmndeFour.setCommandeFournisseur(saveCmndFour);
                 ligneCmndeFourRepository.save(ligneCmndeFour);
-                entrerEnStock(ligCmdFour);
             });
         }
         return CommandeFourDto.fromEntity(saveCmndFour);
     }
 
-    private void entrerEnStock(LigneCmndeFournisseurDto ligne) {
-        mvtStkService.entreeStock(MvtStkDto.builder()
-                .article(ArticleDto.builder().Id(ligne.getArticle().getId()).build())
-                .quantite(ligne.getQuantite())
-                .build());
+    /**
+     * Fait avancer la commande dans son cycle de vie.
+     *
+     * Le passage en LIVREE est le moment ou la marchandise entre en magasin. Il est donc le seul
+     * a ecrire des mouvements, et l'etat lui-meme garantit qu'il ne le fera qu'une fois : une
+     * commande livree ne peut plus changer d'etat, donc plus rien relire ses lignes.
+     */
+    @Override
+    @Transactional
+    public CommandeFourDto mettreAJourEtat(Long id, EtatCommande etat) {
+        CommandeFour commande = commandeFourRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune commande fournisseur avec l'identifiant " + id + " n'a été trouvée",
+                        ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
+
+        verifierTransition(commande.getEtat(), etat);
+
+        if (etat == EtatCommande.LIVREE) {
+            ligneCmndeFourRepository.findAllByCommandeFournisseurId(id)
+                    .forEach(ligne -> mvtStkService.entreeStock(MvtStkDto.builder()
+                            .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
+                            .quantite(ligne.getQuantite())
+                            .build()));
+        }
+
+        commande.setEtat(etat);
+        log.info("Commande fournisseur {} : {} -> {}", id, commande.getEtat(), etat);
+        return CommandeFourDto.fromEntity(commandeFourRepository.save(commande));
+    }
+
+    private void verifierTransition(EtatCommande actuel, EtatCommande cible) {
+        if (cible == null) {
+            throw new InvalidEntityException("L'état visé doit être renseigné",
+                    ErrorCodes.COMMANDE_FOURNISSEUR_NOT_VALID);
+        }
+        if (!actuel.peutPasserA(cible)) {
+            throw new InvalidEntityException(
+                    "Une commande " + actuel + " ne peut pas passer à " + cible,
+                    ErrorCodes.COMMANDE_FOURNISSEUR_NOT_VALID,
+                    List.of(actuel.estTerminal()
+                            ? "L'état " + actuel + " est définitif"
+                            : "Transition interdite : " + actuel + " vers " + cible));
+        }
     }
 
     @Override
