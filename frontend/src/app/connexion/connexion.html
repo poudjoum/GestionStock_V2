@@ -1,0 +1,57 @@
+@let charge = enCours();
+
+<div class="flex min-h-dvh items-center justify-center px-4 py-8">
+  <div class="w-full max-w-sm">
+    <div class="mb-8 text-center">
+      <mat-icon class="!h-12 !w-12 !text-5xl" style="color: var(--mat-sys-primary)">inventory</mat-icon>
+      <h1 class="mt-2 text-2xl font-medium">Gestion de stock</h1>
+      <p class="mt-1 text-sm opacity-70">Connectez-vous pour continuer</p>
+    </div>
+
+    <form class="flex flex-col gap-2" (ngSubmit)="soumettre()">
+      <mat-form-field appearance="outline">
+        <mat-label>Identifiant</mat-label>
+        <input
+          matInput
+          name="username"
+          autocomplete="username"
+          autocapitalize="none"
+          autocorrect="off"
+          [ngModel]="username()"
+          (ngModelChange)="username.set($event)"
+          [disabled]="charge"
+          required
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Mot de passe</mat-label>
+        <input
+          matInput
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          [ngModel]="motDePasse()"
+          (ngModelChange)="motDePasse.set($event)"
+          [disabled]="charge"
+          required
+        />
+      </mat-form-field>
+
+      @if (erreur(); as message) {
+        <p class="rounded px-3 py-2 text-sm" role="alert"
+           style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+          {{ message }}
+        </p>
+      }
+
+      <button mat-flat-button type="submit" class="mt-2 !h-12" [disabled]="charge">
+        {{ charge ? 'Connexion…' : 'Se connecter' }}
+      </button>
+
+      @if (charge) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+    </form>
+  </div>
+</div>

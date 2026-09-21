@@ -1,0 +1,86 @@
+<div class="flex min-h-dvh flex-col">
+  <mat-toolbar
+    class="!sticky z-20 shrink-0 gap-2"
+    style="top: 0; padding-top: var(--marge-haut); height: calc(64px + var(--marge-haut))"
+  >
+    <span class="text-base font-medium">Gestion de stock</span>
+    <span class="flex-1"></span>
+
+    <a
+      mat-icon-button
+      routerLink="/notifications"
+      aria-label="Notifications"
+      [matBadge]="nonLues() > 99 ? '99+' : nonLues()"
+      [matBadgeHidden]="nonLues() === 0"
+      matBadgeColor="warn"
+      matBadgeSize="small"
+    >
+      <mat-icon>notifications</mat-icon>
+    </a>
+
+    <button mat-icon-button [matMenuTriggerFor]="compte" aria-label="Mon compte">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+    <mat-menu #compte="matMenu">
+      <div class="px-4 py-2">
+        <p class="text-sm font-medium">{{ username() }}</p>
+        <p class="text-xs opacity-70">{{ metier() }}</p>
+      </div>
+      <button mat-menu-item (click)="seDeconnecter()">
+        <mat-icon>logout</mat-icon>
+        <span>Se déconnecter</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+
+  <div class="flex flex-1">
+    <!-- Colonne de gauche : uniquement a partir de la taille tablette. -->
+    <nav class="hidden w-56 shrink-0 border-r p-2 md:block" style="border-color: var(--mat-sys-outline-variant)">
+      @for (entree of entrees(); track entree.chemin) {
+        <a
+          [routerLink]="entree.chemin"
+          routerLinkActive="font-medium"
+          #actif="routerLinkActive"
+          class="mb-1 flex items-center gap-3 rounded-full px-4 py-2.5 text-sm no-underline"
+          [style.background]="actif.isActive ? 'var(--mat-sys-secondary-container)' : 'transparent'"
+          [style.color]="actif.isActive ? 'var(--mat-sys-on-secondary-container)' : 'var(--mat-sys-on-surface)'"
+        >
+          <mat-icon>{{ entree.icone }}</mat-icon>
+          {{ entree.libelle }}
+        </a>
+      }
+    </nav>
+
+    <main class="min-w-0 flex-1 p-4 pb-24 md:pb-4">
+      <router-outlet />
+    </main>
+  </div>
+
+  <!--
+    Barre du bas : les gestes de tous les jours, sous le pouce, et seulement sur telephone.
+    La marge basse tient compte de la barre de gestes, l'application etant installable.
+  -->
+  @if (principales().length > 1) {
+    <nav
+      class="fixed inset-x-0 bottom-0 z-20 flex border-t md:hidden"
+      style="
+        background: var(--mat-sys-surface-container);
+        border-color: var(--mat-sys-outline-variant);
+        padding-bottom: var(--marge-bas);
+      "
+    >
+      @for (entree of principales(); track entree.chemin) {
+        <a
+          [routerLink]="entree.chemin"
+          routerLinkActive
+          #actif="routerLinkActive"
+          class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs no-underline"
+          [style.color]="actif.isActive ? 'var(--mat-sys-primary)' : 'var(--mat-sys-on-surface-variant)'"
+        >
+          <mat-icon>{{ entree.icone }}</mat-icon>
+          {{ entree.libelle }}
+        </a>
+      }
+    </nav>
+  }
+</div>

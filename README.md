@@ -689,6 +689,72 @@ Ce qui en decoule :
 jeton mais aucun moyen de redemander a qui il appartient. Il devait croire son stockage local, et
 gardait donc le menu d'un role retire jusqu'a l'expiration du jeton.
 
+## Le front
+
+Une application Angular 22, dans `frontend/`. Elle parle a l'API decrite plus haut et n'a pas de
+base a elle.
+
+```bash
+cd frontend
+npm install
+npm start          # http://localhost:4200, avec un proxy vers l'API
+npm run api:types  # regenere les types TypeScript depuis la specification OpenAPI
+npm run build      # production, dans frontend/dist/
+```
+
+### Le vrai sujet n'est pas « responsive »
+
+« Utilisable sur mobile et sur PC » se traduit mal en « un ecran qui retrecit ». Six roles font
+six metiers differents, et chacun a deja son terrain.
+
+| Role | Ou il est | Ecran naturel |
+|---|---|---|
+| CAISSIER | debout, au comptoir | telephone ou tablette |
+| MAGASINIER | dans les rayons, au quai | telephone |
+| COMPTABLE | assis, au bureau | PC — tableaux, exports |
+| MANAGER / ADMIN | bureau | PC surtout |
+
+D'ou deux dispositions et non une mise en page qui retrecit : sur telephone, les gestes de tous
+les jours dans une barre en bas, sous le pouce ; sur un ecran large, tout le menu dans une
+colonne a gauche. **Le menu vient du role**, et chacun arrive a la connexion sur l'ecran ou il
+travaille — le caissier sur la vente, le magasinier sur le stock. Un accueil commun obligerait
+chacun a un clic de plus, tous les matins.
+
+### Les types viennent de l'API
+
+`npm run api:types` regenere `src/app/api/schema.d.ts` depuis `/api-GestionStock`. Aucun DTO
+n'est recopie a la main : recopier est le plus sur moyen de laisser diverger, et le jour ou le
+backend ajoute un champ personne ne s'en apercoit cote front.
+
+Le generateur s'appelle par `npx` plutot que d'etre installe : il exige TypeScript 5 quand
+Angular 22 en fournit 6, et ce n'est qu'un outil de generation — rien n'en depend a l'execution.
+
+### L'authentification
+
+Les deux jetons vivent dans le stockage local : sans cela, recharger la page deconnecterait, ce
+qui est intenable sur un telephone. Un intercepteur pose le jeton sur chaque requete et renouvelle
+celui qui a expire.
+
+**Un seul renouvellement a la fois.** Au demarrage, l'application lance volontiers cinq requetes
+d'un coup ; si le jeton a expire pendant la nuit, les cinq recoivent un 401 en meme temps. Sans
+verrou, elles demanderaient cinq rafraichissements : le premier reussirait, les quatre autres
+presenteraient un jeton deja remplace — que le serveur tient pour une copie volee, et qui ferme
+tout le compte.
+
+Les roles sont conserves localement pour dessiner le menu sans attendre un aller-retour, mais ils
+ne font pas autorite : `GET /users/moi` les redemande a chaque demarrage. Un role retire pendant
+la nuit disparait donc du menu au premier chargement du matin.
+
+Les gardes de route sont **une commodite de navigation, jamais une securite** : c'est l'API qui
+refuse ce qu'elle doit refuser. Un front ne protege rien — il tourne sur la machine de celui
+qu'il pretend limiter.
+
+### Ce qui n'y est pas encore
+
+Les ecrans metier. Les routes existent et menent a un ecran qui dit ce qui vient : les laisser
+absentes ferait tomber le menu sur des routes inconnues, ce qui donne l'impression d'une
+application cassee.
+
 ## Notifications
 
 Rien ne prevenait personne : un article tombait en rupture et on l'apprenait au comptoir, devant

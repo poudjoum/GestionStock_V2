@@ -1,0 +1,60 @@
+<div class="mx-auto max-w-3xl">
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <h1 class="flex-1 text-xl font-medium">Notifications</h1>
+    <mat-slide-toggle
+      [checked]="nonLuesSeulement()"
+      (change)="basculerLeFiltre($event.checked)"
+    >
+      Non lues
+    </mat-slide-toggle>
+    <button mat-button (click)="toutMarquerLu()">Tout marquer lu</button>
+  </div>
+
+  @if (chargement()) {
+    <mat-progress-bar mode="indeterminate" />
+  } @else if (erreur(); as message) {
+    <p class="rounded px-3 py-2 text-sm" role="alert"
+       style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+      {{ message }}
+    </p>
+  } @else if (lignes().length === 0) {
+    <div class="py-16 text-center opacity-60">
+      <mat-icon class="!h-12 !w-12 !text-5xl">notifications_none</mat-icon>
+      <p class="mt-2 text-sm">
+        {{ nonLuesSeulement() ? 'Tout est lu.' : 'Aucune notification pour le moment.' }}
+      </p>
+    </div>
+  } @else {
+    <ul class="flex list-none flex-col gap-2 p-0">
+      @for (ligne of lignes(); track ligne.id) {
+        <li>
+          <button
+            type="button"
+            class="flex w-full cursor-pointer items-start gap-3 rounded-lg border-0 p-3 text-left"
+            [style.background]="ligne.lue ? 'var(--mat-sys-surface-container-low)' : 'var(--mat-sys-secondary-container)'"
+            [style.color]="ligne.lue ? 'var(--mat-sys-on-surface-variant)' : 'var(--mat-sys-on-secondary-container)'"
+            (click)="ouvrir(ligne)"
+          >
+            <mat-icon class="mt-0.5 shrink-0">{{ icone(ligne.type) }}</mat-icon>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm" [class.font-medium]="!ligne.lue">{{ ligne.titre }}</span>
+              @if (ligne.corps) {
+                <span class="mt-0.5 block text-sm opacity-80">{{ ligne.corps }}</span>
+              }
+              <span class="mt-1 block text-xs opacity-60">
+                {{ ligne.creeLe | date: 'dd/MM/yyyy à HH:mm' }}
+              </span>
+            </span>
+            @if (!ligne.lue) {
+              <span
+                class="mt-2 h-2 w-2 shrink-0 rounded-full"
+                style="background: var(--mat-sys-primary)"
+                aria-label="Non lue"
+              ></span>
+            }
+          </button>
+        </li>
+      }
+    </ul>
+  }
+</div>
