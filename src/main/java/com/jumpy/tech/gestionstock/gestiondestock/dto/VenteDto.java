@@ -17,6 +17,8 @@ public class VenteDto {
     private boolean annulee;
     /** A qui l'on vend, s'il est connu. Une vente de comptoir anonyme n'en a pas. */
     private ClientDto client;
+    /** L'entreprise qui vend : c'est elle qui porte le regime de TVA applique a la facture. */
+    private Long idEntreprise;
     /** Nul pour une vente au comptoir ; renseigne quand la vente sert une commande client. */
     private Long idCommandeClient;
     private List<LigneVenteDto> ligneVente;
@@ -33,13 +35,13 @@ public class VenteDto {
                 .Commentaires(vente.getCommentaires())
                 .annulee(vente.isAnnulee())
                 .client(ClientDto.fromEntity(vente.getClient()))
+                .idEntreprise(vente.getIdEntreprise())
                 .idCommandeClient(vente.getCommandeClient() == null ? null : vente.getCommandeClient().getId())
                 .build();
     }
     public static Vente toEntity(VenteDto dto) {
 
         if(dto==null) {
-            // TODO Auto-generated method stub
             return null;
         }
 
@@ -48,7 +50,7 @@ public class VenteDto {
         ven.setCode(dto.getCode());
         ven.setDatevente(dto.getDatevente());
         ven.setCommentaires(dto.getCommentaires());
-
+        ven.setIdEntreprise(dto.getIdEntreprise());
 
         return ven;
     }

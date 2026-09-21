@@ -67,6 +67,9 @@ demarrage :
   elle — mais unique : deux ventes sur la meme commande sortiraient deux fois la marchandise.
 - `V8__client_sur_la_vente.sql` — le client rattache a la vente elle-meme. Les ventes deja issues
   d'une commande y recopient le sien, pour que la lecture n'ait qu'un seul chemin a suivre.
+- `V9__tva_de_l_entreprise.sql` — le regime de TVA sur l'entreprise, et la mention correspondante
+  sur la facture. Les entreprises deja enregistrees recoivent 19,25 % et restent assujetties, ce
+  qui reproduit ce que faisaient leurs articles.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -129,6 +132,34 @@ une seule transaction — servir a moitie une commande sans le dire serait pire 
 Le client de la commande devient celui de la vente : la lecture n'a ensuite qu'un seul chemin a
 suivre, que la vente vienne du comptoir ou d'une commande. La facture porte le nom du client
 lorsqu'il est connu, et reste anonyme sinon — c'est le ticket de caisse, pas une anomalie.
+
+## TVA
+
+Le regime de TVA se parametre **sur l'entreprise**, a son enregistrement :
+
+```json
+{ "nom": "...", "assujettieTva": true, "tauxTva": 19.25 }
+```
+
+Il n'existait auparavant que sur l'article, ou il fallait le redire a chaque creation — et rien ne
+permettait de dire qu'une entreprise n'est pas assujettie. Toutes collectaient la TVA, ce qui est
+faux : certaines la reversent aux impots par declaration, d'autres n'y sont pas soumises.
+
+L'ordre des regles, a l'emission de la facture :
+
+1. **Entreprise non assujettie** : aucune ligne ne porte de TVA, meme si l'article en fixe une.
+   La facture porte `tvaApplicable: false` — sans cette mention, un total a zero ne se distingue
+   pas d'un calcul qui n'a pas eu lieu, et c'est une indication qui doit figurer sur le document.
+2. **Taux porte par l'article** : il l'emporte. C'est ainsi qu'un produit exonere ou a taux reduit
+   reste une exception, portee la ou elle a un sens.
+3. **A defaut, le taux de l'entreprise.**
+
+Le taux n'est donc plus exige a la creation d'un article. Une entreprise enregistree sans precision
+est assujettie a **19,25 %**, le taux en vigueur au Cameroun.
+
+C'est la vente qui designe l'entreprise (`idEntreprise`). Une vente qui n'en designe aucune facture
+comme avant, sur le seul taux de l'article : le cloisonnement par entreprise n'a jamais ete rendu
+effectif dans cette application, et une facture ne doit pas perdre sa TVA a cause de cela.
 
 ## Corriger une vente
 
@@ -249,7 +280,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-76 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+83 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -319,8 +350,12 @@ pour Spring, et n'etaient donc pas joignables.
 A savoir avant de reprendre le developpement :
 
 - Les mouvements anterieurs a la V5 n'ont pas de motif, et aucun ne leur a ete invente.
-- Le taux de TVA est pris sur l'article, faute d'etre porte par la ligne de vente. Il est fige a
-  l'emission, mais deux ventes du meme article au meme moment ne peuvent pas avoir deux taux.
+- Le **cloisonnement par entreprise n'est pas effectif** : `idEntreprise` existe sur presque toutes
+  les tables mais n'est renseigne que si l'appelant le fournit, et rien ne l'impose ni ne filtre
+  dessus. C'est ce qui oblige la TVA a se rabattre sur le taux de l'article quand la vente ne
+  designe pas d'entreprise.
+- Le taux applique est fige a l'emission de la facture, mais deux ventes du meme article au meme
+  moment ne peuvent pas avoir deux taux : l'exception se porte sur l'article, pas sur la ligne.
 - Servir une commande la solde d'un coup : pas de livraison partielle.
 - Rien ne suit le **paiement** d'une facture : elle est emise ou annulee, jamais reglee.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra

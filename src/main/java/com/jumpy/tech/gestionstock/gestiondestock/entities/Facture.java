@@ -54,6 +54,14 @@ public class Facture extends AbstractEntity {
     private boolean annulee;
 
     /**
+     * Si la TVA etait applicable a l'emission. Un total a zero ne se distingue pas, sinon, d'une
+     * facture ou personne n'a su la calculer — et c'est une mention qui doit figurer sur le
+     * document remis au client.
+     */
+    @Column(name = "tva_applicable", nullable = false)
+    private boolean tvaApplicable = true;
+
+    /**
      * Le client, quand la vente sert une commande. Le nom est recopie a cote de l'identifiant :
      * un client renomme ou supprime ne doit pas changer une facture deja remise.
      */

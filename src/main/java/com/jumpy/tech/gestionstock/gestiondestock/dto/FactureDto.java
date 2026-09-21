@@ -22,6 +22,8 @@ public class FactureDto {
     private BigDecimal totalTva;
     private BigDecimal totalTtc;
     private boolean annulee;
+    /** Faux quand l'entreprise n'est pas assujettie : c'est ce qui explique une TVA a zero. */
+    private boolean tvaApplicable;
     private Long idClient;
     private String nomClient;
     private Long idEntreprise;
@@ -49,6 +51,7 @@ public class FactureDto {
                 .totalTva(facture.getTotalTva())
                 .totalTtc(facture.getTotalTtc())
                 .annulee(facture.isAnnulee())
+                .tvaApplicable(facture.isTvaApplicable())
                 .idClient(facture.getClient() == null ? null : facture.getClient().getId())
                 .nomClient(facture.getNomClient())
                 .idEntreprise(facture.getIdEntreprise())

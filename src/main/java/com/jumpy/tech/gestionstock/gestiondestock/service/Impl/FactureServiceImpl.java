@@ -3,6 +3,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FactureDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Client;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Entreprise;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Facture;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneFacture;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneVente;
@@ -10,6 +11,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.entities.Vente;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.FactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneFactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneVenteRepository;
@@ -46,11 +48,14 @@ public class FactureServiceImpl implements FactureService {
     private final LigneFactureRepository ligneFactureRepository;
     private final VenteRepository venteRepository;
     private final LigneVenteRepository ligneVenteRepository;
+    private final EntrepriseRepository entrepriseRepository;
 
     public FactureServiceImpl(FactureRepository factureRepository,
                               LigneFactureRepository ligneFactureRepository,
                               VenteRepository venteRepository,
-                              LigneVenteRepository ligneVenteRepository) {
+                              LigneVenteRepository ligneVenteRepository,
+                              EntrepriseRepository entrepriseRepository) {
+        this.entrepriseRepository = entrepriseRepository;
         this.factureRepository = factureRepository;
         this.ligneFactureRepository = ligneFactureRepository;
         this.venteRepository = venteRepository;
@@ -79,7 +84,13 @@ public class FactureServiceImpl implements FactureService {
                     ErrorCodes.VENTE_NOT_VALID);
         }
 
+        // Le regime de TVA se lit une fois, sur l'entreprise de la vente, et vaut pour toute la
+        // facture. Une entreprise non assujettie ne porte aucune TVA, quel que soit l'article.
+        Entreprise entreprise = entrepriseDe(vente);
+        boolean tvaApplicable = entreprise == null || entreprise.isAssujettieTva();
+
         Facture facture = new Facture();
+        facture.setTvaApplicable(tvaApplicable);
         facture.setNumero(numeroSuivant());
         facture.setDateEmission(Instant.now());
         facture.setVente(vente);
@@ -95,7 +106,7 @@ public class FactureServiceImpl implements FactureService {
         BigDecimal totalTva = BigDecimal.ZERO;
 
         for (LigneVente ligneVente : lignesVente) {
-            LigneFacture ligne = figer(ligneVente, enregistree);
+            LigneFacture ligne = figer(ligneVente, enregistree, entreprise, tvaApplicable);
             lignes.add(ligneFactureRepository.save(ligne));
             totalHt = totalHt.add(ligne.getMontantHt());
             totalTva = totalTva.add(ligne.getMontantTva());
@@ -121,13 +132,13 @@ public class FactureServiceImpl implements FactureService {
      * faute de mieux, il est pris la et fige ici meme, pour qu'une revision du taux ne reecrive
      * pas les factures passees.
      */
-    private LigneFacture figer(LigneVente ligneVente, Facture facture) {
+    private LigneFacture figer(LigneVente ligneVente, Facture facture, Entreprise entreprise,
+                               boolean tvaApplicable) {
         Article article = ligneVente.getArticles();
 
         BigDecimal quantite = ligneVente.getQuantite() == null ? BigDecimal.ZERO : ligneVente.getQuantite();
         BigDecimal prixUnitaire = prixUnitaire(ligneVente, article);
-        BigDecimal tauxTva = article == null || article.getTauxTva() == null
-                ? BigDecimal.ZERO : article.getTauxTva();
+        BigDecimal tauxTva = tauxTva(article, entreprise, tvaApplicable);
 
         BigDecimal montantHt = arrondi(quantite.multiply(prixUnitaire));
         BigDecimal montantTva = arrondi(montantHt.multiply(tauxTva).divide(CENT, DECIMALES + 2, ARRONDI));
@@ -143,6 +154,45 @@ public class FactureServiceImpl implements FactureService {
         ligne.setMontantTva(montantTva);
         ligne.setMontantTtc(arrondi(montantHt.add(montantTva)));
         return ligne;
+    }
+
+    /**
+     * Le taux applique a une ligne.
+     *
+     * L'entreprise decide d'abord : non assujettie, rien n'est facture en TVA, et un article qui
+     * porterait un taux ne peut pas le lui imposer. Assujettie, le taux de l'article l'emporte
+     * s'il en fixe un — c'est ainsi qu'un produit exonere ou a taux reduit reste une exception
+     * portee par l'article — et a defaut on prend celui de l'entreprise.
+     *
+     * Sans entreprise rattachee a la vente, on retombe sur le seul taux connu, celui de
+     * l'article : le rattachement multi-entreprise n'est pas encore effectif, et une facture ne
+     * doit pas perdre sa TVA a cause de cela.
+     */
+    private BigDecimal tauxTva(Article article, Entreprise entreprise, boolean tvaApplicable) {
+        if (!tvaApplicable) {
+            return BigDecimal.ZERO;
+        }
+        if (article != null && article.getTauxTva() != null) {
+            return article.getTauxTva();
+        }
+        if (entreprise != null && entreprise.getTauxTva() != null) {
+            return entreprise.getTauxTva();
+        }
+        return BigDecimal.ZERO;
+    }
+
+    /**
+     * L'entreprise de la vente, quand elle en designe une.
+     *
+     * `idEntreprise` est porte par la vente mais reste souvent vide : le cloisonnement par
+     * entreprise n'a jamais ete rendu effectif dans cette application. Tant qu'il ne l'est pas,
+     * une vente sans entreprise facture comme avant.
+     */
+    private Entreprise entrepriseDe(Vente vente) {
+        if (vente.getIdEntreprise() == null) {
+            return null;
+        }
+        return entrepriseRepository.findById(vente.getIdEntreprise()).orElse(null);
     }
 
     /**

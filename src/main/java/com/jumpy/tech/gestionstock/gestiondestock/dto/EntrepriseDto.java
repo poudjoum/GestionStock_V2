@@ -5,11 +5,16 @@ import com.jumpy.tech.gestionstock.gestiondestock.entities.Entreprise;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Builder
 @Data
 public class EntrepriseDto {
+
+    /** Le taux en vigueur au Cameroun, retenu quand l'enregistrement n'en precise pas d'autre. */
+    public static final BigDecimal TAUX_TVA_PAR_DEFAUT = new BigDecimal("19.25");
+
     private Long id;
     private String nom;
 
@@ -26,6 +31,13 @@ public class EntrepriseDto {
     private String tel;
 
     private String siteWeb;
+
+    /** Si l'entreprise collecte la TVA. Vrai par defaut. */
+    private Boolean assujettieTva;
+
+    /** Taux applique par defaut, en pourcentage. 19,25 au Cameroun. */
+    private BigDecimal tauxTva;
+
     @JsonIgnore
     private List<UserDto> user;
 
@@ -42,6 +54,8 @@ public class EntrepriseDto {
                 .siteWeb(en.getSiteWeb())
                 .tel(en.getTel())
                 .adresse(AdresseDto.fromEntity(en.getAdresse()))
+                .assujettieTva(en.isAssujettieTva())
+                .tauxTva(en.getTauxTva())
                 .build();
 
     }
@@ -59,6 +73,10 @@ public class EntrepriseDto {
         en.setSiteWeb(dto.getSiteWeb());
         en.setTel(dto.getTel());
         en.setAdresse(AdresseDto.toEntity(dto.getAdresse()));
+        // Une entreprise est assujettie sauf mention contraire : c'est le cas courant, et une
+        // omission ne doit pas la faire passer pour exoneree.
+        en.setAssujettieTva(dto.getAssujettieTva() == null || dto.getAssujettieTva());
+        en.setTauxTva(dto.getTauxTva() == null ? TAUX_TVA_PAR_DEFAUT : dto.getTauxTva());
 
         return en;
     }
