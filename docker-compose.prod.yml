@@ -48,6 +48,13 @@ services:
       JWT_REFRESH_EXPIRATION_MS: ${JWT_REFRESH_EXPIRATION_MS:-2592000000}
       # Les origines du front autorisees a appeler l'API depuis un navigateur.
       CORS_ORIGINES: ${CORS_ORIGINES:-http://localhost:4200,http://127.0.0.1:4200}
+      # SMTP. Vide, la file des courriels attend sans rien perdre ni rien faire echouer.
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USERNAME: ${EMAIL_USERNAME:-}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      NOTIFICATIONS_INTERVALLE_MS: ${NOTIFICATIONS_INTERVALLE_MS:-60000}
       # Le conteneur tourne en UTC : sans ce fuseau, l'etat de caisse d'une journee irait de
       # 01h00 a 01h00 en heure locale.
       FUSEAU_HORAIRE: ${FUSEAU_HORAIRE:-Africa/Douala}
