@@ -26,8 +26,8 @@ public class StockController implements StockApi {
     }
 
     @Override
-    public ResponseEntity<Page<LigneInventaireDto>> inventaire(Pageable pageable) {
-        return ResponseEntity.ok(stockService.inventaire(pageable));
+    public ResponseEntity<Page<LigneInventaireDto>> inventaire(String q, Pageable pageable) {
+        return ResponseEntity.ok(stockService.inventaire(q, pageable));
     }
 
     @Override

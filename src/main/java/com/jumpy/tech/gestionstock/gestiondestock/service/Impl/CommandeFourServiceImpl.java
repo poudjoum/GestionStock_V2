@@ -419,6 +419,21 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     }
 
     @Override
+    public org.springframework.data.domain.Page<CommandeFourDto> rechercher(
+            List<EtatCommande> etats, String q, org.springframework.data.domain.Pageable pageable) {
+        // Une liste d'etats vide vaut « tous » : le front envoie ce qu'il veut voir, et ne pas
+        // filtrer est une demande legitime, pas une absence de demande.
+        List<EtatCommande> demandes = etats == null || etats.isEmpty() ? null : etats;
+        return commandeFourRepository.rechercher(
+                        cloisonnement.filtre(),
+                        cloisonnement.filtre() ? cloisonnement.entrepriseCourante() : null,
+                        demandes,
+                        RechercheUtils.normaliser(q),
+                        pageable)
+                .map(CommandeFourDto::fromEntity);
+    }
+
+    @Override
     @Transactional
     public void delete(Long id) {
         if(id==null){

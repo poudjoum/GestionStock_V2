@@ -15,6 +15,17 @@ public interface CommandeFourService {
     List< CommandeFourDto> findAll();
 
     /**
+     * Les commandes, paginees et filtrables par etat.
+     *
+     * C'est ce dont le quai a besoin : le magasinier qui decharge un camion cherche les commandes
+     * qu'il peut recevoir, et non l'historique complet des achats. `findAll` les rendait toutes,
+     * d'un bloc — tenable sur quelques dizaines de lignes, pas sur un telephone au bout de trois
+     * ans d'exploitation.
+     */
+    org.springframework.data.domain.Page<CommandeFourDto> rechercher(
+            List<EtatCommande> etats, String q, org.springframework.data.domain.Pageable pageable);
+
+    /**
      * Fait avancer la commande dans son cycle de vie. Le passage en LIVREE fait entrer la
      * marchandise en magasin ; c'est la seule transition qui touche au stock.
      */

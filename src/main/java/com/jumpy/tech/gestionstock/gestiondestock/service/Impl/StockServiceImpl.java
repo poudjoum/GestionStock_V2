@@ -82,10 +82,15 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
-    public Page<LigneInventaireDto> inventaire(Pageable pageable) {
-        Page<Article> page = cloisonnement.filtre()
-                ? articleRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
-                : articleRepository.findAll(pageable);
+    public Page<LigneInventaireDto> inventaire(String q, Pageable pageable) {
+        // La meme recherche que sur le catalogue, et pour la meme raison : un magasinier debout
+        // dans les rayons cherche un article, il ne feuillette pas l'inventaire page par page.
+        Page<Article> page = articleRepository.rechercher(
+                cloisonnement.filtre(),
+                cloisonnement.filtre() ? cloisonnement.entrepriseCourante() : null,
+                RechercheUtils.normaliser(q),
+                null,
+                pageable);
 
         // Les quantites et les couts de toute la page en deux requetes, quelle que soit sa
         // taille : les demander article par article en ferait deux par ligne affichee.

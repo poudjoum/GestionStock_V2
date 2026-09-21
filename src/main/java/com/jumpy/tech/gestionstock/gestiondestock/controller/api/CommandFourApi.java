@@ -45,6 +45,20 @@ public interface CommandFourApi {
     ResponseEntity<List<CommandeFourDto>> findAll();
 
     /**
+     * Liste paginee et filtrable : `?etat=VALIDEE&etat=PARTIELLEMENT_LIVREE&q=cim&page=0&size=20`.
+     *
+     * Le filtre par etat est ce dont le quai a besoin : le magasinier qui decharge un camion
+     * cherche les commandes qu'il peut recevoir, pas l'historique des achats de la maison.
+     * `q` porte sur le code de la commande et le nom du fournisseur — ce qui figure sur le bon de
+     * livraison qu'il a en main.
+     */
+    @GetMapping(value = APP_ROOT+"/commandes-fournisseurs",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<org.springframework.data.domain.Page<CommandeFourDto>> rechercher(
+            @RequestParam(required = false) List<EtatCommande> etat,
+            @RequestParam(required = false) String q,
+            org.springframework.data.domain.Pageable pageable);
+
+    /**
      * Fait avancer la commande. `PATCH` et non `PUT` : on ne remplace pas la commande, on change
      * l'un de ses champs. Le passage a LIVREE fait entrer la marchandise en magasin.
      */

@@ -22,7 +22,9 @@ public interface StockApi {
 
     /** L'inventaire, article par article : `?page=0&size=20`. */
     @GetMapping(value = APP_ROOT + "/stock/inventaire", produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<Page<LigneInventaireDto>> inventaire(Pageable pageable);
+    ResponseEntity<Page<LigneInventaireDto>> inventaire(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String q,
+            Pageable pageable);
 
     /** Ce qu'il faut recommander : la liste qu'on emporte chez le fournisseur. */
     @GetMapping(value = APP_ROOT + "/stock/alertes", produces = MediaType.APPLICATION_JSON_VALUE)

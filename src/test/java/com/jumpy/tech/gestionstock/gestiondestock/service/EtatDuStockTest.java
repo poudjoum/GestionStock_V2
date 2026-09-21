@@ -136,7 +136,7 @@ class EtatDuStockTest extends AbstractIntegrationTest {
         acheterEtLivrer(idArticle, "10", "1000");
         acheterEtLivrer(idArticle, "10", "2000");
 
-        LigneInventaireDto ligne = stockService.inventaire(PageRequest.of(0, 10)).getContent().get(0);
+        LigneInventaireDto ligne = stockService.inventaire(null, PageRequest.of(0, 10)).getContent().get(0);
 
         // 20 unites pour 30 000 : 1 500 l'unite. Retenir le dernier prix donnerait 40 000.
         assertThat(ligne.getCoutMoyenAchat()).isEqualByComparingTo("1500.00");
@@ -149,7 +149,7 @@ class EtatDuStockTest extends AbstractIntegrationTest {
         approvisionnerALaMain(idArticle, "10");
 
         EtatDuStockDto etat = stockService.etat();
-        LigneInventaireDto ligne = stockService.inventaire(PageRequest.of(0, 10)).getContent().get(0);
+        LigneInventaireDto ligne = stockService.inventaire(null, PageRequest.of(0, 10)).getContent().get(0);
 
         // Mieux vaut avouer le cout inconnu que de l'inventer au prix de vente : sans ce compte,
         // une valorisation partielle passerait pour complete.
@@ -221,7 +221,7 @@ class EtatDuStockTest extends AbstractIntegrationTest {
         Long idArticle = article("1000", null);
         approvisionnerALaMain(idArticle, "1");
 
-        LigneInventaireDto ligne = stockService.inventaire(PageRequest.of(0, 10)).getContent().get(0);
+        LigneInventaireDto ligne = stockService.inventaire(null, PageRequest.of(0, 10)).getContent().get(0);
 
         // Sans seuil, on ne peut rien dire : le confondre avec « suffisant » ferait croire a une
         // surveillance qui n'existe pas.

@@ -44,6 +44,12 @@ public class CommandeFourController implements CommandFourApi {
     }
 
     @Override
+    public ResponseEntity<org.springframework.data.domain.Page<CommandeFourDto>> rechercher(
+            List<EtatCommande> etat, String q, org.springframework.data.domain.Pageable pageable) {
+        return ResponseEntity.ok(cmndeFourServ.rechercher(etat, q, pageable));
+    }
+
+    @Override
     public ResponseEntity<CommandeFourDto> mettreAJourEtat(Long idCommandFour, EtatCommande etat) {
         return ResponseEntity.ok(cmndeFourServ.mettreAJourEtat(idCommandFour, etat));
     }
