@@ -651,4 +651,6 @@ A savoir avant de reprendre le developpement :
   modules et retire les API depreciees de toute la ligne 3.x : c'est une migration en soi, a mener
   une fois celle-ci eprouvee. springdoc devra alors passer en 3.x, sa ligne 2.x etant alignee sur
   Boot 3.
-- Spring Boot 3.2.5 n'est plus suivi, et JJWT 0.11.5 emploie une API depreciee.
+- Un avertissement au demarrage : `InitializeUserDetailsBeanManagerConfigurer` signale que le
+  `DaoAuthenticationProvider` declare rend inutile la configuration automatique. C'est notre cas
+  et c'est voulu — reste a le taire, ce qui tient en une ligne de configuration.
