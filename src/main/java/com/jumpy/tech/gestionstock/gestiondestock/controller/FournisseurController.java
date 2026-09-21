@@ -3,6 +3,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.FournisseurControllerApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FournisseurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.FournisseurService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,6 +37,11 @@ public class FournisseurController implements FournisseurControllerApi {
     @Override
     public ResponseEntity<List<FournisseurDto>> findAll() {
         return ResponseEntity.status(HttpStatus.OK).body(fournisseurService.findAll());
+    }
+
+    @Override
+    public ResponseEntity<Page<FournisseurDto>> findAll(Pageable pageable) {
+        return ResponseEntity.ok(fournisseurService.findAll(pageable));
     }
 
     @Override

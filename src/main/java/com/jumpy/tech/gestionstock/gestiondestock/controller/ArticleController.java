@@ -3,6 +3,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.ArticleControllerApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.ArticleService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -36,6 +38,11 @@ public class ArticleController implements ArticleControllerApi {
     @Override
     public ResponseEntity<List<ArticleDto>> findAll() {
         return ResponseEntity.status(HttpStatus.OK).body(articleService.findAll());
+    }
+
+    @Override
+    public ResponseEntity<Page<ArticleDto>> findAll(Pageable pageable) {
+        return ResponseEntity.ok(articleService.findAll(pageable));
     }
 
     @Override

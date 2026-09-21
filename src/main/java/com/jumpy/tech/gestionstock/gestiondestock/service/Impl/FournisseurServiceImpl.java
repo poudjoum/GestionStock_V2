@@ -10,6 +10,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.service.FournisseurService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.FournisseurValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -70,6 +72,11 @@ public class FournisseurServiceImpl implements FournisseurService {
       return fournisseurRepository.findAll().stream()
               .map(FournisseurDto::fromEntity)
               .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<FournisseurDto> findAll(Pageable pageable) {
+        return fournisseurRepository.findAll(pageable).map(FournisseurDto::fromEntity);
     }
 
     @Override

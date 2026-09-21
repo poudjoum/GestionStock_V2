@@ -9,6 +9,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.repository.ClientRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.ClientService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.ClientValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +57,11 @@ public class ClientServiceImpl implements ClientService {
         return clientRepository.findAll().stream()
                 .map(ClientDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<ClientDto> findAll(Pageable pageable) {
+        return clientRepository.findAll(pageable).map(ClientDto::fromEntity);
     }
 
     @Override

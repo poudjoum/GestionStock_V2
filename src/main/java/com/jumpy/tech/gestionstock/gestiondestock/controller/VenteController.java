@@ -3,6 +3,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.VenteControllerApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.VenteService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +31,11 @@ public class VenteController implements VenteControllerApi {
     @Override
     public ResponseEntity<List<VenteDto>> findAll() {
         return ResponseEntity.status(HttpStatus.OK).body(venteService.findAll());
+    }
+
+    @Override
+    public ResponseEntity<Page<VenteDto>> findAll(Pageable pageable) {
+        return ResponseEntity.ok(venteService.findAll(pageable));
     }
 
     @Override

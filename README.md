@@ -51,6 +51,9 @@ demarrage :
 - `V1__init.sql` — les quatorze tables.
 - `V2__roles_de_base.sql` — les six roles de `ERole`. Sans eux, `/api/auth/signup` echoue sur
   « Error: Role is not found » et aucun compte ne peut etre cree.
+- `V3__unicite_des_comptes.sql` — identifiant et courriel uniques. La verification existait en
+  Java avant insertion, mais entre le controle et l'ecriture une seconde requete passe : seule la
+  base voit les deux insertions. Un doublon rend un **409**.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -105,7 +108,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-21 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+28 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -153,16 +156,27 @@ l'application tourne et que la securite fait son office.
 `APP_BIND` vaut `0.0.0.0` pour que l'API soit joignable depuis le LAN pendant le developpement ;
 la passer a `127.0.0.1` la referme sur le serveur seul.
 
+## Listes et recherches
+
+Les listes existent en deux formes. `/all` rend tout d'un bloc — passable sur quelques dizaines de
+lignes — et la route sans suffixe rend une tranche :
+
+```
+GET /gestiondestock/v1/articles?page=0&size=20&sort=codeArticle,asc
+GET /gestiondestock/v1/clients?page=0&size=20
+GET /gestiondestock/v1/fournisseur?page=0&size=20
+GET /gestiondestock/v1/ventes?page=0&size=20
+```
+
+Les recherches par code, nom ou courriel ont leur propre segment (`/articles/code/{code}`,
+`/fournisseur/nom/{nom}`, `/users/email/{email}`, `/ventes/code/{code}`) : elles partageaient le
+motif de la recherche par identifiant, `/articles/{id}` et `/articles/{code}` etant le meme chemin
+pour Spring, et n'etaient donc pas joignables.
+
 ## Limites connues
 
 A savoir avant de reprendre le developpement :
 
-- Deux routes GET se disputent le meme chemin dans plusieurs controleurs
-  (`/articles/{idArticle}` et `/articles/{codeArticle}`, idem pour `category`) : la seconde est
-  inatteignable.
-- Aucune contrainte d'unicite sur `utilisateur.username` et `utilisateur.email` : la verification est
-  faite en Java avant insertion, ce qui laisse passer deux inscriptions simultanees.
-- Aucune pagination sur les listes.
 - Pas de cycle de vie des commandes (commandee, livree, annulee), d'ou le choix de faire entrer la
   marchandise des l'enregistrement d'une commande fournisseur.
 - Les messages de plusieurs validateurs et services portent encore des accents mal encodes, herites

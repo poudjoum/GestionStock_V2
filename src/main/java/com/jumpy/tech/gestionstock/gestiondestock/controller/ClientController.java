@@ -3,6 +3,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.ClientApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.ClientService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +31,11 @@ public class ClientController implements ClientApi {
     @Override
     public ResponseEntity<List<ClientDto>> findAll() {
         return ResponseEntity.status(HttpStatus.OK).body(clientService.findAll());
+    }
+
+    @Override
+    public ResponseEntity<Page<ClientDto>> findAll(Pageable pageable) {
+        return ResponseEntity.ok(clientService.findAll(pageable));
     }
 
     @Override

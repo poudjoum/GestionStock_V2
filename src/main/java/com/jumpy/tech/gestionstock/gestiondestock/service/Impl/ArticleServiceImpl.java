@@ -9,6 +9,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.ArticleService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.ArticleValidators;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -72,6 +74,13 @@ public class ArticleServiceImpl implements ArticleService {
         return articleRepository.findAll().stream()
                 .map(ArticleDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<ArticleDto> findAll(Pageable pageable) {
+        // `map` sur la Page conserve le total et le numero de page : reconstruire une Page a la
+        // main a partir du contenu ferait perdre ce que le client utilise pour naviguer.
+        return articleRepository.findAll(pageable).map(ArticleDto::fromEntity);
     }
 
     @Override

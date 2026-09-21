@@ -18,7 +18,8 @@ public interface CategoryControllerApi {
     @Tag(name="Get",description = "Get Methods of Gestion de Stock APIs")
     @GetMapping(value = APP_ROOT+"/category/{idCat}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CategoryDto> findById(@PathVariable("idCat") Long id);
-    @GetMapping(value = APP_ROOT+"/category/{codeCat}",produces = MediaType.APPLICATION_JSON_VALUE)
+    // Meme motif que findById ci-dessus : cette route etait inatteignable.
+    @GetMapping(value = APP_ROOT+"/category/code/{codeCat}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CategoryDto> findByCodeCat(@PathVariable("codeCat") String codeArticle);
     @GetMapping(value = APP_ROOT+"/category/all",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<List<CategoryDto>> findAll();

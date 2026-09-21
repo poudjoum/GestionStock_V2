@@ -17,6 +17,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
 import com.jumpy.tech.gestionstock.gestiondestock.service.VenteService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.VenteValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -135,6 +137,11 @@ public class VenteServiceImpl implements VenteService {
         return venteRepository.findAll().stream()
                 .map(VenteDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<VenteDto> findAll(Pageable pageable) {
+        return venteRepository.findAll(pageable).map(VenteDto::fromEntity);
     }
 
     @Override

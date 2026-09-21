@@ -1,6 +1,8 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -10,5 +12,13 @@ public interface ArticleService {
     ArticleDto findById(Long id);
     ArticleDto findByCodeArticle(String codeArticle);
     List<ArticleDto> findAll();
+
+    /**
+     * Le catalogue par tranches. `findAll()` charge tout le stock en memoire et le serialise d'un
+     * bloc : passable sur les trente articles d'aujourd'hui, intenable sur les dix mille de
+     * demain. Les deux coexistent, le temps que les appelants basculent.
+     */
+    Page<ArticleDto> findAll(Pageable pageable);
+
     void delete(Long id);
 }

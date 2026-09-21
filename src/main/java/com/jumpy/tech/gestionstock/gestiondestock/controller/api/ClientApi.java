@@ -3,6 +3,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ClientDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,10 @@ public interface ClientApi {
     ResponseEntity<ClientDto> findById(@PathVariable Long idClient);
     @GetMapping(value = APP_ROOT+"/clients/all",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<List<ClientDto>> findAll();
+
+    /** Liste paginee : `?page=0&size=20&sort=noms,asc`. */
+    @GetMapping(value = APP_ROOT+"/clients",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<Page<ClientDto>> findAll(Pageable pageable);
     @DeleteMapping(value = APP_ROOT+"/clients/delete/{idClient}")
     ResponseEntity delete(@PathVariable Long idClient);
 }
