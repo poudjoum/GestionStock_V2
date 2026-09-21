@@ -15,7 +15,9 @@ import java.util.Set;
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper=true)
 @Entity
-@Table(name="user")
+// `user` est un mot reserve de PostgreSQL : une table de ce nom ne se cree et ne s'interroge
+// qu'entre guillemets, et la moindre requete ecrite a la main casse.
+@Table(name="utilisateur")
 public class Utilisateur extends AbstractEntity{
     @Column(name="nom")
     private String nom;
@@ -41,6 +43,11 @@ public class Utilisateur extends AbstractEntity{
    @JoinTable(name="user_roles",joinColumns = @JoinColumn(name="user_id"),inverseJoinColumns = @JoinColumn(name="role_id"))
     private Set<Role> roles=new HashSet<>();
 
-    public Utilisateur(String username, String email, String encode) {
+    // Appele par /api/auth/signup. Son corps etait vide : l'inscription enregistrait un
+    // utilisateur sans identifiant ni mot de passe, que la connexion ne retrouvait jamais.
+    public Utilisateur(String username, String email, String motdepasse) {
+        this.username = username;
+        this.email = email;
+        this.motdepasse = motdepasse;
     }
 }

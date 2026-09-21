@@ -70,9 +70,23 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!--
+            Le schema est decrit par les migrations de src/main/resources/db/migration et non plus
+            genere par Hibernate : ddl-auto=validate echoue au demarrage si le code et la base ont
+            diverge, la ou `update` laissait passer la divergence jusqu'a la premiere requete.
+        -->
+        <!--
+            Version geree par Spring Boot 3.2.5 (Flyway 9.22), ou le support PostgreSQL fait encore
+            partie de flyway-core ; c'est Flyway 10 qui l'a sorti dans un module a part.
+        -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>

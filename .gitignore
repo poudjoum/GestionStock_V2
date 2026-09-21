@@ -1,0 +1,18 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Postes de travail
+.idea/
+*.iml
+*.iws
+.vscode/
+.DS_Store
+
+# Secrets : jamais versionnes. Le modele, lui, l'est (.env.example).
+.env
+*.env
+!.env.example
+
+# Journaux et dumps de travail
+*.log
+schema-genere.sql

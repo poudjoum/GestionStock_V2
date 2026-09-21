@@ -1,18 +1,34 @@
+#
+# Aucune valeur secrete ici : tout vient de l'environnement (voir .env.example). Ce fichier est
+# versionne et l'a longtemps ete avec le mot de passe de la base, le secret JWT et les quatre cles
+# Flickr en clair.
+#
+# Les variables sans valeur de repli (`${VAR}`) font echouer le demarrage si elles manquent. C'est
+# voulu pour les secrets : une application qui demarre sur un secret de repli signe des jetons que
+# n'importe qui peut fabriquer.
+#
 server:
-   port: 9092
+   port: ${SERVER_PORT:9092}
+
 spring:
    application:
      name: Gestion de Stock
    datasource:
-     username: root
-     password: Jumpy07A2668
-     url: jdbc:mysql://localhost:3306/GestionStk
-     driver-class-name: com.mysql.cj.jdbc.Driver
+     url: ${DB_URL:jdbc:postgresql://localhost:5432/gestionstock}
+     username: ${DB_USERNAME:gestionstock}
+     password: ${DB_PASSWORD}
+     driver-class-name: org.postgresql.Driver
    jpa:
      show-sql: true
      hibernate:
-       ddl-auto: update
-      #format_sql: true
+       # Le schema appartient desormais aux migrations Flyway. `validate` confronte le mapping a la
+       # base au demarrage : une entite modifiee sans migration echoue ici, plutot qu'a la premiere
+       # requete en production.
+       ddl-auto: validate
+     open-in-view: false
+   flyway:
+     enabled: true
+     locations: classpath:db/migration
    servlet:
      multipart:
        max-file-size: 5MB
@@ -20,14 +36,17 @@ spring:
        file-size-threshold: 2KB
 
 flickr:
-  apiKey: 232e1419f7d13e2129d0cbb96f579f0d
-  apiSecret: ef376497ece67811
-  appKey: 72157720898351182-f8719838af94436c
-  appSecret: e46cdaa9d54bb173
-
+  apiKey: ${FLICKR_API_KEY:}
+  apiSecret: ${FLICKR_API_SECRET:}
+  appKey: ${FLICKR_APP_KEY:}
+  appSecret: ${FLICKR_APP_SECRET:}
 
 springdoc:
   api-docs:
     path: /api-GestionStock
 
-app: { jwtSecret: 1c5f8e446d9839e739d85feaaca5a956ec415abfa6a207a6c5e0685d2ab629e38a7a64e748a9eaec517c43bb5015ba1dbe3fe1636e68355e9e3807c807f1a24a, jwtExpirationMS: 3600 }
+app:
+  jwtSecret: ${JWT_SECRET}
+  # En millisecondes : 86400000 = 24 h. La valeur precedente, 3600, etait lue en millisecondes et
+  # donnait des jetons valables 3,6 secondes.
+  jwtExpirationMS: ${JWT_EXPIRATION_MS:86400000}

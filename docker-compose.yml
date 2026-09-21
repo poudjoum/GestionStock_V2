@@ -1,0 +1,45 @@
+#
+# Base de donnees de developpement. Elle n'existait pas : chacun installait un serveur sur sa
+# machine, avec sa version et son mot de passe, et la configuration de l'application etait celle
+# du poste de son auteur. Ici la base est jetable et identique pour tout le monde.
+#
+# Les identifiants viennent de .env (copie de .env.example), jamais du present fichier : ce sont
+# les memes variables que l'application lit, et une valeur ecrite a deux endroits finit par
+# diverger.
+#
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: gestionstock-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-gestionstock}
+      POSTGRES_USER: ${DB_USERNAME:-gestionstock}
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?DB_PASSWORD manquant, copiez .env.example en .env}"
+    ports:
+      # Publie sur la boucle locale uniquement : une base de developpement n'a aucune raison
+      # d'etre joignable depuis le reste du reseau.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` repond avant que la base ne soit reellement prete a accepter des requetes au
+      # premier demarrage ; la requete reelle, elle, ne ment pas.
+      test: ["CMD-SHELL", "psql -U $$POSTGRES_USER -d $$POSTGRES_DB -c 'select 1' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  adminer:
+    image: adminer:4
+    container_name: gestionstock-adminer
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${ADMINER_PORT:-8081}:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+
+volumes:
+  db-data:
