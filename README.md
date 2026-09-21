@@ -179,6 +179,4 @@ A savoir avant de reprendre le developpement :
 
 - Pas de cycle de vie des commandes (commandee, livree, annulee), d'ou le choix de faire entrer la
   marchandise des l'enregistrement d'une commande fournisseur.
-- Les messages de plusieurs validateurs et services portent encore des accents mal encodes, herites
-  d'une relecture du depot dans le mauvais jeu de caracteres.
 - Spring Boot 3.2.5 n'est plus suivi, et JJWT 0.11.5 emploie une API depreciee.
