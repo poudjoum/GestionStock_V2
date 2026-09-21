@@ -28,20 +28,18 @@ export const routes: Routes = [
       {
         path: 'comptoir',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CAISSIER')],
-        loadComponent: aVenir,
-        data: { titre: 'Vendre au comptoir' },
+        loadComponent: () =>
+          import('./comptoir/vente-au-comptoir').then((m) => m.VenteAuComptoir),
       },
       {
         path: 'stock',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER', 'ROLE_COMPTABLE')],
-        loadComponent: aVenir,
-        data: { titre: 'État du stock' },
+        loadComponent: () => import('./stock/etat-du-stock').then((m) => m.EtatDuStock),
       },
       {
         path: 'receptions',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
-        loadComponent: aVenir,
-        data: { titre: 'Réception de marchandise' },
+        loadComponent: () => import('./receptions/reception').then((m) => m.Reception),
       },
       {
         path: 'factures',

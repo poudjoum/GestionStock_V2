@@ -1,0 +1,146 @@
+@let commande = choisie();
+
+<div class="mx-auto max-w-3xl">
+  @if (!commande) {
+    <!-- Premier temps : choisir la commande qu'on a en main. -->
+    <h1 class="mb-3 text-xl font-medium">Réceptions</h1>
+
+    <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+      <mat-label>Chercher une commande</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        inputmode="search"
+        autocapitalize="none"
+        [ngModel]="recherche()"
+        (ngModelChange)="chercher($event)"
+        placeholder="code ou fournisseur"
+      />
+    </mat-form-field>
+
+    <div class="mt-4">
+      @if (chargement()) {
+        <mat-progress-bar mode="indeterminate" />
+      } @else if (erreur(); as message) {
+        <p class="rounded px-3 py-2 text-sm" role="alert"
+           style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+          {{ message }}
+        </p>
+      } @else if (commandes().length === 0) {
+        <div class="py-16 text-center opacity-60">
+          <mat-icon class="!h-12 !w-12 !text-5xl">local_shipping</mat-icon>
+          <p class="mt-2 text-sm">Aucune commande n’attend de marchandise.</p>
+        </div>
+      } @else {
+        <ul class="flex list-none flex-col gap-2 p-0">
+          @for (c of commandes(); track c.id) {
+            <li>
+              <button
+                type="button"
+                class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-0 p-3 text-left"
+                style="background: var(--mat-sys-surface-container-low); color: var(--mat-sys-on-surface)"
+                (click)="ouvrir(c)"
+              >
+                <mat-icon class="shrink-0">local_shipping</mat-icon>
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-medium">{{ c.code }}</span>
+                  <span class="block truncate text-xs opacity-70">{{ c.fournisseur?.nom }}</span>
+                </span>
+                @if (c.etat === 'PARTIELLEMENT_LIVREE') {
+                  <span
+                    class="shrink-0 rounded-full px-2 py-0.5 text-xs"
+                    style="background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container)"
+                  >
+                    Reliquat
+                  </span>
+                }
+                <mat-icon class="shrink-0 opacity-50">chevron_right</mat-icon>
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  } @else {
+    <!-- Second temps : saisir ce qui est reellement arrive. -->
+    <div class="mb-3 flex items-center gap-2">
+      <button mat-icon-button (click)="revenir()" aria-label="Revenir à la liste">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <span class="min-w-0 flex-1">
+        <span class="block truncate text-lg font-medium">{{ commande.code }}</span>
+        <span class="block truncate text-xs opacity-70">{{ commande.fournisseur?.nom }}</span>
+      </span>
+      <button mat-button (click)="toutRecu()">Tout reçu</button>
+    </div>
+
+    @if (chargement()) {
+      <mat-progress-bar mode="indeterminate" />
+    } @else {
+      @if (erreur(); as message) {
+        <p class="mb-3 rounded px-3 py-2 text-sm" role="alert"
+           style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+          {{ message }}
+        </p>
+      }
+
+      <ul class="flex list-none flex-col gap-2 p-0">
+        @for (saisie of saisies(); track saisie.ligne.id; let i = $index) {
+          <li
+            class="rounded-lg p-3"
+            style="background: var(--mat-sys-surface-container-low)"
+          >
+            <div class="flex items-start gap-3">
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-medium">
+                  {{ saisie.ligne.article?.designation }}
+                </span>
+                <span class="block truncate text-xs opacity-60">
+                  {{ saisie.ligne.article?.codeArticle }}
+                </span>
+                <span class="mt-1 block text-xs opacity-70">
+                  Commandé {{ saisie.ligne.quantite | number: '1.0-2' }}
+                  · déjà reçu {{ saisie.ligne.quantiteLivree | number: '1.0-2' }}
+                  · <strong>reste {{ reste(saisie.ligne) | number: '1.0-2' }}</strong>
+                </span>
+              </span>
+
+              <mat-form-field appearance="outline" class="w-28 shrink-0" subscriptSizing="dynamic">
+                <mat-label>Reçu</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  inputmode="decimal"
+                  min="0"
+                  [max]="reste(saisie.ligne)"
+                  [ngModel]="saisie.recue"
+                  (ngModelChange)="saisir(i, $event)"
+                  [disabled]="reste(saisie.ligne) <= 0"
+                />
+              </mat-form-field>
+            </div>
+
+            @if (tropRecu(saisie)) {
+              <p class="mt-1 text-xs" style="color: var(--mat-sys-error)">
+                Dépasse ce qui reste attendu ({{ reste(saisie.ligne) | number: '1.0-2' }}).
+              </p>
+            }
+          </li>
+        }
+      </ul>
+
+      <button
+        mat-flat-button
+        class="mt-4 !h-12 w-full"
+        [disabled]="!aQuelqueChose() || envoiEnCours()"
+        (click)="envoyer()"
+      >
+        {{ envoiEnCours() ? 'Enregistrement…' : 'Enregistrer la réception' }}
+      </button>
+
+      <p class="mt-2 text-center text-xs opacity-60">
+        Saisissez ce qui arrive aujourd’hui, pas le cumul.
+      </p>
+    }
+  }
+</div>

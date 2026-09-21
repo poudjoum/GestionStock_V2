@@ -1060,6 +1060,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/commandes-fournisseurs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["rechercher"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/commandes-fournisseurs/{idCommandFour}": {
         parameters: {
             query?: never;
@@ -1770,8 +1786,8 @@ export interface components {
             username?: string;
             email?: string;
             roles?: string[];
-            tokenType?: string;
             accessToken?: string;
+            tokenType?: string;
         };
         RafraichissementRequest: {
             refreshToken: string;
@@ -1923,6 +1939,24 @@ export interface components {
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["FactureDto"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"];
+            pageable?: components["schemas"]["PageableObject"];
+            /** Format: int32 */
+            numberOfElements?: number;
+            first?: boolean;
+            last?: boolean;
+            empty?: boolean;
+        };
+        PageCommandeFourDto: {
+            /** Format: int32 */
+            totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["CommandeFourDto"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
@@ -3371,6 +3405,7 @@ export interface operations {
     inventaire: {
         parameters: {
             query: {
+                q?: string;
                 pageable: components["schemas"]["Pageable"];
             };
             header?: never;
@@ -3708,6 +3743,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EntrepriseDto"];
+                };
+            };
+        };
+    };
+    rechercher: {
+        parameters: {
+            query: {
+                etat?: ("EN_PREPARATION" | "VALIDEE" | "PARTIELLEMENT_LIVREE" | "LIVREE" | "CLOTUREE" | "ANNULEE")[];
+                q?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageCommandeFourDto"];
                 };
             };
         };

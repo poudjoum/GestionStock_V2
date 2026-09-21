@@ -1,0 +1,165 @@
+<div class="mx-auto max-w-3xl">
+  <h1 class="mb-3 text-xl font-medium">Vendre</h1>
+
+  <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+    <mat-label>Ajouter un article</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input
+      matInput
+      inputmode="search"
+      autocapitalize="none"
+      autocorrect="off"
+      [ngModel]="recherche()"
+      (ngModelChange)="chercher($event)"
+      placeholder="code ou désignation"
+    />
+    @if (cherche()) {
+      <mat-icon matSuffix class="animate-pulse">hourglass_empty</mat-icon>
+    }
+  </mat-form-field>
+
+  @if (resultats().length > 0) {
+    <ul class="mt-2 flex max-h-72 list-none flex-col gap-1 overflow-y-auto p-0">
+      @for (article of resultats(); track article.id) {
+        <li>
+          <button
+            type="button"
+            class="flex w-full cursor-pointer items-center gap-3 rounded-lg border-0 p-3 text-left"
+            style="background: var(--mat-sys-surface-container); color: var(--mat-sys-on-surface)"
+            (click)="ajouter(article)"
+          >
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-medium">{{ article.designation }}</span>
+              <span class="block truncate text-xs opacity-60">{{ article.codeArticle }}</span>
+            </span>
+            <span class="shrink-0 text-sm tabular-nums">
+              {{ article.prixUnitaireHt | number: '1.0-0' }} F
+            </span>
+            <mat-icon class="shrink-0" style="color: var(--mat-sys-primary)">add_circle</mat-icon>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- Le panier -->
+  <div class="mt-5">
+    @if (panier().length === 0) {
+      <div class="py-16 text-center opacity-60">
+        <mat-icon class="!h-12 !w-12 !text-5xl">shopping_cart</mat-icon>
+        <p class="mt-2 text-sm">Cherchez un article pour commencer la vente.</p>
+      </div>
+    } @else {
+      <ul class="flex list-none flex-col gap-2 p-0">
+        @for (ligne of panier(); track ligne.article.id) {
+          <li
+            class="flex items-center gap-2 rounded-lg p-3"
+            style="background: var(--mat-sys-surface-container-low)"
+          >
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-medium">{{ ligne.article.designation }}</span>
+              <span class="block truncate text-xs opacity-60">
+                {{ ligne.article.prixUnitaireHt | number: '1.0-0' }} F l’unité
+              </span>
+            </span>
+
+            <!-- Les commandes de quantite sont larges : on les touche du pouce, pas a la souris. -->
+            <button
+              mat-icon-button
+              (click)="changerQuantite(ligne.article.id!, ligne.quantite - 1)"
+              aria-label="Retirer une unité"
+            >
+              <mat-icon>remove_circle_outline</mat-icon>
+            </button>
+            <span class="w-8 text-center text-base font-medium tabular-nums">{{ ligne.quantite }}</span>
+            <button
+              mat-icon-button
+              (click)="changerQuantite(ligne.article.id!, ligne.quantite + 1)"
+              aria-label="Ajouter une unité"
+            >
+              <mat-icon>add_circle_outline</mat-icon>
+            </button>
+
+            <span class="w-20 shrink-0 text-right text-sm font-medium tabular-nums">
+              {{ (ligne.article.prixUnitaireHt ?? 0) * ligne.quantite | number: '1.0-0' }} F
+            </span>
+          </li>
+        }
+      </ul>
+
+      <!-- Le client, facultatif : la vente de comptoir anonyme est le cas ordinaire. -->
+      <div class="mt-4">
+        @if (client(); as c) {
+          <div class="flex items-center gap-2 rounded-lg p-3"
+               style="background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container)">
+            <mat-icon>person</mat-icon>
+            <span class="min-w-0 flex-1 truncate text-sm">{{ nomDuClient(c) }}</span>
+            <button mat-icon-button (click)="choisirClient(null)" aria-label="Retirer le client">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        } @else if (choixDuClient()) {
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+            <mat-label>Chercher un client</mat-label>
+            <mat-icon matPrefix>person_search</mat-icon>
+            <input
+              matInput
+              [ngModel]="rechercheClient()"
+              (ngModelChange)="chercherClient($event)"
+              placeholder="nom ou numéro"
+            />
+          </mat-form-field>
+          @for (c of clientsTrouves(); track c.id) {
+            <button
+              type="button"
+              class="mt-1 flex w-full cursor-pointer items-center gap-2 rounded border-0 p-2 text-left text-sm"
+              style="background: var(--mat-sys-surface-container); color: var(--mat-sys-on-surface)"
+              (click)="choisirClient(c)"
+            >
+              {{ nomDuClient(c) }}
+              <span class="opacity-60">{{ c.numTel }}</span>
+            </button>
+          }
+        } @else {
+          <button mat-button (click)="choixDuClient.set(true)">
+            <mat-icon>person_add</mat-icon>
+            Attribuer un client
+          </button>
+        }
+      </div>
+
+      @if (erreur(); as message) {
+        <p class="mt-3 rounded px-3 py-2 text-sm" role="alert"
+           style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+          {{ message }}
+        </p>
+      }
+
+      @if (envoiEnCours()) {
+        <mat-progress-bar class="mt-3" mode="indeterminate" />
+      }
+
+      <!--
+        Le total et le bouton restent sous le pouce : sur telephone ils collent au-dessus de la
+        barre de navigation, pour ne pas obliger a faire defiler un long panier avant de vendre.
+      -->
+      <div
+        class="sticky z-10 mt-4 flex items-center gap-3 rounded-lg p-3"
+        style="bottom: calc(72px + var(--marge-bas)); background: var(--mat-sys-surface-container-high)"
+      >
+        <span class="min-w-0 flex-1">
+          <span class="block text-xs opacity-70">
+            {{ articles() }} article{{ articles() > 1 ? 's' : '' }}
+          </span>
+          <span class="block text-xl font-medium tabular-nums">
+            {{ total() | number: '1.0-0' }} F
+          </span>
+        </span>
+        <button mat-button (click)="viderLePanier()" [disabled]="envoiEnCours()">Vider</button>
+        <button mat-flat-button class="!h-12" [disabled]="envoiEnCours()" (click)="vendre()">
+          {{ envoiEnCours() ? 'Enregistrement…' : 'Vendre' }}
+        </button>
+      </div>
+    }
+  </div>
+</div>

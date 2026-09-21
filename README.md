@@ -633,7 +633,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-232 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+240 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -749,11 +749,40 @@ Les gardes de route sont **une commodite de navigation, jamais une securite** : 
 refuse ce qu'elle doit refuser. Un front ne protege rien — il tourne sur la machine de celui
 qu'il pretend limiter.
 
+### Les trois ecrans du terrain
+
+Ceux qu'on fait cent fois par jour, ecrits mobile d'abord et non retrecis depuis le bureau.
+
+**Vendre** (`/comptoir`). Le panier se construit article par article : on ne connait pas ce qu'un
+client achete avant qu'il ait pose son dernier article. Rien ne part au serveur avant le bouton
+final — une vente a moitie enregistree serait pire que pas de vente. Passer deux fois le meme
+article veut dire « deux unites », pas « deux lignes ». Le total et le bouton restent colles
+au-dessus de la barre de navigation, pour ne pas obliger a faire defiler un long panier avant de
+vendre. La vente porte deja une `referenceClient` : reposter la meme rend la vente enregistree au
+lieu d'en creer une seconde.
+
+**Stock** (`/stock`). Une recherche, une liste, rien d'autre. Un magasinier debout dans les rayons
+cherche un article precis et veut savoir combien il en reste ; lui servir le tableau de
+valorisation du comptable sur cinq pouces ne l'aiderait pas. Le statut se lit d'un coup d'oeil, et
+un stock negatif s'affiche en rouge — c'est lui qui reclame un comptage.
+
+**Receptions** (`/receptions`). Deux temps : choisir la commande qu'on a en main, puis saisir ce
+qui est reellement arrive. Ce qu'on saisit est la quantite de **cette arrivee**, jamais le cumul —
+demander un cumul obligerait a faire une soustraction de tete devant un camion. « Tout recu »
+remplit chaque ligne avec ce qui reste attendu.
+
+La frappe des recherches est temporisee de 300 ms : un caractere par requete ferait huit
+allers-retours pour « ciment », ce qui se voit sur une connexion de telephone.
+
+Les messages d'erreur de l'API sont montres tels quels. « La quantite recue depasse ce qui reste
+attendu : 4 attendus, 6 recus » dit ce qu'il faut faire ; le remplacer par « une erreur est
+survenue » effacerait la seule information utile a celui qui est devant l'ecran.
+
 ### Ce qui n'y est pas encore
 
-Les ecrans metier. Les routes existent et menent a un ecran qui dit ce qui vient : les laisser
-absentes ferait tomber le menu sur des routes inconnues, ce qui donne l'impression d'une
-application cassee.
+Les ecrans de bureau — factures, caisse, comptes. Leurs routes existent et menent a un ecran qui
+dit ce qui vient : les laisser absentes ferait tomber le menu sur des routes inconnues, ce qui
+donne l'impression d'une application cassee.
 
 ## Notifications
 
