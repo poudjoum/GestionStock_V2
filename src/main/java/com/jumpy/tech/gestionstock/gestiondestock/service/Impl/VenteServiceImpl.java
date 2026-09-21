@@ -12,6 +12,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundExcept
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.FactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneVenteRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.VenteRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
@@ -37,13 +38,16 @@ public class VenteServiceImpl implements VenteService {
     private final VenteRepository venteRepository;
     private final ArticleRepository articleRepository;
     private final LigneVenteRepository ligneVenteRepository;
+    private final FactureRepository factureRepository;
     private final MvtStkService mvtStkService;
 
     public VenteServiceImpl(VenteRepository venteRepository, ArticleRepository articleRepository,
-                            LigneVenteRepository ligneVenteRepository, MvtStkService mvtStkService) {
+                            LigneVenteRepository ligneVenteRepository,
+                            FactureRepository factureRepository, MvtStkService mvtStkService) {
         this.venteRepository = venteRepository;
         this.articleRepository = articleRepository;
         this.ligneVenteRepository = ligneVenteRepository;
+        this.factureRepository = factureRepository;
         this.mvtStkService = mvtStkService;
     }
 
@@ -199,7 +203,11 @@ public class VenteServiceImpl implements VenteService {
                         ErrorCodes.VENTE_NOT_FOUND));
     }
 
-    /** Une vente annulee a deja rendu sa marchandise : la corriger la rendrait une seconde fois. */
+    /**
+     * Une vente annulee a deja rendu sa marchandise : la corriger la rendrait une seconde fois.
+     * Une vente facturee est figee pour une autre raison — la facture porte des montants remis au
+     * client, et changer la vente sous elle la ferait mentir. Annuler la facture rouvre la vente.
+     */
     private Vente venteModifiable(Long id) {
         Vente vente = vente(id);
         if (vente.isAnnulee()) {
@@ -207,6 +215,14 @@ public class VenteServiceImpl implements VenteService {
                     ErrorCodes.VENTE_NOT_VALID,
                     List.of("La vente " + id + " a déjà été annulée"));
         }
+        factureRepository.findByVenteId(id)
+                .filter(facture -> !facture.isAnnulee())
+                .ifPresent(facture -> {
+                    throw new InvalidEntityException("Une vente facturée ne se modifie plus",
+                            ErrorCodes.VENTE_NOT_VALID,
+                            List.of("La facture " + facture.getNumero()
+                                    + " doit être annulée avant de reprendre cette vente"));
+                });
         return vente;
     }
 

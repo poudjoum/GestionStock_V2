@@ -61,6 +61,7 @@ demarrage :
 - `V5__annulation_de_vente_et_motif.sql` — l'annulation d'une vente, et le motif porte par chaque
   mouvement de stock. Le motif est nullable : les mouvements anterieurs n'en ont pas, et leur en
   inventer un serait pire que de reconnaitre qu'on l'ignore.
+- `V6__facturation.sql` — factures, lignes de facture et la sequence des numeros.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -145,6 +146,41 @@ et une commande annulee ne se reprend pas, on en saisit une nouvelle. C'est auss
 qu'une commande fournisseur n'entre en stock qu'une fois : une seconde livraison est refusee avant
 d'avoir relu la moindre ligne.
 
+## Facturation
+
+Rien ne calculait de montant dans cette application : une vente portait des lignes, chacune une
+quantite et un prix, et personne n'en faisait jamais la somme. Une facture est ce calcul, **fige**
+au moment ou on l'emet.
+
+```
+POST /gestiondestock/v1/ventes/{id}/facture        emission
+GET  /gestiondestock/v1/ventes/{id}/facture
+GET  /gestiondestock/v1/factures/{id}
+GET  /gestiondestock/v1/factures/numero/{numero}
+GET  /gestiondestock/v1/factures?page=0&size=20&sort=dateEmission,desc
+POST /gestiondestock/v1/factures/{id}/annulation
+```
+
+Ce que « fige » veut dire, et pourquoi :
+
+- Les lignes **recopient** le code, la designation, le prix et le taux de TVA. Elles ne pointent
+  pas vers l'article. Un article renomme, repricé ou supprime ne doit pas changer une facture deja
+  remise au client — un test verifie qu'une facture ne bouge plus quand le prix de l'article
+  change.
+- Le prix retenu est celui de la **ligne de vente**, pas le prix courant de l'article : c'est
+  celui auquel on a vendu.
+- Le total somme les montants **deja arrondis** des lignes plutot que de repartir des quantites :
+  c'est la seule facon que le total corresponde a l'addition de ce que le client a sous les yeux.
+  Deux decimales, arrondi commercial, decides en un seul endroit.
+- Le numero vient d'une **sequence de la base** (`FA-2026-000012`). Un compteur calcule en Java —
+  « le plus grand numero plus un » — donnerait le meme numero a deux factures emises en meme
+  temps.
+
+Une vente ne se facture qu'une fois (contrainte d'unicite en base, pas un controle en Java), et
+pas si elle est annulee. **Une vente facturee ne se corrige plus** : changer la vente sous sa
+facture la ferait mentir. Annuler la facture rouvre la vente ; la facture, elle, reste lisible —
+un numero emis puis disparu est exactement ce qu'une comptabilite ne doit pas montrer.
+
 ## Acces et roles
 
 L'API est fermee : toute route inconnue du tableau ci-dessous exige au minimum un compte valide,
@@ -157,6 +193,8 @@ et une route ajoutee demain naitra fermee.
 | Faire avancer une commande (PATCH) | ADMIN, MANAGER, MAGASINIER |
 | Vendre, enregistrer un client | ADMIN, MANAGER, CAISSIER |
 | Corriger ou annuler une vente | ADMIN, MANAGER, CAISSIER |
+| Emettre une facture | ADMIN, MANAGER, CAISSIER |
+| Annuler une facture | ADMIN, MANAGER, COMPTABLE |
 | Creer articles, categories, commandes | ADMIN, MANAGER, MAGASINIER |
 | Supprimer | ADMIN, MANAGER |
 | Comptes et entreprises | ADMIN |
@@ -171,7 +209,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-56 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+66 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -243,6 +281,11 @@ A savoir avant de reprendre le developpement :
 - On ne peut pas **ajouter** une ligne a une vente enregistree : il faut en saisir une seconde.
   Corriger et retirer sont possibles, ajouter ne l'est pas encore.
 - Les mouvements anterieurs a la V5 n'ont pas de motif, et aucun ne leur a ete invente.
+- La facture ne porte **pas le client** : la vente ne le connait pas, seule la commande client le
+  designe. Une facture nominative demande d'abord de relier vente et client.
+- Le taux de TVA est pris sur l'article, faute d'etre porte par la ligne de vente. Il est fige a
+  l'emission, mais deux ventes du meme article au meme moment ne peuvent pas avoir deux taux.
+- Rien ne suit le **paiement** d'une facture : elle est emise ou annulee, jamais reglee.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra
   une operation dediee plutot qu'un retour en arriere.
 - **Spring Boot 4 est disponible et n'est pas pris.** Il repose sur Spring Framework 7, deplace des

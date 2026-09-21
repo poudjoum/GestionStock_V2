@@ -32,6 +32,7 @@ public class SecurityConfiguration {
     private static final String MANAGER = "MANAGER";
     private static final String MAGASINIER = "MAGASINIER";
     private static final String CAISSIER = "CAISSIER";
+    private static final String COMPTABLE = "COMPTABLE";
 
     private final UserDetailsServiceImpl userDetailsService;
     private final EntryPointJwt unauthorizedHandler;
@@ -109,6 +110,12 @@ public class SecurityConfiguration {
                         // cree ni article ni categorie.
                         .requestMatchers(HttpMethod.POST, API + "/ventes/**", API + "/clients/**")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER)
+
+                        // Annuler une facture est un geste comptable, pas un geste de magasin :
+                        // sans cette ligne, la regle POST generique l'aurait ouvert au magasinier
+                        // et ferme au comptable.
+                        .requestMatchers(HttpMethod.POST, API + "/factures/**")
+                            .hasAnyRole(ADMIN, MANAGER, COMPTABLE)
 
                         // Corriger ou annuler une vente revient aux memes roles que la vendre :
                         // c'est au comptoir que l'erreur se constate, et les regles generiques
