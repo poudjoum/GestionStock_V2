@@ -16,6 +16,8 @@ public class ArticleDto {
     private BigDecimal tauxTva;
     private BigDecimal prixUnitaireTTC;
     private String Photo;
+    /** Quantite sous laquelle l'article est signale. Facultatif. */
+    private BigDecimal seuilAlerte;
     private CategoryDto category;
     private Long idEntreprise;
 
@@ -32,6 +34,7 @@ public class ArticleDto {
                 .prixUnitaireHt(art.getPrixUnitaire())
                 .tauxTva(art.getTauxTva())
                 .prixUnitaireTTC(art.getPrixUnitTTC())
+                .seuilAlerte(art.getSeuilAlerte())
                 .idEntreprise(art.getIdEntreprise())
                 .category(CategoryDto.fromEntity(art.getCategory()))
                 .build();
@@ -52,6 +55,7 @@ public class ArticleDto {
         art.setPrixUnitaire(dto.getPrixUnitaireHt());
         art.setTauxTva(dto.getTauxTva());
         art.setPrixUnitTTC(dto.getPrixUnitaireTTC());
+        art.setSeuilAlerte(dto.getSeuilAlerte());
         art.setIdEntreprise(dto.getIdEntreprise());
         return art;
     }

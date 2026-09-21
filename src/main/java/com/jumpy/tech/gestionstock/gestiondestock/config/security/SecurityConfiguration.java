@@ -129,6 +129,12 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, API + "/ventes/**", API + "/clients/**")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER)
 
+                        // L'etat du stock porte la valeur du magasin et les marges qu'on en
+                        // deduit : c'est une information de gestion, pas de comptoir. Le stock
+                        // d'un article reste lisible par tous sur /mouvements.
+                        .requestMatchers(HttpMethod.GET, API + "/stock/**")
+                            .hasAnyRole(ADMIN, MANAGER, MAGASINIER, COMPTABLE)
+
                         // La recette du jour n'est pas une information pour tout le monde : la
                         // regle generale ouvre les lectures a tout compte connecte, ce qui
                         // montrerait le chiffre d'affaires au magasinier.

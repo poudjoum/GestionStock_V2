@@ -26,6 +26,12 @@ public class Article extends AbstractEntity{
     private BigDecimal prixUnitTTC;
     @Column(name="photo")
     private String photo;
+    /**
+     * La quantite sous laquelle il faut recommander. Nul quand l'article ne merite pas d'alerte :
+     * un seuil impose partout noierait les vraies alertes sous des dizaines de fausses.
+     */
+    @Column(name="seuil_alerte")
+    private BigDecimal seuilAlerte;
     @Column(name="idEntreprise")
     private Long idEntreprise;
     @ManyToOne

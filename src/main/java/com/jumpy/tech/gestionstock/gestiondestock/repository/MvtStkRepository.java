@@ -26,4 +26,20 @@ public interface MvtStkRepository extends JpaRepository<MvtStk, Long> {
     @Query("select coalesce(sum(m.quantite), 0) from MvtStk m " +
             "where m.articles.id = :idArticle and m.typMvt = :typeMvt")
     BigDecimal sommeParType(@Param("idArticle") Long idArticle, @Param("typeMvt") TypeMvtStk typeMvt);
+
+    /**
+     * Le stock de plusieurs articles en une requete.
+     *
+     * Un inventaire affiche des dizaines de lignes : les interroger une par une ferait deux
+     * requetes par article — entrees puis sorties. Ici, une seule, et le signe est porte par le
+     * sens du mouvement.
+     *
+     * Un article sans aucun mouvement n'est pas rendu : c'est a l'appelant de lire zero pour
+     * ceux qui manquent, plutot qu'a la requete d'inventer des lignes vides.
+     */
+    @Query("select m.articles.id, coalesce(sum(case when m.typMvt = :entree then m.quantite " +
+            "else -m.quantite end), 0) from MvtStk m " +
+            "where m.articles.id in :idsArticles group by m.articles.id")
+    java.util.List<Object[]> stocksReels(@Param("idsArticles") java.util.Collection<Long> idsArticles,
+                                         @Param("entree") TypeMvtStk entree);
 }

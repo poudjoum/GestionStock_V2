@@ -81,6 +81,8 @@ demarrage :
   personne pour ouvrir une entreprise.
 - `V13__reglement_des_factures.sql` — les encaissements. Un reglement est un mouvement, pas un
   solde : ce qui a ete paye se somme a la lecture.
+- `V14__seuil_d_alerte.sql` — la quantite sous laquelle un article est signale. Nullable : tous
+  n'ont pas a etre surveilles.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -384,6 +386,44 @@ qui restait du.
 La liste des factures porte le reste a payer de chacune, charge en une seule requete — les
 demander facture par facture ferait une requete par ligne affichee.
 
+## Etat du stock
+
+```
+GET /gestiondestock/v1/stock/etat
+GET /gestiondestock/v1/stock/inventaire?page=0&size=20
+GET /gestiondestock/v1/stock/alertes
+```
+
+```json
+{
+  "nombreArticles": 42, "nombreEnRupture": 3, "nombreSousSeuil": 5,
+  "valeurAuCout": 1250000, "nombreSansCoutConnu": 2,
+  "valeurAuPrixDeVente": 1875000
+}
+```
+
+Le pendant de l'etat de caisse, cote marchandise : la caisse dit ce qui est entre, celui-ci dit ce
+qui dort en rayon. Le stock se lisait article par article — personne ne pouvait dire ce que valait
+l'ensemble, ni quels articles s'epuisaient.
+
+**Deux valorisations, parce qu'elles ne repondent pas a la meme question.** `valeurAuCout` est ce
+que la marchandise a coute, deduit des commandes fournisseur **livrees** ; `valeurAuPrixDeVente`
+est ce qu'elle rapporterait si elle se vendait. Confondre les deux fait passer une marge pour un
+avoir.
+
+- Le cout est **moyen**, pas celui du dernier achat : un dernier achat portant sur une petite
+  quantite a un prix exceptionnel valoriserait tout le stock a ce prix-la.
+- Un article jamais achete par une commande — approvisionne a la main — n'a **pas de cout connu**,
+  et sa valeur au cout reste vide. `nombreSansCoutConnu` le dit : sans ce compte, une valorisation
+  partielle passerait pour complete.
+- Une commande non livree ne donne aucun cout : la marchandise n'est pas arrivee, son prix n'a
+  encore rien coute.
+
+**Seuil d'alerte** (`seuilAlerte` sur l'article, facultatif). Chaque ligne porte un statut :
+`RUPTURE`, `SOUS_SEUIL`, `SUFFISANT`, ou `SANS_SEUIL` — ce dernier n'est pas un defaut, beaucoup
+d'articles n'ont pas a etre surveilles, et les confondre avec ceux qui vont bien ferait croire a
+une surveillance qui n'existe pas. `/stock/alertes` ne rend que ce qu'il faut recommander.
+
 ## Etat de caisse
 
 ```
@@ -434,6 +474,7 @@ et une route ajoutee demain naitra fermee.
 | Emettre une facture | ADMIN, MANAGER, CAISSIER |
 | Encaisser un reglement | ADMIN, MANAGER, CAISSIER, COMPTABLE |
 | Consulter la caisse | ADMIN, MANAGER, CAISSIER, COMPTABLE |
+| Consulter l'etat du stock | ADMIN, MANAGER, MAGASINIER, COMPTABLE |
 | Reprendre un reglement | ADMIN, COMPTABLE |
 | Annuler une facture | ADMIN, MANAGER, COMPTABLE |
 | Creer articles, categories, commandes | ADMIN, MANAGER, MAGASINIER |
@@ -451,7 +492,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-127 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+135 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
