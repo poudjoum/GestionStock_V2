@@ -244,8 +244,9 @@ POST /gestiondestock/v1/commandes-clients/{id}/vente-partielle
 ```
 
 La quantite est celle de **cette arrivee**, pas le cumul : c'est ce qui a ete compte au
-dechargement. Chaque ligne porte `quantiteLivree` et `resteALivrer` — un compteur global sur la
-commande ne dirait pas quel article manque.
+dechargement. Chaque ligne porte `quantiteLivree` et ce qui reste — `resteALivrer` cote
+fournisseur, `resteAServir` cote client — un compteur global sur la commande ne dirait pas quel
+article manque.
 
 **L'etat n'est pas declare, il est constate** : tout est arrive, la commande passe `LIVREE` ; il
 manque quelque chose, elle passe `PARTIELLEMENT_LIVREE` et se sert a nouveau quand le reste
@@ -289,7 +290,9 @@ Ce qui en decoule :
   n'est jamais venu. Cote client, ce qui n'a pas ete servi n'a jamais quitte le magasin : il n'y
   a rien a rendre non plus.
 - **Les lignes restent intactes.** `quantiteLivree` reste en dessous de `quantite`, et l'ecart dit
-  exactement ce qui n'a pas ete honore. Les raboter effacerait la seule trace du manquement.
+  exactement ce qui n'a pas ete honore. Les raboter effacerait la seule trace du manquement. Les
+  lignes de commande client remontent desormais `quantiteLivree` et `resteAServir`, que leur DTO
+  ne rendait pas : le reliquat d'une commande client etait invisible de l'exterieur.
 - **Le motif est obligatoire.** « On a clos » sans dire pourquoi ne sert a rien a celui qui relira
   l'historique ; `motifCloture` remonte avec la commande.
 - **Seule une commande `PARTIELLEMENT_LIVREE` se clot.** Une commande dont rien n'est arrive
@@ -564,7 +567,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-160 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+161 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 

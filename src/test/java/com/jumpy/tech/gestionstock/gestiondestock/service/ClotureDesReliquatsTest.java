@@ -257,6 +257,18 @@ class ClotureDesReliquatsTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void la_cloture_cliente_laisse_lisible_ce_qui_n_a_pas_ete_servi() {
+        CommandeClientDto commande = commandeClientEnReliquat();
+
+        commandeClientService.cloturer(commande.getId(), "Client désisté");
+
+        LigneCommandeClientDto ligne = commandeClientService.lignes(commande.getId()).get(0);
+        assertThat(ligne.getQuantite()).isEqualByComparingTo("10");
+        assertThat(ligne.getQuantiteLivree()).isEqualByComparingTo("3");
+        assertThat(ligne.getResteAServir()).isEqualByComparingTo("7");
+    }
+
+    @Test
     void une_commande_client_cloturee_ne_se_sert_plus() {
         CommandeClientDto commande = commandeClientEnReliquat();
         commandeClientService.cloturer(commande.getId(), "Client désisté");
