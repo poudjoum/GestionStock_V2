@@ -59,7 +59,7 @@ public class AuthControler {
      }
 
      @PostMapping("/signin")
-    public ResponseEntity<?> authencticateUser(@Valid @RequestBody LoginRequest loginRequest){
+    public ResponseEntity<JwtResponse> authencticateUser(@Valid @RequestBody LoginRequest loginRequest){
          Authentication authentication = authenticationManager.authenticate(
                  new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
@@ -83,7 +83,7 @@ public class AuthControler {
      * expire qu'on appelle cette route.
      */
     @PostMapping("/refresh")
-    public ResponseEntity<?> rafraichir(@Valid @RequestBody RafraichissementRequest requete) {
+    public ResponseEntity<JwtResponse> rafraichir(@Valid @RequestBody RafraichissementRequest requete) {
         ServiceDeRafraichissement.Rafraichi rafraichi = rafraichissement.echanger(requete.getRefreshToken());
         String jwt = jwtUtils.genererJetonPour(rafraichi.details());
         return ResponseEntity.ok(reponse(jwt, rafraichi.jeton(), rafraichi.details()));
@@ -96,7 +96,7 @@ public class AuthControler {
      * doit pas fermer la caisse restee ouverte au comptoir.
      */
     @PostMapping("/logout")
-    public ResponseEntity<?> deconnexion(@Valid @RequestBody RafraichissementRequest requete) {
+    public ResponseEntity<MessageResponse> deconnexion(@Valid @RequestBody RafraichissementRequest requete) {
         rafraichissement.revoquer(requete.getRefreshToken());
         return ResponseEntity.ok(new MessageResponse("Déconnecté"));
     }
@@ -122,7 +122,7 @@ public class AuthControler {
      * l'autoriser.
      */
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+    public ResponseEntity<MessageResponse> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         // Releve avant toute ecriture : une fois le compte enregistre, la base n'est plus vide et
         // la question ne se poserait plus de la meme facon.
         boolean premiereInscription = userRepository.count() == 0;
