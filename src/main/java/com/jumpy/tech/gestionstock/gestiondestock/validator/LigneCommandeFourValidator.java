@@ -12,13 +12,14 @@ public class LigneCommandeFourValidator {
         List<String> errors=new ArrayList<>();
 
         if(dto==null){
-            errors.add("Veuillez renseigner le code");
-            errors.add("Veuillez selectionner fournisseur");
+            errors.add("Veuillez renseigner le code de la commande");
+            errors.add("Veuillez sélectionner le fournisseur");
             errors.add("Veuillez renseigner une date");
             return  errors;
         }
-        if(!StringUtils.hasLength(dto.getCmndeFour().getCode())){
-            errors.add("Veuillez renseigner le code");
+        // Meme piege que pour la ligne de commande client : getCmndeFour() peut etre null.
+        if(dto.getCmndeFour() == null || !StringUtils.hasLength(dto.getCmndeFour().getCode())){
+            errors.add("Veuillez renseigner le code de la commande");
         }
 
         return errors;

@@ -64,7 +64,8 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         Optional<Fournisseur> fournisseur=fournisseurRepository.findById(dto.getFournisseur().getId());
         if(fournisseur.isEmpty()){
             log.warn("Fournisseur with Id {} was not in database",dto.getFournisseur().getId());
-            throw new EntityNotFoundException("Aucun fournisseur avec l'ID = "+dto.getFournisseur().getId()+" n'est disponible dans la base de données");
+            throw new EntityNotFoundException("Aucun fournisseur avec l'identifiant "+dto.getFournisseur().getId()+" n'a été trouvé",
+                    ErrorCodes.FOURNISSEUR_NOT_FOUND);
         }
         List<String> articleErrors=new ArrayList<>();
         if(dto.getLigneCmndeFournisseur()!=null){
@@ -72,17 +73,17 @@ public class CommandeFourServiceImpl implements CommandeFourService {
                 if(ligCmdClt.getArticle()!=null){
                     Optional<Article>article=articleRepository.findById(ligCmdClt.getArticle().getId());
                     if(article.isEmpty()){
-                        articleErrors.add("L' article avec l'ID = "+ligCmdClt.getArticle().getId()+" n'existe pas");
+                        articleErrors.add("L'article avec l'identifiant "+ligCmdClt.getArticle().getId()+" n'existe pas");
                     }
                 }else{
-                    articleErrors.add("Impossible d'enregistrer une commande avec un article null");
+                    articleErrors.add("Impossible d'enregistrer une commande sans article");
                 }
 
             });
         }
         if(!articleErrors.isEmpty()){
             log.error("");
-            throw new InvalidEntityException("L'article n'existe pas dans la base de donnees",ErrorCodes.ARTICLE_NOT_FOUND,articleErrors);
+            throw new InvalidEntityException("Un ou plusieurs articles de la commande n'existent pas",ErrorCodes.ARTICLE_NOT_FOUND,articleErrors);
         }
         CommandeFour saveCmndFour=commandeFourRepository.save(CommandeFourDto.toEntity(dto));
         if(dto.getLigneCmndeFournisseur()!=null) {
@@ -111,7 +112,8 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         }
         return  commandeFourRepository.findById(id)
                 .map(CommandeFourDto::fromEntity)
-                .orElseThrow(()->new EntityNotFoundException("Aucune Commande avec l'id {}"+id,ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
+                // Le « {} » d'un journal SLF4J etait reste dans une concatenation.
+                .orElseThrow(()->new EntityNotFoundException("Aucune commande fournisseur avec l'identifiant "+id+" n'a été trouvée",ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
     }
 
     @Override
@@ -122,7 +124,7 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         }
         return commandeFourRepository.findCommandeFourByCode(code)
                 .map(CommandeFourDto::fromEntity)
-                .orElseThrow(()->new EntityNotFoundException("Aucune Commande Fournisseur avec le code {}"+ code+" n'a été trouver ",ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
+                .orElseThrow(()->new EntityNotFoundException("Aucune commande fournisseur avec le code "+code+" n'a été trouvée",ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
     }
 
     @Override

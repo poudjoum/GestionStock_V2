@@ -62,7 +62,8 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         Optional<Client> client=clientRepository.findById(dto.getClient().getId());
         if(client.isEmpty()){
             log.warn("Client with Id {} was not in database",dto.getClient().getId());
-            throw new EntityNotFoundException("Aucun client avec l'ID = "+dto.getClient().getId()+" n'est disponible dans la base de données");
+            throw new EntityNotFoundException("Aucun client avec l'identifiant "+dto.getClient().getId()+" n'a été trouvé",
+                    ErrorCodes.CLIENT_NOT_FOUND);
         }
         List<String> articleErrors=new ArrayList<>();
         if(dto.getLigneCmndeClients()!=null){
@@ -70,17 +71,17 @@ public class CommandeClientServiceImpl implements CommandeClientService {
                 if(ligCmdClt.getArticle()!=null){
                     Optional<Article>article=articleRepository.findById(ligCmdClt.getArticle().getId());
                     if(article.isEmpty()){
-                        articleErrors.add("L' article avec l'ID = "+ligCmdClt.getArticle().getId()+" n'existe pas");
+                        articleErrors.add("L'article avec l'identifiant "+ligCmdClt.getArticle().getId()+" n'existe pas");
                     }
                 }else{
-                    articleErrors.add("Impossible d'enregistrer une commandeavec un article null");
+                    articleErrors.add("Impossible d'enregistrer une commande sans article");
                 }
 
             });
         }
         if(!articleErrors.isEmpty()){
             log.error("");
-            throw new InvalidEntityException("L'article n'existe pas dans la base de donnees",ErrorCodes.ARTICLE_NOT_FOUND,articleErrors);
+            throw new InvalidEntityException("Un ou plusieurs articles de la commande n'existent pas",ErrorCodes.ARTICLE_NOT_FOUND,articleErrors);
         }
         CommandeClient saveCmndClt=commandeClientRepository.save(CommandeClientDto.toEntity(dto));
         if(dto.getLigneCmndeClients()!=null) {
@@ -102,7 +103,9 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         }
     return  commandeClientRepository.findById(id)
             .map(CommandeClientDto::fromEntity)
-            .orElseThrow(()->new EntityNotFoundException("Aucune Commande avec l'id {}"+id,ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
+            // Le « {} » d'un journal SLF4J etait reste dans une concatenation : le client lisait
+            // « Aucune Commande avec l'id {}12 ».
+            .orElseThrow(()->new EntityNotFoundException("Aucune commande client avec l'identifiant "+id+" n'a été trouvée",ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
     }
 
     @Override
@@ -113,7 +116,7 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         }
         return commandeClientRepository.findCommandeClientByCode(code)
                 .map(CommandeClientDto::fromEntity)
-                .orElseThrow(()->new EntityNotFoundException("Aucune Commande client avec le code {}"+ code+" n'a été trouver ",ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
+                .orElseThrow(()->new EntityNotFoundException("Aucune commande client avec le code "+code+" n'a été trouvée",ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
     }
 
     @Override

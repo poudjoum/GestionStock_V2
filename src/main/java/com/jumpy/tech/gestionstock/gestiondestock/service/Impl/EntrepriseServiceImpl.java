@@ -30,7 +30,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         List<String> errors= EntrepriseValidator.validate(dto);
          if(!errors.isEmpty()){
              log.error("Entreprise Invalid {}",dto);
-             throw new InvalidEntityException("Entreprise Invalid", ErrorCodes.ENTREPRISE_NOT_VALID,errors);
+             throw new InvalidEntityException("L'entreprise n'est pas valide", ErrorCodes.ENTREPRISE_NOT_VALID,errors);
          }
          Entreprise savedEntreprise=entrepriseRepository.save(EntrepriseDto.toEntity(dto));
 
@@ -42,13 +42,13 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     public EntrepriseDto findById(Long id) {
         if(id==null){
             log.error("Entreprise id is null");
-            throw new InvalidEntityException("Aucune Entreprise ne peut etre cherchee sans identifiant",
+            throw new InvalidEntityException("Aucune entreprise ne peut être cherchée sans identifiant",
                     ErrorCodes.ENTREPRISE_NOT_VALID);
         }
         return entrepriseRepository.findById(id)
                 .map(EntrepriseDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucune Entreprise avec l'id " + id + " n'a ete trouvee dans la base de donnees",
+                        "Aucune entreprise avec l'identifiant " + id + " n'a été trouvée",
                         ErrorCodes.ENTREPRISE_NOT_FOUND));
     }
 

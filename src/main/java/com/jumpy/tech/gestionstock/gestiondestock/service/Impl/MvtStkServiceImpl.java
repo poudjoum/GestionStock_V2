@@ -63,7 +63,7 @@ public class MvtStkServiceImpl implements MvtStkService {
      */
     private MvtStkDto enregistrer(MvtStkDto dto, TypeMvtStk sens) {
         if (dto == null || dto.getArticle() == null || dto.getArticle().getId() == null) {
-            throw new InvalidEntityException("Un mouvement de stock designe un article",
+            throw new InvalidEntityException("Un mouvement de stock désigne un article",
                     ErrorCodes.MVT_STK_NOT_VALID);
         }
         Article article = article(dto.getArticle().getId());
@@ -95,7 +95,7 @@ public class MvtStkServiceImpl implements MvtStkService {
     private BigDecimal quantiteValide(BigDecimal quantite) {
         if (quantite == null || quantite.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InvalidEntityException(
-                    "La quantite d'un mouvement de stock doit etre strictement positive",
+                    "La quantité d'un mouvement de stock doit être strictement positive",
                     ErrorCodes.MVT_STK_NOT_VALID);
         }
         return quantite;
@@ -106,10 +106,10 @@ public class MvtStkServiceImpl implements MvtStkService {
         if (disponible.compareTo(quantite) < 0) {
             throw new InvalidEntityException(
                     "Stock insuffisant pour l'article " + article.getCodeArticle()
-                            + " : " + disponible + " en magasin, " + quantite + " demandes",
+                            + " : " + disponible + " en magasin, " + quantite + " demandés",
                     ErrorCodes.STOCK_INSUFFISANT,
-                    List.of("Article " + article.getCodeArticle() + " : stock reel " + disponible
-                            + ", quantite demandee " + quantite));
+                    List.of("Article " + article.getCodeArticle() + " : stock réel " + disponible
+                            + ", quantité demandée " + quantite));
         }
     }
 
@@ -121,12 +121,12 @@ public class MvtStkServiceImpl implements MvtStkService {
 
     private Article article(Long idArticle) {
         if (idArticle == null) {
-            throw new InvalidEntityException("Aucun Article ne peut etre cherche sans identifiant",
+            throw new InvalidEntityException("Aucun article ne peut être cherché sans identifiant",
                     ErrorCodes.ARTICLE_NOT_VALID);
         }
         return articleRepository.findById(idArticle)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun Article avec l'id = " + idArticle + " n'a ete trouve dans la base de donnees",
+                        "Aucun article avec l'identifiant " + idArticle + " n'a été trouvé",
                         ErrorCodes.ARTICLE_NOT_FOUND));
     }
 }

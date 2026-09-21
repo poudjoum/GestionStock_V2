@@ -31,7 +31,7 @@ public class ClientServiceImpl implements ClientService {
         List<String>errors= ClientValidator.validate(dto);
         if(!errors.isEmpty()){
             log.error("Client not Valid {}",dto);
-            throw new InvalidEntityException("Client is not valid", ErrorCodes.CLIENT_NOT_VALID,errors);
+            throw new InvalidEntityException("Le client n'est pas valide", ErrorCodes.CLIENT_NOT_VALID,errors);
         }
         Client savedClient=clientRepository.save(ClientDto.toEntity(dto));
         return ClientDto.fromEntity(savedClient);
@@ -48,7 +48,7 @@ public class ClientServiceImpl implements ClientService {
         return clientRepository.findById(id)
                 .map(ClientDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun Client avec l'ID " + id + " n'a ete trouve dans la base de donnees",
+                        "Aucun client avec l'identifiant " + id + " n'a été trouvé",
                         ErrorCodes.CLIENT_NOT_FOUND));
     }
 

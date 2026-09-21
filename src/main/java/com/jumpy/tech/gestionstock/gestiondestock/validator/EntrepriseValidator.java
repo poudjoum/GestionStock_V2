@@ -11,20 +11,20 @@ public class EntrepriseValidator {
     public static List<String> validate(EntrepriseDto dto){
         List<String> errors=new ArrayList<>();
         if(dto==null){
-            errors.add("Veuillez renseigner le registre  de commerce");
-            errors.add("Veuillez renseigner l' email de l'entreprise");
-            errors.add("Veuillez renseigner un numero de telephone ");
+            errors.add("Veuillez renseigner le registre de commerce");
+            errors.add("Veuillez renseigner l'adresse de courriel de l'entreprise");
+            errors.add("Veuillez renseigner un numéro de téléphone");
             return  errors;
         }
 
         if(!StringUtils.hasLength(dto.getRegistreCommerce())){
-            errors.add("Veuillez renseigner le registre  de commerce");
+            errors.add("Veuillez renseigner le registre de commerce");
         }
         if(!StringUtils.hasLength(dto.getEmail())){
-            errors.add("Veuillez renseigner l' email de l'entreprise");
+            errors.add("Veuillez renseigner l'adresse de courriel de l'entreprise");
         }
         if(!StringUtils.hasLength(dto.getTel())){
-            errors.add("Veuillez renseigner un numero de telephone ");
+            errors.add("Veuillez renseigner un numéro de téléphone");
         }
 
         return errors;

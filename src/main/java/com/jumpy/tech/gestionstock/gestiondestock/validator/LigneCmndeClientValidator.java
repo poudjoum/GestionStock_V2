@@ -13,13 +13,15 @@ public class LigneCmndeClientValidator {
         List<String> errors=new ArrayList<>();
 
         if(dto==null){
-            errors.add("Veuillez renseigner le code");
-            errors.add("Veuillez selectionner client");
+            errors.add("Veuillez renseigner le code de la commande");
+            errors.add("Veuillez sélectionner le client");
             errors.add("Veuillez renseigner une date");
             return  errors;
         }
-        if(!StringUtils.hasLength(dto.getCmndeClient().getCode())){
-            errors.add("Veuillez renseigner le code");
+        // getCmndeClient() peut etre null : une ligne arrivant sans sa commande faisait ici une
+        // NullPointerException, donc une erreur 500, au lieu du message de validation attendu.
+        if(dto.getCmndeClient() == null || !StringUtils.hasLength(dto.getCmndeClient().getCode())){
+            errors.add("Veuillez renseigner le code de la commande");
         }
 
         return errors;

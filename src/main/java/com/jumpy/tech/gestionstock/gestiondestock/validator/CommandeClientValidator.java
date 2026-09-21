@@ -11,13 +11,13 @@ public class CommandeClientValidator {
         List<String> errors=new ArrayList<>();
 
         if(dto==null){
-            errors.add("Veuillez renseigner le code");
-            errors.add("Veuillez selectionner client");
+            errors.add("Veuillez renseigner le code de la commande");
+            errors.add("Veuillez sélectionner le client");
             errors.add("Veuillez renseigner une date");
             return  errors;
         }
         if(!StringUtils.hasLength(dto.getCode())){
-            errors.add("Veuillez renseigner le code");
+            errors.add("Veuillez renseigner le code de la commande");
         }
 
         return errors;

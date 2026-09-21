@@ -32,7 +32,7 @@ public class ArticleServiceImpl implements ArticleService {
         List<String>errors= ArticleValidators.validate(dto);
         if(!errors.isEmpty()){
             log.error("Article not valid {}",dto);
-            throw new InvalidEntityException("Article is not valid", ErrorCodes.ARTICLE_NOT_VALID,errors);
+            throw new InvalidEntityException("L'article n'est pas valide", ErrorCodes.ARTICLE_NOT_VALID,errors);
         }
         Article savedArticle=articleRepository.save(ArticleDto.toEntity(dto));
         return ArticleDto.fromEntity(savedArticle);
@@ -42,7 +42,7 @@ public class ArticleServiceImpl implements ArticleService {
     public ArticleDto findById(Long id) {
         if(id==null){
             log.error("Article id is null");
-            throw new InvalidEntityException("Aucun Article ne peut etre cherche sans identifiant",
+            throw new InvalidEntityException("Aucun article ne peut être cherché sans identifiant",
                     ErrorCodes.ARTICLE_NOT_VALID);
         }
         // `article.get()` precedait le orElseThrow : sur un identifiant inconnu, c'est
@@ -51,7 +51,7 @@ public class ArticleServiceImpl implements ArticleService {
         return articleRepository.findById(id)
                 .map(ArticleDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun Article avec l'id = " + id + " n'a ete trouve dans la base de donnees",
+                        "Aucun article avec l'identifiant " + id + " n'a été trouvé",
                         ErrorCodes.ARTICLE_NOT_FOUND));
     }
 
@@ -59,13 +59,13 @@ public class ArticleServiceImpl implements ArticleService {
     public ArticleDto findByCodeArticle(String codeArticle) {
         if(!StringUtils.hasLength(codeArticle)){
             log.error("Le code Article est vide");
-            throw new InvalidEntityException("Aucun Article ne peut etre cherche sans code",
+            throw new InvalidEntityException("Aucun article ne peut être cherché sans code",
                     ErrorCodes.ARTICLE_NOT_VALID);
         }
         return articleRepository.findArticleByCodeArticle(codeArticle)
                 .map(ArticleDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun Article avec le code = " + codeArticle + " n'a ete trouve dans la base de donnees",
+                        "Aucun article avec le code " + codeArticle + " n'a été trouvé",
                         ErrorCodes.ARTICLE_NOT_FOUND));
     }
 

@@ -12,13 +12,13 @@ public class CommandFourValidator {
         List<String> errors=new ArrayList<>();
 
         if(dto==null){
-            errors.add("Veuillez renseigner le code");
-            errors.add("Veuillez selectionner fournisseur");
+            errors.add("Veuillez renseigner le code de la commande");
+            errors.add("Veuillez sélectionner le fournisseur");
             errors.add("Veuillez renseigner une date");
             return  errors;
         }
         if(!StringUtils.hasLength(dto.getCode())){
-            errors.add("Veuillez renseigner le code");
+            errors.add("Veuillez renseigner le code de la commande");
         }
 
         return errors;

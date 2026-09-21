@@ -29,7 +29,7 @@ public class UserServiceImpl implements UserService {
         List<String> errors= UserValidator.validate(dto);
         if(!errors.isEmpty()){
             log.error("User not Valid");
-            throw new InvalidEntityException("User is not valid", ErrorCodes.UTILISATEUR_NOT_VALID);
+            throw new InvalidEntityException("L'utilisateur n'est pas valide", ErrorCodes.UTILISATEUR_NOT_VALID, errors);
         }
         Utilisateur savedUser=userRepository.save(UserDto.toEntity(dto));
 
@@ -41,13 +41,13 @@ public class UserServiceImpl implements UserService {
     public UserDto findById(Long id) {
         if(id==null){
             log.error("user id is null");
-            throw new InvalidEntityException("Aucun Utilisateur ne peut etre cherche sans identifiant",
+            throw new InvalidEntityException("Aucun utilisateur ne peut être cherché sans identifiant",
                     ErrorCodes.UTILISATEUR_NOT_VALID);
         }
         return userRepository.findById(id)
                 .map(UserDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun Utilisateur avec l'id = " + id + " n'a ete trouve dans la base de donnees",
+                        "Aucun utilisateur avec l'identifiant " + id + " n'a été trouvé",
                         ErrorCodes.UTILISATEUR_NOT_FOUND));
     }
 
@@ -55,13 +55,13 @@ public class UserServiceImpl implements UserService {
     public UserDto findUserByEmail(String email) {
         if(!StringUtils.hasLength(email)){
             log.error("L'email est vide");
-            throw new InvalidEntityException("Aucun Utilisateur ne peut etre cherche sans adresse de courriel",
+            throw new InvalidEntityException("Aucun utilisateur ne peut être cherché sans adresse de courriel",
                     ErrorCodes.UTILISATEUR_NOT_VALID);
         }
         return userRepository.findUtilisateurByEmail(email)
                 .map(UserDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun Utilisateur avec l'email = " + email + " n'a ete trouve dans la base de donnees",
+                        "Aucun utilisateur avec l'adresse " + email + " n'a été trouvé",
                         ErrorCodes.UTILISATEUR_NOT_FOUND));
     }
 

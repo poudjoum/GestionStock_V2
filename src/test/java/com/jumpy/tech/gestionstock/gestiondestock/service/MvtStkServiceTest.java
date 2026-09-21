@@ -138,6 +138,8 @@ class MvtStkServiceTest {
         assertThatThrownBy(() -> service.entreeStock(mouvementDe("0")))
                 .isInstanceOf(InvalidEntityException.class)
                 .hasMessageContaining("strictement positive");
+        // Le message porte des accents : les comparer ici garantit qu'ils traversent la
+        // compilation intacts, quelle que soit la machine qui construit.
 
         verify(mvtStkRepository, never()).save(any());
     }
@@ -161,6 +163,6 @@ class MvtStkServiceTest {
     void un_mouvement_sans_article_est_refuse() {
         assertThatThrownBy(() -> service.entreeStock(MvtStkDto.builder().quantite(BigDecimal.ONE).build()))
                 .isInstanceOf(InvalidEntityException.class)
-                .hasMessageContaining("designe un article");
+                .hasMessageContaining("désigne un article");
     }
 }

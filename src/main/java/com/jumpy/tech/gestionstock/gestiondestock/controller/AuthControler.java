@@ -81,16 +81,16 @@ public class AuthControler {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new MessageResponse("Error: Username is already taken!"));
+                    .body(new MessageResponse("Cet identifiant est déjà pris"));
         }
 
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
             return ResponseEntity
                     .badRequest()
-                    .body(new MessageResponse("Error: Email is already in use!"));
+                    .body(new MessageResponse("Cette adresse de courriel est déjà utilisée"));
         }
 
-        // Create new user's account
+        // Creation du compte
         Utilisateur user = new Utilisateur(signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
                 encoder.encode(signUpRequest.getPassword()));
@@ -100,7 +100,8 @@ public class AuthControler {
 
         if (strRoles == null) {
             Role userRole = roleRepository.findByRoleName(ERole.ROLE_USER)
-                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Rôle absent de la base : la migration V2 qui les crée n'a pas été appliquée"));
             roles.add(userRole);
             user.setRoles(roles);
         } else {
@@ -108,37 +109,43 @@ public class AuthControler {
                 switch (role) {
                     case "admin":
                         Role adminRole = roleRepository.findByRoleName(ERole.ROLE_ADMIN)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "Rôle absent de la base : la migration V2 qui les crée n'a pas été appliquée"));
                         roles.add(adminRole);
 
                         break;
                     case "casher":
                         Role modRole = roleRepository.findByRoleName(ERole.ROLE_CAISSIER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "Rôle absent de la base : la migration V2 qui les crée n'a pas été appliquée"));
                         roles.add(modRole);
 
                         break;
                     case "accounter":
                         Role accounterRole = roleRepository.findByRoleName(ERole.ROLE_COMPTABLE)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "Rôle absent de la base : la migration V2 qui les crée n'a pas été appliquée"));
                         roles.add(accounterRole);
 
                         break;
                     case "manager":
                         Role managerRole = roleRepository.findByRoleName(ERole.ROLE_MANAGER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "Rôle absent de la base : la migration V2 qui les crée n'a pas été appliquée"));
                         roles.add(managerRole);
 
                         break;
                     case "magasinier":
                         Role magRole = roleRepository.findByRoleName(ERole.ROLE_MAGASINIER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "Rôle absent de la base : la migration V2 qui les crée n'a pas été appliquée"));
                         roles.add(magRole);
 
                         break;
                     default:
                         Role userRole = roleRepository.findByRoleName(ERole.ROLE_USER)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "Rôle absent de la base : la migration V2 qui les crée n'a pas été appliquée"));
                         roles.add(userRole);
                 }
             });
@@ -146,7 +153,7 @@ public class AuthControler {
         }
         userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+        return ResponseEntity.ok(new MessageResponse("Le compte a été créé"));
     }
 
     private void verifierDroitDInscription() {
@@ -159,7 +166,7 @@ public class AuthControler {
         boolean administrateur = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(autorite -> ERole.ROLE_ADMIN.name().equals(autorite.getAuthority()));
         if (!administrateur) {
-            throw new AccessDeniedException("Seul un administrateur peut creer un compte");
+            throw new AccessDeniedException("Seul un administrateur peut créer un compte");
         }
     }
 }

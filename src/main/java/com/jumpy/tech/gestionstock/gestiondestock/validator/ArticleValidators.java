@@ -12,10 +12,9 @@ public class ArticleValidators {
         if(dto==null){
             errors.add("Veuillez renseigner le code de l'article");
             errors.add("Veuillez renseigner le prix de l'article");
-            errors.add("Veuillez renseigner la designation");
-            errors.add("Veuillez renseigner le prix de l'article");
+            errors.add("Veuillez renseigner la désignation");
             errors.add("Veuillez renseigner le taux de la TVA de l'article");
-            errors.add("Veuillez renseigner le code de la category de l'article");
+            errors.add("Veuillez renseigner la catégorie de l'article");
             return  errors;
         }
 
@@ -26,13 +25,13 @@ public class ArticleValidators {
             errors.add("Veuillez renseigner le prix de l'article");
         }
         if(!StringUtils.hasLength(dto.getDesignation())){
-            errors.add("Veuillez renseigner la designation");
+            errors.add("Veuillez renseigner la désignation");
         }
         if(dto.getTauxTva()==null){
             errors.add("Veuillez renseigner le taux de la TVA de l'article");
         }
         if(dto.getCategory()==null){
-            errors.add("Veuillez renseigner le code de la category de l'article");
+            errors.add("Veuillez renseigner la catégorie de l'article");
         }
         return errors;
     }

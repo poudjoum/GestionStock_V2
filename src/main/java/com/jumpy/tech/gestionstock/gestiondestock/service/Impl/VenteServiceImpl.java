@@ -63,7 +63,7 @@ public class VenteServiceImpl implements VenteService {
         if (!errors.isEmpty()) {
             log.error("Vente not Valid {}", dto);
             // Le code rendu etait VENTE_NOT_FOUND pour une vente invalide.
-            throw new InvalidEntityException("Vente is not valid", ErrorCodes.VENTE_NOT_VALID, errors);
+            throw new InvalidEntityException("La vente n'est pas valide", ErrorCodes.VENTE_NOT_VALID, errors);
         }
 
         List<LigneVenteDto> lignes = dto.getLigneVente() == null ? List.of() : dto.getLigneVente();
@@ -75,13 +75,13 @@ public class VenteServiceImpl implements VenteService {
         List<String> articleErrors = new ArrayList<>();
         for (LigneVenteDto ligne : lignes) {
             if (ligne.getArticle() == null || ligne.getArticle().getId() == null) {
-                articleErrors.add("Impossible d'enregistrer une vente avec un article null");
+                articleErrors.add("Impossible d'enregistrer une vente sans article");
                 continue;
             }
             Optional<Article> article = articleRepository.findById(ligne.getArticle().getId());
             if (article.isEmpty()) {
-                articleErrors.add("Aucun Article avec l'ID " + ligne.getArticle().getId()
-                        + " n'a ete trouve dans la base de donnees");
+                articleErrors.add("L'article avec l'identifiant " + ligne.getArticle().getId()
+                        + " n'existe pas");
             }
         }
         if (!articleErrors.isEmpty()) {
@@ -89,7 +89,7 @@ public class VenteServiceImpl implements VenteService {
             // Les erreurs remontees etaient `errors`, la liste de validation, toujours vide a ce
             // stade : le client recevait un 400 sans savoir quel article posait probleme.
             throw new InvalidEntityException(
-                    "Un ou plusieurs articles n'ont pas ete trouves dans la base de donnees",
+                    "Un ou plusieurs articles de la vente n'existent pas",
                     ErrorCodes.VENTE_NOT_VALID, articleErrors);
         }
 
@@ -122,13 +122,13 @@ public class VenteServiceImpl implements VenteService {
     public VenteDto findById(Long id) {
         if (id == null) {
             log.error("Vente id is null");
-            throw new InvalidEntityException("Aucune Vente ne peut etre cherchee sans identifiant",
+            throw new InvalidEntityException("Aucune vente ne peut être cherchée sans identifiant",
                     ErrorCodes.VENTE_NOT_VALID);
         }
         return venteRepository.findById(id)
                 .map(VenteDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucune Vente avec l'id = " + id + " n'a ete trouvee dans la base de donnees",
+                        "Aucune vente avec l'identifiant " + id + " n'a été trouvée",
                         ErrorCodes.VENTE_NOT_FOUND));
     }
 
@@ -148,13 +148,13 @@ public class VenteServiceImpl implements VenteService {
     public VenteDto findVenteByCode(String codeVente) {
         if (!StringUtils.hasLength(codeVente)) {
             log.error("Le code Vente est vide");
-            throw new InvalidEntityException("Aucune Vente ne peut etre cherchee sans code",
+            throw new InvalidEntityException("Aucune vente ne peut être cherchée sans code",
                     ErrorCodes.VENTE_NOT_VALID);
         }
         return venteRepository.findVenteByCode(codeVente)
                 .map(VenteDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucune Vente avec le code = " + codeVente + " n'a ete trouvee dans la base de donnees",
+                        "Aucune vente avec le code " + codeVente + " n'a été trouvée",
                         ErrorCodes.VENTE_NOT_FOUND));
     }
 

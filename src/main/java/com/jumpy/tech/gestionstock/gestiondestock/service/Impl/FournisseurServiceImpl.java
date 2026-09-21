@@ -33,7 +33,7 @@ public class FournisseurServiceImpl implements FournisseurService {
         List<String> errors= FournisseurValidator.validate(dto);
          if(!errors.isEmpty()){
              log.error(" Fournisseur not Valid {}",dto);
-             throw new InvalidEntityException("Founisseur is not Valid", ErrorCodes.FOURNISSEUR_NOT_VALID,errors);
+             throw new InvalidEntityException("Le fournisseur n'est pas valide", ErrorCodes.FOURNISSEUR_NOT_VALID,errors);
          }
         Fournisseur four=fournisseurRepository.save(FournisseurDto.toEntity(dto));
         return FournisseurDto.fromEntity(four);
@@ -43,13 +43,13 @@ public class FournisseurServiceImpl implements FournisseurService {
     public FournisseurDto findById(Long id) {
         if(id==null){
             log.error("Fournisseur Id is null");
-            throw new InvalidEntityException("Aucun Fournisseur ne peut etre cherche sans identifiant",
+            throw new InvalidEntityException("Aucun fournisseur ne peut être cherché sans identifiant",
                     ErrorCodes.FOURNISSEUR_NOT_VALID);
         }
         return fournisseurRepository.findById(id)
                 .map(FournisseurDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun Fournisseur avec l'id " + id + " n'a ete trouve dans la base de donnees",
+                        "Aucun fournisseur avec l'identifiant " + id + " n'a été trouvé",
                         ErrorCodes.FOURNISSEUR_NOT_FOUND));
     }
 
@@ -57,13 +57,13 @@ public class FournisseurServiceImpl implements FournisseurService {
     public FournisseurDto findFournisseurByNom(String nomFournisseur) {
         if(!StringUtils.hasLength(nomFournisseur)){
             log.error("Le nom Fournisseur est vide ");
-            throw new InvalidEntityException("Aucun Fournisseur ne peut etre cherche sans nom",
+            throw new InvalidEntityException("Aucun fournisseur ne peut être cherché sans nom",
                     ErrorCodes.FOURNISSEUR_NOT_VALID);
         }
         return fournisseurRepository.findFournisseurByNom(nomFournisseur)
                 .map(FournisseurDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun Fournisseur avec le nom " + nomFournisseur + " n'a ete trouve dans la base de donnees",
+                        "Aucun fournisseur nommé " + nomFournisseur + " n'a été trouvé",
                         ErrorCodes.FOURNISSEUR_NOT_FOUND));
     }
 

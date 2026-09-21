@@ -30,7 +30,7 @@ public class CategoryServiceImpl implements CategoryService {
         List<String> errors= CategoryValidator.validate(dto);
         if(!errors.isEmpty()){
             log.error("Category not valid {}",dto);
-            throw new InvalidEntityException("La Catégory n'est pas valide", ErrorCodes.CATEGORY_NOT_VALID,errors);
+            throw new InvalidEntityException("La catégorie n'est pas valide", ErrorCodes.CATEGORY_NOT_VALID,errors);
         }
         return CategoryDto.fromEntity(categoryRepository.save(CategoryDto.toEntity(dto)));
     }
@@ -43,7 +43,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
         return categoryRepository.findById(id)
                 .map(CategoryDto::fromEntity).
-                orElseThrow(()-> new EntityNotFoundException("Aucune Category avec l'Id= "+id +" n' a été trouvé dans la base de donnée",
+                orElseThrow(()-> new EntityNotFoundException("Aucune catégorie avec l'identifiant "+id+" n'a été trouvée",
                         ErrorCodes.CATEGORY_NOT_FOUND));
     }
 
@@ -63,7 +63,7 @@ public class CategoryServiceImpl implements CategoryService {
         return categoryRepository.findCategoriesByCodeCat(code)
                 .map(CategoryDto::fromEntity)
                 .orElseThrow(()-> new EntityNotFoundException(
-                        "Aucune Catégory avec le code "+code+ " n'a été trouvé dans la base de donnée",
+                        "Aucune catégorie avec le code "+code+" n'a été trouvée",
                         // Le code rendu etait ARTICLE_NOT_FOUND : une categorie introuvable
                         // s'annoncait au client comme un article introuvable.
                         ErrorCodes.CATEGORY_NOT_FOUND)
