@@ -74,6 +74,8 @@ demarrage :
   cloisonnement, et `mvt_stk.id_entreprise` passe en `bigint` : c'etait la seule table a porter un
   entier la ou toutes les autres ont un `bigint`, et un cloisonnement qui compare des identifiants
   ne peut pas vivre avec deux types.
+- `V11__comptes_actifs.sql` — l'etat ouvert ou ferme d'un compte. Les comptes existants restent
+  ouverts.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -281,6 +283,34 @@ n'en ont pas ; et un appel hors authentification — traitement interne ou test 
 personne a qui demander, et ou rien n'est filtre. Toutes les routes HTTP exigeant un compte, ce
 dernier cas ne se presente pas a travers l'API.
 
+## Administration des comptes
+
+```
+GET    /gestiondestock/v1/users/all
+GET    /gestiondestock/v1/users/{id}
+POST   /gestiondestock/v1/users/create
+PATCH  /gestiondestock/v1/users/{id}/roles                    remplace les roles
+PATCH  /gestiondestock/v1/users/{id}/actif/{actif}            ouvre ou ferme l'acces
+PATCH  /gestiondestock/v1/users/{id}/motdepasse               reinitialisation
+PATCH  /gestiondestock/v1/users/{id}/entreprise/{idEntreprise} rattachement (SUPER_ADMIN)
+PATCH  /gestiondestock/v1/users/moi/motdepasse                son propre mot de passe
+```
+
+- Un compte cree **rejoint l'entreprise de son createur**, y compris par `/api/auth/signup`. Avant,
+  tout compte naissait sans entreprise et voyait donc les donnees qui n'en ont pas, au lieu de
+  celles de la maison qui l'embauche.
+- Le mot de passe est **chiffre au passage** et n'est jamais rendu : `fromEntity` recopiait
+  l'empreinte BCrypt dans le DTO, et la liste des comptes la livrait pour chacun.
+- Un compte **se ferme, il ne se supprime pas** : l'employe parti reste l'auteur des ventes qu'il a
+  saisies. Un compte ferme ne se connecte plus — `isEnabled` renvoyait `true` en dur.
+- On ne ferme pas son propre acces, sans quoi une entreprise se retrouverait sans personne pour
+  rouvrir.
+- Les roles se **remplacent** : la liste envoyee est l'etat vise, ce qui permet d'en retirer un.
+  Seul le super-administrateur accorde son propre rang — un administrateur qui se l'attribuerait
+  sortirait de son entreprise par la porte de derriere.
+- Changer son mot de passe exige l'ancien ; le reinitialiser ne le demande pas, et c'est un geste
+  d'administrateur. Huit caracteres au minimum.
+
 ## Acces et roles
 
 L'API est fermee : toute route inconnue du tableau ci-dessous exige au minimum un compte valide,
@@ -310,7 +340,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-91 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+103 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -380,9 +410,6 @@ pour Spring, et n'etaient donc pas joignables.
 A savoir avant de reprendre le developpement :
 
 - Les mouvements anterieurs a la V5 n'ont pas de motif, et aucun ne leur a ete invente.
-- Le cloisonnement **ne couvre pas encore les comptes** : `/users` n'est pas filtre par entreprise,
-  un administrateur voit donc tous les comptes. Il manque aussi de quoi rattacher un compte a une
-  entreprise autrement qu'en base.
 - Les donnees anterieures au cloisonnement n'ont pas d'entreprise. Elles restent visibles des
   comptes qui n'en ont pas eux-memes, et du super-administrateur ; une reprise les rattacherait.
 - Le taux applique est fige a l'emission de la facture, mais deux ventes du meme article au meme

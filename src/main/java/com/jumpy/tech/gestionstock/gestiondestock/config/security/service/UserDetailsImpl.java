@@ -27,14 +27,21 @@ public class UserDetailsImpl implements UserDetails {
      * une invitation a travailler chez le voisin.
      */
     private Long idEntreprise;
+    /** Un compte ferme ne se connecte plus : Spring refuse l'authentification sur `isEnabled`. */
+    private boolean actif = true;
     private Collection<? extends GrantedAuthority> authorities;
 
     public UserDetailsImpl(Long id,String username,String email,String password,Long idEntreprise,Collection<?extends GrantedAuthority> authorities){
+        this(id, username, email, password, idEntreprise, true, authorities);
+    }
+
+    public UserDetailsImpl(Long id,String username,String email,String password,Long idEntreprise,boolean actif,Collection<?extends GrantedAuthority> authorities){
         this.id=id;
         this.username=username;
         this.email=email;
         this.password=password;
         this.idEntreprise=idEntreprise;
+        this.actif=actif;
         this.authorities=authorities;
     }
 
@@ -46,6 +53,7 @@ public class UserDetailsImpl implements UserDetails {
                 utilisateur.getEmail(),
                 utilisateur.getMotdepasse(),
                 utilisateur.getEntreprise() == null ? null : utilisateur.getEntreprise().getId(),
+                utilisateur.isActif(),
                 authorities
         );
     }
@@ -81,6 +89,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        // Renvoyait `true` en dur : un compte ferme se serait connecte comme avant.
+        return actif;
     }
 }

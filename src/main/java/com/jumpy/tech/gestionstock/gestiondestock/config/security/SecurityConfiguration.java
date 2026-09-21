@@ -33,6 +33,7 @@ public class SecurityConfiguration {
     private static final String MAGASINIER = "MAGASINIER";
     private static final String CAISSIER = "CAISSIER";
     private static final String COMPTABLE = "COMPTABLE";
+    private static final String SUPER_ADMIN = "SUPER_ADMIN";
 
     private final UserDetailsServiceImpl userDetailsService;
     private final EntryPointJwt unauthorizedHandler;
@@ -102,9 +103,21 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, API + "/mouvements/**")
                             .hasAnyRole(ADMIN, MANAGER, MAGASINIER)
 
-                        // Comptes et entreprises : l'administration seule.
+                        // Chacun change son propre mot de passe : le seul point de /users ouvert
+                        // a tout compte. La regle vient avant celle des comptes, qui sinon le
+                        // reserverait a l'administration.
+                        .requestMatchers(HttpMethod.PATCH, API + "/users/moi/motdepasse").authenticated()
+
+                        // Rattacher un compte a une entreprise, c'est donner a quelqu'un les
+                        // donnees d'un tiers : l'editeur seul.
+                        .requestMatchers(HttpMethod.PATCH, API + "/users/*/entreprise/**")
+                            .hasRole(SUPER_ADMIN)
+
+                        // Comptes et entreprises : l'administration. Le super-administrateur ne
+                        // porte pas ROLE_ADMIN — sans le nommer ici, il se verrait fermer les
+                        // entreprises qu'il est justement charge de creer.
                         .requestMatchers(API + "/users/**", API + "/entreprise/**", API + "/entreprises/**")
-                            .hasRole(ADMIN)
+                            .hasAnyRole(ADMIN, SUPER_ADMIN)
 
                         // Le caissier vend et enregistre les clients qui se presentent ; il ne
                         // cree ni article ni categorie.

@@ -9,6 +9,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.config.security.service.UserDe
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Role;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Utilisateur;
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.RoleRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.UtilisateurRepository;
 import jakarta.validation.Valid;
@@ -35,15 +37,19 @@ public class AuthControler {
      AuthenticationManager authenticationManager;
      UtilisateurRepository userRepository;
      RoleRepository roleRepository;
+     EntrepriseRepository entrepriseRepository;
      PasswordEncoder encoder;
      JwtUtils jwtUtils;
+     Cloisonnement cloisonnement;
 
-     public AuthControler(UtilisateurRepository userRepository, JwtUtils jwtUtils,PasswordEncoder encoder,RoleRepository roleRepository,AuthenticationManager authenticationManager){
+     public AuthControler(UtilisateurRepository userRepository, JwtUtils jwtUtils,PasswordEncoder encoder,RoleRepository roleRepository,AuthenticationManager authenticationManager,EntrepriseRepository entrepriseRepository,Cloisonnement cloisonnement){
          this.userRepository=userRepository;
          this.jwtUtils=jwtUtils;
          this.encoder=encoder;
          this.roleRepository=roleRepository;
          this.authenticationManager=authenticationManager;
+         this.entrepriseRepository=entrepriseRepository;
+         this.cloisonnement=cloisonnement;
      }
 
      @PostMapping("/signin")
@@ -94,6 +100,14 @@ public class AuthControler {
         Utilisateur user = new Utilisateur(signUpRequest.getUsername(),
                 signUpRequest.getEmail(),
                 encoder.encode(signUpRequest.getPassword()));
+
+        // Le compte rejoint l'entreprise de celui qui le cree. Sans cela, tout compte inscrit ici
+        // naissait sans entreprise — et voyait donc les donnees qui n'en ont pas, au lieu de
+        // celles de la maison qui l'embauche.
+        if (cloisonnement.filtre()) {
+            entrepriseRepository.findById(cloisonnement.entrepriseCourante())
+                    .ifPresent(user::setEntreprise);
+        }
 
         Set<String> strRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();

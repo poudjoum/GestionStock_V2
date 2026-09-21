@@ -1,85 +1,260 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.UserDto;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Entreprise;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Role;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Utilisateur;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.RoleRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.UtilisateurRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.UserService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.UserValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
-    private UtilisateurRepository userRepository;
-    public UserServiceImpl(UtilisateurRepository userRepository){
-        this.userRepository=userRepository;
+
+    private final UtilisateurRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final EntrepriseRepository entrepriseRepository;
+    private final PasswordEncoder encodeur;
+    private final Cloisonnement cloisonnement;
+
+    public UserServiceImpl(UtilisateurRepository userRepository, RoleRepository roleRepository,
+                           EntrepriseRepository entrepriseRepository, PasswordEncoder encodeur,
+                           Cloisonnement cloisonnement) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.entrepriseRepository = entrepriseRepository;
+        this.encodeur = encodeur;
+        this.cloisonnement = cloisonnement;
     }
+
     @Override
     @Transactional
     public UserDto save(UserDto dto) {
-        List<String> errors= UserValidator.validate(dto);
-        if(!errors.isEmpty()){
+        List<String> errors = UserValidator.validate(dto);
+        if (!errors.isEmpty()) {
             log.error("User not Valid");
             throw new InvalidEntityException("L'utilisateur n'est pas valide", ErrorCodes.UTILISATEUR_NOT_VALID, errors);
         }
-        Utilisateur savedUser=userRepository.save(UserDto.toEntity(dto));
 
+        Utilisateur utilisateur = UserDto.toEntity(dto);
 
-        return UserDto.fromEntity(savedUser);
+        // Le compte cree rejoint l'entreprise de celui qui le cree. L'entreprise envoyee dans la
+        // requete est ignoree : un administrateur ne cree pas de compte chez le voisin.
+        if (cloisonnement.filtre()) {
+            utilisateur.setEntreprise(entreprise(cloisonnement.entrepriseCourante()));
+        } else if (dto.getEntreprise() != null && dto.getEntreprise().getId() != null) {
+            utilisateur.setEntreprise(entreprise(dto.getEntreprise().getId()));
+        }
+
+        // Le mot de passe est chiffre ici : il arrivait en clair et repartait tel quel en base,
+        // ou la connexion, qui compare a une empreinte BCrypt, ne l'aurait jamais reconnu.
+        if (StringUtils.hasLength(dto.getMotdepasse())) {
+            utilisateur.setMotdepasse(encodeur.encode(dto.getMotdepasse()));
+        }
+        if (utilisateur.getId() == null) {
+            utilisateur.setActif(true);
+        }
+
+        return UserDto.fromEntity(userRepository.save(utilisateur));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserDto findById(Long id) {
-        if(id==null){
+        if (id == null) {
             log.error("user id is null");
             throw new InvalidEntityException("Aucun utilisateur ne peut être cherché sans identifiant",
                     ErrorCodes.UTILISATEUR_NOT_VALID);
         }
-        return userRepository.findById(id)
-                .map(UserDto::fromEntity)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun utilisateur avec l'identifiant " + id + " n'a été trouvé",
-                        ErrorCodes.UTILISATEUR_NOT_FOUND));
+        return UserDto.fromEntity(utilisateur(id));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserDto findUserByEmail(String email) {
-        if(!StringUtils.hasLength(email)){
+        if (!StringUtils.hasLength(email)) {
             log.error("L'email est vide");
             throw new InvalidEntityException("Aucun utilisateur ne peut être cherché sans adresse de courriel",
                     ErrorCodes.UTILISATEUR_NOT_VALID);
         }
-        return userRepository.findUtilisateurByEmail(email)
-                .map(UserDto::fromEntity)
+        Utilisateur utilisateur = userRepository.findUtilisateurByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucun utilisateur avec l'adresse " + email + " n'a été trouvé",
                         ErrorCodes.UTILISATEUR_NOT_FOUND));
+        verifierAcces(utilisateur, email);
+        return UserDto.fromEntity(utilisateur);
     }
 
+    /**
+     * `readOnly` n'est pas decoratif : `open-in-view` est desactive, et les roles d'un compte sont
+     * charges a la demande. Hors transaction, leur lecture par le DTO partait en
+     * LazyInitializationException.
+     */
     @Override
+    @Transactional(readOnly = true)
     public List<UserDto> findAll() {
-        return userRepository.findAll().stream()
+        return (cloisonnement.filtre()
+                ? userRepository.findAllByEntrepriseId(cloisonnement.entrepriseCourante())
+                : userRepository.findAllBy()).stream()
                 .map(UserDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
-    public void delete(Long id) {
-        if(id==null){
-            log.error("Article Id est null");
-            return;
+    public UserDto changerRoles(Long id, List<ERole> roles) {
+        Utilisateur utilisateur = utilisateur(id);
+        if (roles == null || roles.isEmpty()) {
+            throw new InvalidEntityException("Un compte sans rôle ne peut rien faire",
+                    ErrorCodes.ROLES_NOT_VALIDE);
         }
-        userRepository.deleteById(id);
+        // Seul le super-administrateur distribue son propre rang : un administrateur qui se
+        // l'accorderait sortirait de son entreprise par la porte de derriere.
+        if (roles.contains(ERole.ROLE_SUPER_ADMIN) && !cloisonnement.estSuperAdmin()) {
+            throw new InvalidEntityException("Seul un super-administrateur accorde ce rôle",
+                    ErrorCodes.ROLES_NOT_VALIDE);
+        }
+
+        Set<Role> vises = new HashSet<>();
+        for (ERole role : roles) {
+            vises.add(roleRepository.findByRoleName(role)
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Le rôle " + role + " n'existe pas en base",
+                            ErrorCodes.ROLES_NOT_FOUND)));
+        }
+        utilisateur.setRoles(vises);
+        return UserDto.fromEntity(userRepository.save(utilisateur));
     }
 
+    @Override
+    @Transactional
+    public UserDto changerActivation(Long id, boolean actif) {
+        Utilisateur utilisateur = utilisateur(id);
+        if (!actif && estMoi(utilisateur)) {
+            // Se fermer soi-meme l'acces laisserait une entreprise sans personne pour rouvrir.
+            throw new InvalidEntityException("On ne ferme pas son propre accès",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
+        }
+        utilisateur.setActif(actif);
+        return UserDto.fromEntity(userRepository.save(utilisateur));
+    }
+
+    @Override
+    @Transactional
+    public UserDto rattacherAEntreprise(Long id, Long idEntreprise) {
+        if (!cloisonnement.estSuperAdmin()) {
+            throw new InvalidEntityException(
+                    "Seul un super-administrateur rattache un compte à une entreprise",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
+        }
+        Utilisateur utilisateur = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun utilisateur avec l'identifiant " + id + " n'a été trouvé",
+                        ErrorCodes.UTILISATEUR_NOT_FOUND));
+        utilisateur.setEntreprise(idEntreprise == null ? null : entreprise(idEntreprise));
+        return UserDto.fromEntity(userRepository.save(utilisateur));
+    }
+
+    @Override
+    @Transactional
+    public UserDto reinitialiserMotDePasse(Long id, String nouveauMotDePasse) {
+        Utilisateur utilisateur = utilisateur(id);
+        utilisateur.setMotdepasse(encodeur.encode(motDePasseValide(nouveauMotDePasse)));
+        log.info("Mot de passe reinitialise pour le compte {}", id);
+        return UserDto.fromEntity(userRepository.save(utilisateur));
+    }
+
+    @Override
+    @Transactional
+    public UserDto changerSonMotDePasse(String ancien, String nouveau) {
+        Utilisateur utilisateur = moi();
+        // L'ancien est exige : sans lui, un poste laisse ouvert une minute suffirait a verrouiller
+        // le compte de son titulaire.
+        if (!StringUtils.hasLength(ancien) || !encodeur.matches(ancien, utilisateur.getMotdepasse())) {
+            throw new InvalidEntityException("L'ancien mot de passe ne correspond pas",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
+        }
+        utilisateur.setMotdepasse(encodeur.encode(motDePasseValide(nouveau)));
+        return UserDto.fromEntity(userRepository.save(utilisateur));
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        if (id == null) {
+            log.error("Utilisateur Id est null");
+            return;
+        }
+        userRepository.delete(utilisateur(id));
+    }
+
+    /** Le compte, a condition qu'il soit de l'entreprise de l'appelant. */
+    private Utilisateur utilisateur(Long id) {
+        Utilisateur utilisateur = userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun utilisateur avec l'identifiant " + id + " n'a été trouvé",
+                        ErrorCodes.UTILISATEUR_NOT_FOUND));
+        verifierAcces(utilisateur, id);
+        return utilisateur;
+    }
+
+    private void verifierAcces(Utilisateur utilisateur, Object identifiant) {
+        Long entrepriseDuCompte = utilisateur.getEntreprise() == null
+                ? null : utilisateur.getEntreprise().getId();
+        cloisonnement.verifierAcces(entrepriseDuCompte, "utilisateur", identifiant);
+    }
+
+    private Entreprise entreprise(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return entrepriseRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune entreprise avec l'identifiant " + id + " n'a été trouvée",
+                        ErrorCodes.ENTREPRISE_NOT_FOUND));
+    }
+
+    private String motDePasseValide(String motDePasse) {
+        if (!StringUtils.hasLength(motDePasse) || motDePasse.length() < 8) {
+            throw new InvalidEntityException("Le mot de passe fait au moins 8 caractères",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
+        }
+        return motDePasse;
+    }
+
+    private Utilisateur moi() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new InvalidEntityException("Aucun compte connecté", ErrorCodes.UTILISATEUR_NOT_VALID);
+        }
+        return userRepository.findUtilisateurByUsername(authentication.getName())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Le compte connecté n'a pas été retrouvé",
+                        ErrorCodes.UTILISATEUR_NOT_FOUND));
+    }
+
+    private boolean estMoi(Utilisateur utilisateur) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && utilisateur.getUsername() != null
+                && utilisateur.getUsername().equals(authentication.getName());
+    }
 }

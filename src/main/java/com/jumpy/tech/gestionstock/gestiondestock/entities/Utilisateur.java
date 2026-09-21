@@ -33,6 +33,15 @@ public class Utilisateur extends AbstractEntity{
     private String motdepasse;
     @Column(name="username")
     private String username;
+    /**
+     * Un compte ferme reste en base : l'employe parti demeure l'auteur des ventes qu'il a
+     * saisies, et les effacer avec lui rendrait cet historique illisible.
+     */
+    // @Builder.Default, sans quoi le builder rend un compte `actif = false` : ferme des sa
+    // creation, et incapable de se connecter.
+    @Builder.Default
+    @Column(name="actif", nullable = false)
+    private boolean actif = true;
     @Embedded
     private Adresse adresse;
     private String numTel;
@@ -53,5 +62,6 @@ public class Utilisateur extends AbstractEntity{
         this.username = username;
         this.email = email;
         this.motdepasse = motdepasse;
+        this.actif = true;
     }
 }
