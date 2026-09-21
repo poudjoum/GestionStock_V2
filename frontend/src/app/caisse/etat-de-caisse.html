@@ -1,0 +1,131 @@
+@let e = etat();
+
+<div class="mx-auto max-w-5xl">
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <mat-button-toggle-group
+      [value]="periode()"
+      hideSingleSelectionIndicator
+    >
+      <mat-button-toggle value="jour" (click)="choisirPeriode('jour')">Aujourd’hui</mat-button-toggle>
+      <mat-button-toggle value="semaine" (click)="choisirPeriode('semaine')">7 jours</mat-button-toggle>
+      <mat-button-toggle value="mois" (click)="choisirPeriode('mois')">30 jours</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <span class="flex-1"></span>
+
+    <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+      <mat-label>Du</mat-label>
+      <input matInput type="date" [ngModel]="debut()" (ngModelChange)="changerDate('debut', $event)" />
+    </mat-form-field>
+    <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+      <mat-label>Au</mat-label>
+      <input matInput type="date" [ngModel]="fin()" (ngModelChange)="changerDate('fin', $event)" />
+    </mat-form-field>
+  </div>
+
+  @if (chargement()) {
+    <div class="squelette mb-3 h-32"></div>
+    <div class="squelette h-64"></div>
+  } @else if (erreur(); as message) {
+    <p class="rounded px-3 py-2 text-sm" role="alert"
+       style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+      {{ message }}
+    </p>
+  } @else {
+    <!--
+      Le total de la periode : le chiffre qu'on vient chercher, donc le plus gros de l'ecran.
+      Le fond reste sobre et c'est le nombre qui porte la couleur — un aplat de couleur vive sur
+      toute la largeur fatigue l'oeil d'un comptable qui passe la journee dessus.
+    -->
+    <div class="carte mb-4 flex flex-wrap items-end gap-x-8 gap-y-2 p-5">
+      <div>
+        <p class="text-xs font-medium uppercase tracking-wide opacity-60">
+          Encaissé du {{ debut() | date: 'dd/MM/yyyy' }} au {{ fin() | date: 'dd/MM/yyyy' }}
+        </p>
+        <p class="nombre mt-1 text-4xl font-medium" style="color: var(--mat-sys-primary)">
+          {{ e?.total ?? 0 | number: '1.0-0' }}
+          <span class="text-xl font-normal opacity-60">F</span>
+        </p>
+      </div>
+      <p class="pb-1 text-sm opacity-60">
+        {{ e?.nombreReglements ?? 0 }} règlement{{ (e?.nombreReglements ?? 0) > 1 ? 's' : '' }}
+      </p>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-[320px_1fr]">
+      <!-- La repartition par moyen de paiement -->
+      <section class="carte p-4">
+        <h2 class="mb-3 text-sm font-medium uppercase tracking-wide opacity-70">Par moyen</h2>
+        @if (!e?.parMode?.length) {
+          <p class="py-8 text-center text-sm opacity-50">Aucun encaissement.</p>
+        } @else {
+          <ul class="flex list-none flex-col gap-3 p-0">
+            @for (mode of e!.parMode!; track mode.mode) {
+              <li>
+                <div class="flex items-baseline gap-2 text-sm">
+                  <span class="flex-1">{{ libelleDuMode(mode.mode) }}</span>
+                  <span class="text-xs opacity-60">{{ mode.nombre }}×</span>
+                  <span class="nombre font-medium">{{ mode.total | number: '1.0-0' }} F</span>
+                </div>
+                <div class="mt-1 h-2 overflow-hidden rounded-full"
+                     style="background: var(--mat-sys-surface-container-high)">
+                  <div
+                    class="h-full rounded-full"
+                    style="background: var(--mat-sys-primary)"
+                    [style.width.%]="part(mode.total)"
+                  ></div>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+
+      <!-- Le detail, encaissement par encaissement -->
+      <section class="carte overflow-hidden">
+        <h2 class="border-b px-4 py-3 text-sm font-medium uppercase tracking-wide opacity-70"
+            style="border-color: var(--mat-sys-outline-variant)">
+          Détail
+        </h2>
+        @if (reglements().length === 0) {
+          <p class="py-12 text-center text-sm opacity-50">Aucun encaissement sur la période.</p>
+        } @else {
+          <div class="max-h-[50dvh] overflow-y-auto">
+            <table class="w-full border-collapse text-sm">
+              <tbody>
+                @for (r of reglements(); track r.id) {
+                  <tr class="border-b last:border-b-0" style="border-color: var(--mat-sys-outline-variant)">
+                    <td class="px-4 py-2">
+                      <span class="block">{{ r.numeroFacture }}</span>
+                      <span class="block text-xs opacity-60">
+                        {{ r.dateReglement | date: 'dd/MM à HH:mm' }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-2">
+                      <span class="pastille"
+                            style="background: var(--mat-sys-surface-container-high); color: var(--mat-sys-on-surface-variant)">
+                        {{ libelleDuMode(r.mode) }}
+                      </span>
+                      @if (r.reference) {
+                        <span class="block text-xs opacity-60">{{ r.reference }}</span>
+                      }
+                    </td>
+                    <td class="nombre px-4 py-2 text-right font-medium">
+                      {{ r.montant | number: '1.0-0' }} F
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (totalReglements() > reglements().length) {
+            <p class="border-t px-4 py-2 text-center text-xs opacity-50"
+               style="border-color: var(--mat-sys-outline-variant)">
+              {{ reglements().length }} sur {{ totalReglements() }} — resserrez la période
+            </p>
+          }
+        }
+      </section>
+    </div>
+  }
+</div>

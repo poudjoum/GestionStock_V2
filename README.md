@@ -808,11 +808,34 @@ Les messages d'erreur de l'API sont montres tels quels. « La quantite recue dep
 attendu : 4 attendus, 6 recus » dit ce qu'il faut faire ; le remplacer par « une erreur est
 survenue » effacerait la seule information utile a celui qui est devant l'ecran.
 
+### Les trois ecrans de bureau
+
+Ceux du comptable et de l'administrateur : des tableaux, des filtres, et le detail dans un volet
+lateral plutot que sur une autre page — on passe d'une facture a l'autre en encaissant, et
+naviguer aller-retour ferait perdre sa place dans la liste a chaque fois.
+
+**Factures** (`/factures`). Le filtre par defaut est « a encaisser », parce que c'est la question
+du comptable ; le reste du total sur la page figure en tete. Le volet montre les lignes figees,
+les totaux, les encaissements deja faits, et permet d'en enregistrer un nouveau. « Solder »
+remplit le montant avec ce qui reste : le geste ordinaire est de solder.
+
+**Caisse** (`/caisse`). Le total de la periode, la repartition par moyen de paiement, et le detail
+encaissement par encaissement. Les periodes courantes sont des boutons plutot qu'un calendrier :
+obliger a choisir deux dates pour savoir ce qu'a fait la journee serait deux clics de trop, tous
+les soirs.
+
+**Comptes** (`/comptes`). Un interrupteur par compte, et aucun bouton de suppression : fermer
+plutot que supprimer, l'employe parti restant l'auteur des ventes qu'il a saisies. L'interrupteur
+de son propre compte est desactive, comme le serveur le refuse deja. Les roles se remplacent en
+bloc — decocher en retire un. Le mot de passe reinitialise n'est jamais envoye par courriel : il
+se transmet de vive voix, et l'ecran le rappelle.
+
 ### Ce qui n'y est pas encore
 
-Les ecrans de bureau — factures, caisse, comptes. Leurs routes existent et menent a un ecran qui
-dit ce qui vient : les laisser absentes ferait tomber le menu sur des routes inconnues, ce qui
-donne l'impression d'une application cassee.
+Le hors-ligne cote front : la moitie client du lot qui a rendu la vente synchronisable. L'API
+l'accepte depuis `POST /ventes/synchronisation`, le front ne met encore rien en file.
+
+Web Push, qui a maintenant une application ou atterrir.
 
 ## Notifications
 

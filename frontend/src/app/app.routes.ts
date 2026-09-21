@@ -1,14 +1,6 @@
 import { Routes } from '@angular/router';
 import { gardeConnecte, gardeDeconnecte, gardeRoles } from './noyau/gardes';
 
-/**
- * Les ecrans encore a ecrire sont declares mais vides.
- *
- * Les laisser absents ferait tomber le menu sur des routes inconnues ; les declarer ici dit ce
- * qui vient, et le lot suivant remplace le composant sans toucher au reste.
- */
-const aVenir = () => import('./provisoire/a-venir').then((m) => m.AVenir);
-
 export const routes: Routes = [
   {
     path: 'connexion',
@@ -49,20 +41,17 @@ export const routes: Routes = [
       {
         path: 'factures',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],
-        loadComponent: aVenir,
-        data: { titre: 'Factures' },
+        loadComponent: () => import('./factures/liste-factures').then((m) => m.ListeFactures),
       },
       {
         path: 'caisse',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CAISSIER', 'ROLE_COMPTABLE')],
-        loadComponent: aVenir,
-        data: { titre: 'État de caisse' },
+        loadComponent: () => import('./caisse/etat-de-caisse').then((m) => m.EtatDeCaisse),
       },
       {
         path: 'comptes',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')],
-        loadComponent: aVenir,
-        data: { titre: 'Comptes' },
+        loadComponent: () => import('./comptes/comptes').then((m) => m.Comptes),
       },
       // La racine mene a l'accueil du role : la redirection se fait a la connexion, et cette
       // entree ne sert qu'a ceux qui arrivent par un signet.

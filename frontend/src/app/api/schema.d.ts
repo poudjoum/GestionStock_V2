@@ -1786,8 +1786,8 @@ export interface components {
             username?: string;
             email?: string;
             roles?: string[];
-            accessToken?: string;
             tokenType?: string;
+            accessToken?: string;
         };
         RafraichissementRequest: {
             refreshToken: string;
@@ -3642,6 +3642,8 @@ export interface operations {
     findAll_5: {
         parameters: {
             query: {
+                q?: string;
+                statut?: string;
                 pageable: components["schemas"]["Pageable"];
             };
             header?: never;

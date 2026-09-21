@@ -1,0 +1,156 @@
+@let c = ouvert();
+
+<div class="mx-auto grid max-w-6xl gap-4" [class]="c ? 'lg:grid-cols-[1fr_360px]' : ''">
+  <section class="min-w-0">
+    <mat-form-field appearance="outline" class="mb-4 w-full" subscriptSizing="dynamic">
+      <mat-label>Chercher un compte</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        [ngModel]="recherche()"
+        (ngModelChange)="recherche.set($event)"
+        placeholder="identifiant, nom ou courriel"
+      />
+    </mat-form-field>
+
+    @if (chargement()) {
+      <div class="flex flex-col gap-2">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="squelette h-16"></div>
+        }
+      </div>
+    } @else if (filtres().length === 0) {
+      <div class="py-20 text-center opacity-50">
+        <mat-icon class="!h-12 !w-12 !text-5xl">group_off</mat-icon>
+        <p class="mt-2 text-sm">Aucun compte ne correspond.</p>
+      </div>
+    } @else {
+      <ul class="flex list-none flex-col gap-2 p-0">
+        @for (compte of filtres(); track compte.id) {
+          <li
+            class="carte flex items-center gap-3 p-3"
+            [style.opacity]="compte.actif ? 1 : 0.55"
+            [style.border-color]="c?.id === compte.id ? 'var(--mat-sys-primary)' : 'var(--mat-sys-outline-variant)'"
+          >
+            <span
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-medium"
+              [style.background]="compte.actif ? 'var(--mat-sys-primary)' : 'var(--mat-sys-surface-container-high)'"
+              [style.color]="compte.actif ? 'var(--mat-sys-on-primary)' : 'var(--mat-sys-on-surface-variant)'"
+            >
+              {{ initiales(compte) }}
+            </span>
+
+            <button
+              type="button"
+              class="min-w-0 flex-1 cursor-pointer border-0 bg-transparent p-0 text-left"
+              style="color: var(--mat-sys-on-surface)"
+              (click)="ouvrir(compte)"
+            >
+              <span class="block truncate text-sm font-medium">
+                {{ compte.username }}
+                @if (estMoi(compte)) {
+                  <span class="pastille ml-1"
+                        style="background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container)">
+                    vous
+                  </span>
+                }
+              </span>
+              <span class="block truncate text-xs opacity-60">{{ compte.email }}</span>
+              <span class="block truncate text-xs opacity-70">{{ libelleDesRoles(compte) }}</span>
+            </button>
+
+            <!-- Fermer plutot que supprimer : l'employe parti reste l'auteur de ses ventes. -->
+            <mat-slide-toggle
+              [checked]="compte.actif ?? false"
+              [disabled]="estMoi(compte)"
+              (change)="changerActivation(compte, $event.checked)"
+              [matTooltip]="estMoi(compte) ? 'On ne ferme pas son propre accès' : ''"
+            />
+          </li>
+        }
+      </ul>
+    }
+
+    @if (erreur(); as message) {
+      <p class="mt-3 rounded px-3 py-2 text-sm" role="alert"
+         style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+        {{ message }}
+      </p>
+    }
+  </section>
+
+  @if (c) {
+    <aside class="min-w-0">
+      <div class="carte lg:sticky lg:top-0">
+        <header
+          class="flex items-center gap-2 border-b px-4 py-3"
+          style="border-color: var(--mat-sys-outline-variant)"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-medium">{{ c.username }}</span>
+            <span class="block truncate text-xs opacity-60">
+              {{ c.nom }} {{ c.prenoms }} · {{ c.email }}
+            </span>
+          </span>
+          <button mat-icon-button (click)="fermer()" aria-label="Fermer">
+            <mat-icon>close</mat-icon>
+          </button>
+        </header>
+
+        <div class="px-4 py-3">
+          <h3 class="mb-2 text-xs font-medium uppercase tracking-wide opacity-60">Rôles</h3>
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+            <mat-label>Rôles du compte</mat-label>
+            <mat-select
+              multiple
+              [value]="rolesChoisis()"
+              (valueChange)="rolesChoisis.set($event)"
+            >
+              @for (role of rolesAttribuables; track role) {
+                <mat-option [value]="role">{{ libelles[role] }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+          <p class="mt-1 text-xs opacity-60">
+            La liste choisie remplace les rôles actuels : décocher en retire un.
+          </p>
+          <button
+            mat-flat-button
+            class="mt-3 w-full"
+            [disabled]="envoiEnCours() || rolesChoisis().length === 0"
+            (click)="enregistrerLesRoles()"
+          >
+            Enregistrer les rôles
+          </button>
+
+          <h3 class="mb-2 mt-6 text-xs font-medium uppercase tracking-wide opacity-60">
+            Réinitialiser le mot de passe
+          </h3>
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+            <mat-label>Nouveau mot de passe</mat-label>
+            <input
+              matInput
+              type="password"
+              autocomplete="new-password"
+              [ngModel]="nouveauMotDePasse()"
+              (ngModelChange)="nouveauMotDePasse.set($event)"
+            />
+            <mat-hint>8 caractères au minimum</mat-hint>
+          </mat-form-field>
+          <button
+            mat-stroked-button
+            class="mt-4 w-full"
+            [disabled]="envoiEnCours() || nouveauMotDePasse().length < 8"
+            (click)="reinitialiserLeMotDePasse()"
+          >
+            Réinitialiser
+          </button>
+          <p class="mt-2 text-xs opacity-60">
+            Le mot de passe est à transmettre de vive voix : il n’est jamais envoyé par courriel.
+            Les sessions ouvertes de ce compte seront fermées.
+          </p>
+        </div>
+      </div>
+    </aside>
+  }
+</div>

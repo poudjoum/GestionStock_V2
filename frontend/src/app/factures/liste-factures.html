@@ -1,0 +1,305 @@
+@let f = ouverte();
+
+<div class="mx-auto grid max-w-7xl gap-4" [class]="f ? 'xl:grid-cols-[1fr_420px]' : ''">
+  <section class="min-w-0">
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <mat-form-field appearance="outline" class="min-w-0 flex-1" subscriptSizing="dynamic">
+        <mat-label>Chercher une facture</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          inputmode="search"
+          [ngModel]="recherche()"
+          (ngModelChange)="chercher($event)"
+          placeholder="numéro ou client"
+        />
+        @if (recherche()) {
+          <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+
+      <mat-button-toggle-group
+        [value]="statut()"
+        (change)="changerStatut($event.value)"
+        hideSingleSelectionIndicator
+      >
+        <mat-button-toggle value="DUES">À encaisser</mat-button-toggle>
+        <mat-button-toggle value="REGLEE">Réglées</mat-button-toggle>
+        <mat-button-toggle value="">Toutes</mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    @if (statut() === 'DUES' && lignes().length > 0) {
+      <div
+        class="carte mb-3 flex items-baseline gap-3 p-3"
+        style="background: var(--mat-sys-error-container); border-color: var(--mat-sys-error-container)"
+      >
+        <mat-icon style="color: var(--mat-sys-on-error-container)">account_balance_wallet</mat-icon>
+        <span class="flex-1 text-sm" style="color: var(--mat-sys-on-error-container)">
+          Reste à encaisser sur cette page
+        </span>
+        <span class="nombre text-xl font-medium" style="color: var(--mat-sys-on-error-container)">
+          {{ resteTotal() | number: '1.0-0' }} F
+        </span>
+      </div>
+    }
+
+    @if (chargement()) {
+      <div class="flex flex-col gap-2">
+        @for (i of [1, 2, 3, 4, 5]; track i) {
+          <div class="squelette h-14"></div>
+        }
+      </div>
+    } @else if (erreur(); as message) {
+      <p class="rounded px-3 py-2 text-sm" role="alert"
+         style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+        {{ message }}
+      </p>
+    } @else if (lignes().length === 0) {
+      <div class="py-20 text-center opacity-50">
+        <mat-icon class="!h-12 !w-12 !text-5xl">
+          {{ statut() === 'DUES' ? 'task_alt' : 'receipt_long' }}
+        </mat-icon>
+        <p class="mt-2 text-sm">
+          {{ statut() === 'DUES' ? 'Tout est encaissé.' : 'Aucune facture.' }}
+        </p>
+      </div>
+    } @else {
+      <div class="carte overflow-hidden">
+        <table class="w-full border-collapse text-sm">
+          <thead>
+            <tr style="background: var(--mat-sys-surface-container)">
+              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide opacity-60">Facture</th>
+              <th class="hidden px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide opacity-60 sm:table-cell">Client</th>
+              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide opacity-60">Statut</th>
+              <th class="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide opacity-60">Total TTC</th>
+              <th class="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide opacity-60">Reste</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (facture of lignes(); track facture.id) {
+              <tr
+                class="carte-cliquable border-t"
+                style="border-color: var(--mat-sys-outline-variant)"
+                [style.background]="f?.id === facture.id ? 'var(--mat-sys-secondary-container)' : 'transparent'"
+                (click)="ouvrir(facture)"
+              >
+                <td class="px-4 py-2.5">
+                  <span class="block font-medium">{{ facture.numero }}</span>
+                  <span class="block text-xs opacity-60">
+                    {{ facture.dateEmission | date: 'dd/MM/yyyy' }}
+                  </span>
+                </td>
+                <td class="hidden px-4 py-2.5 sm:table-cell">
+                  {{ facture.nomClient || '—' }}
+                </td>
+                <td class="px-4 py-2.5">
+                  <span class="pastille"
+                        [style.background]="pastille(facture).fond"
+                        [style.color]="pastille(facture).texte">
+                    {{ pastille(facture).libelle }}
+                  </span>
+                </td>
+                <td class="nombre px-4 py-2.5 text-right">{{ facture.totalTtc | number: '1.0-0' }} F</td>
+                <td
+                  class="nombre px-4 py-2.5 text-right font-medium"
+                  [style.color]="(facture.resteAPayer ?? 0) > 0 && !facture.annulee ? 'var(--mat-sys-error)' : 'inherit'"
+                >
+                  {{ facture.annulee ? '—' : (facture.resteAPayer | number: '1.0-0') + ' F' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <p class="mt-3 text-center text-xs opacity-50">
+        {{ lignes().length }} facture{{ lignes().length > 1 ? 's' : '' }}
+        @if (total() > lignes().length) {
+          sur {{ total() }}
+        }
+      </p>
+    }
+  </section>
+
+  <!-- Le detail : un volet plutot qu'une autre page, pour ne pas perdre sa place dans la liste. -->
+  @if (f) {
+    <aside class="min-w-0">
+      <div class="carte xl:sticky xl:top-0">
+        <header
+          class="flex items-center gap-2 border-b px-4 py-3"
+          style="border-color: var(--mat-sys-outline-variant)"
+        >
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-medium">{{ f.numero }}</span>
+            <span class="block truncate text-xs opacity-60">
+              {{ f.nomClient || 'Client de comptoir' }} ·
+              {{ f.dateEmission | date: 'dd/MM/yyyy à HH:mm' }}
+            </span>
+          </span>
+          <button mat-icon-button (click)="fermer()" aria-label="Fermer">
+            <mat-icon>close</mat-icon>
+          </button>
+        </header>
+
+        <div class="max-h-[60dvh] overflow-y-auto px-4 py-3">
+          @if (chargementDetail()) {
+            <div class="squelette h-24"></div>
+          } @else {
+            <!-- Les lignes figees de la facture -->
+            @if (f.lignes?.length) {
+              <table class="mb-3 w-full text-xs">
+                <tbody>
+                  @for (ligne of f.lignes; track ligne.id) {
+                    <tr class="border-b" style="border-color: var(--mat-sys-outline-variant)">
+                      <td class="py-1.5">
+                        <span class="block">{{ ligne.designation }}</span>
+                        <span class="nombre block opacity-60">
+                          {{ ligne.quantite | number: '1.0-2' }} × {{ ligne.prixUnitaireHt | number: '1.0-0' }} F
+                        </span>
+                      </td>
+                      <td class="nombre py-1.5 text-right align-top">
+                        {{ ligne.montantTtc | number: '1.0-0' }} F
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+
+            <dl class="mb-3 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+              <dt class="opacity-60">Total HT</dt>
+              <dd class="nombre text-right">{{ f.totalHt | number: '1.0-0' }} F</dd>
+              @if (f.tvaApplicable) {
+                <dt class="opacity-60">TVA</dt>
+                <dd class="nombre text-right">{{ f.totalTva | number: '1.0-0' }} F</dd>
+              } @else {
+                <dt class="col-span-2 text-xs italic opacity-60">
+                  Entreprise non assujettie à la TVA
+                </dt>
+              }
+              <dt class="font-medium">Total TTC</dt>
+              <dd class="nombre text-right font-medium">{{ f.totalTtc | number: '1.0-0' }} F</dd>
+              <dt class="opacity-60">Déjà réglé</dt>
+              <dd class="nombre text-right">{{ f.montantRegle | number: '1.0-0' }} F</dd>
+              <dt class="font-medium">Reste à payer</dt>
+              <dd
+                class="nombre text-right font-medium"
+                [style.color]="(f.resteAPayer ?? 0) > 0 && !f.annulee ? 'var(--mat-sys-error)' : 'inherit'"
+              >
+                {{ f.resteAPayer | number: '1.0-0' }} F
+              </dd>
+            </dl>
+
+            <!-- Les encaissements deja faits -->
+            @if (reglements().length > 0) {
+              <h3 class="mb-1 text-xs font-medium uppercase tracking-wide opacity-60">
+                Encaissements
+              </h3>
+              <ul class="mb-3 flex list-none flex-col gap-0 p-0">
+                @for (r of reglements(); track r.id) {
+                  <li
+                    class="flex items-center gap-2 border-b py-1.5 text-sm last:border-b-0"
+                    style="border-color: var(--mat-sys-outline-variant)"
+                  >
+                    <span class="min-w-0 flex-1">
+                      <span class="block">{{ libelleDuMode(r.mode) }}</span>
+                      <span class="block text-xs opacity-60">
+                        {{ r.dateReglement | date: 'dd/MM/yyyy' }}
+                        @if (r.reference) {
+                          · {{ r.reference }}
+                        }
+                      </span>
+                    </span>
+                    <span class="nombre font-medium">{{ r.montant | number: '1.0-0' }} F</span>
+                    @if (peutReprendre() && !f.annulee) {
+                      <button mat-icon-button (click)="reprendre(r)" aria-label="Reprendre">
+                        <mat-icon class="!h-5 !w-5 !text-xl">undo</mat-icon>
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+
+            @if (erreurDetail(); as message) {
+              <p class="mb-3 rounded px-3 py-2 text-sm" role="alert"
+                 style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+                {{ message }}
+              </p>
+            }
+
+            <!-- Encaisser -->
+            @if (f.annulee) {
+              <p class="rounded px-3 py-2 text-center text-sm"
+                 style="background: var(--mat-sys-surface-container-high)">
+                Cette facture est annulée.
+              </p>
+            } @else if ((f.resteAPayer ?? 0) <= 0) {
+              <p class="rounded px-3 py-2 text-center text-sm"
+                 style="background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container)">
+                <mat-icon class="!h-5 !w-5 !text-xl align-middle">check_circle</mat-icon>
+                Entièrement réglée.
+              </p>
+            } @else {
+              <h3 class="mb-2 text-xs font-medium uppercase tracking-wide opacity-60">
+                Enregistrer un encaissement
+              </h3>
+              <div class="flex gap-2">
+                <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
+                  <mat-label>Montant</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    inputmode="decimal"
+                    min="0"
+                    [ngModel]="montant()"
+                    (ngModelChange)="montant.set($event)"
+                  />
+                  <span matTextSuffix>F</span>
+                </mat-form-field>
+                <button mat-button (click)="soldeEntier()">Solder</button>
+              </div>
+
+              <mat-form-field appearance="outline" class="mt-2 w-full" subscriptSizing="dynamic">
+                <mat-label>Moyen de paiement</mat-label>
+                <mat-select [value]="mode()" (valueChange)="mode.set($event)">
+                  @for (m of modes; track m.valeur) {
+                    <mat-option [value]="m.valeur">{{ m.libelle }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="mt-2 w-full" subscriptSizing="dynamic">
+                <mat-label>Référence (facultatif)</mat-label>
+                <input
+                  matInput
+                  [ngModel]="reference()"
+                  (ngModelChange)="reference.set($event)"
+                  placeholder="n° de transaction, de chèque…"
+                />
+              </mat-form-field>
+
+              <button
+                mat-flat-button
+                class="mt-3 !h-11 w-full"
+                [disabled]="envoiEnCours() || !montant()"
+                (click)="encaisser()"
+              >
+                {{ envoiEnCours() ? 'Enregistrement…' : 'Encaisser' }}
+              </button>
+
+              @if (peutAnnuler()) {
+                <button mat-button class="mt-1 w-full" (click)="annuler()">
+                  Annuler la facture
+                </button>
+              }
+            }
+          }
+        </div>
+      </div>
+    </aside>
+  }
+</div>
