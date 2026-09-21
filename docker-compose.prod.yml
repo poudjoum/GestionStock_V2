@@ -45,6 +45,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      # Le conteneur tourne en UTC : sans ce fuseau, l'etat de caisse d'une journee irait de
+      # 01h00 a 01h00 en heure locale.
+      FUSEAU_HORAIRE: ${FUSEAU_HORAIRE:-Africa/Douala}
       FLICKR_API_KEY: ${FLICKR_API_KEY:-}
       FLICKR_API_SECRET: ${FLICKR_API_SECRET:-}
       FLICKR_APP_KEY: ${FLICKR_APP_KEY:-}

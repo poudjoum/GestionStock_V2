@@ -384,6 +384,41 @@ qui restait du.
 La liste des factures porte le reste a payer de chacune, charge en une seule requete — les
 demander facture par facture ferait une requete par ligne affichee.
 
+## Etat de caisse
+
+```
+GET /gestiondestock/v1/caisse/etat                                 la journee en cours
+GET /gestiondestock/v1/caisse/etat?debut=2026-09-01&fin=2026-09-30
+GET /gestiondestock/v1/caisse/reglements?debut=...&fin=...&page=0&size=20
+```
+
+```json
+{
+  "debut": "2026-09-21", "fin": "2026-09-21",
+  "total": 15000, "nombreReglements": 3,
+  "parMode": [
+    { "mode": "ESPECES",      "total": 8000, "nombre": 2 },
+    { "mode": "MOBILE_MONEY", "total": 7000, "nombre": 1 }
+  ]
+}
+```
+
+Les encaissements existaient sans que rien ne les additionne : savoir ce qui etait entre dans la
+journee demandait d'ouvrir les factures une par une.
+
+- **Le detail par mode n'est pas une curiosite, c'est ce qui permet de verifier** : les especes se
+  comptent dans le tiroir, le mobile money se confronte au releve de l'operateur, les cheques se
+  comptent en nombre. Un total global, seul, ne se controle contre rien.
+- Sans dates, **la journee en cours** — c'est la question du soir, quand on ferme.
+- Le total est la somme des lignes affichees, et non une requete de plus : il correspond donc
+  toujours a ce qu'on a sous les yeux. Une caisse vide rend `0`, pas une absence de reponse.
+- Les journees sont des **jours civils locaux**, lus dans `app.fuseauHoraire` (`Africa/Douala` par
+  defaut, `FUSEAU_HORAIRE` pour en changer). Le conteneur tourne en UTC : sans ce reglage, « la
+  caisse du 21 » irait de 01h00 a 01h00 en heure locale, et les encaissements du soir compteraient
+  pour le lendemain.
+- La borne haute d'une periode est exclue a la seconde pres dans les deux lectures — le total et
+  le detail — sans quoi les deux ne se recouperaient pas.
+
 ## Acces et roles
 
 L'API est fermee : toute route inconnue du tableau ci-dessous exige au minimum un compte valide,
@@ -398,6 +433,7 @@ et une route ajoutee demain naitra fermee.
 | Corriger ou annuler une vente | ADMIN, MANAGER, CAISSIER |
 | Emettre une facture | ADMIN, MANAGER, CAISSIER |
 | Encaisser un reglement | ADMIN, MANAGER, CAISSIER, COMPTABLE |
+| Consulter la caisse | ADMIN, MANAGER, CAISSIER, COMPTABLE |
 | Reprendre un reglement | ADMIN, COMPTABLE |
 | Annuler une facture | ADMIN, MANAGER, COMPTABLE |
 | Creer articles, categories, commandes | ADMIN, MANAGER, MAGASINIER |
@@ -415,7 +451,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-120 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+127 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 

@@ -129,6 +129,12 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, API + "/ventes/**", API + "/clients/**")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER)
 
+                        // La recette du jour n'est pas une information pour tout le monde : la
+                        // regle generale ouvre les lectures a tout compte connecte, ce qui
+                        // montrerait le chiffre d'affaires au magasinier.
+                        .requestMatchers(HttpMethod.GET, API + "/caisse/**")
+                            .hasAnyRole(ADMIN, MANAGER, CAISSIER, COMPTABLE)
+
                         // Encaisser se fait au comptoir : le caissier doit pouvoir enregistrer un
                         // reglement, la ou la regle des factures juste apres l'en exclurait.
                         .requestMatchers(HttpMethod.POST, API + "/factures/*/reglements")

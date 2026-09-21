@@ -46,6 +46,10 @@ springdoc:
     path: /api-GestionStock
 
 app:
+  # Le fuseau dans lequel se lisent les journees : la caisse du 21 septembre est celle du jour
+  # civil local, pas celle de l'horloge du serveur. Le conteneur tourne en UTC et l'ecart d'une
+  # heure suffirait a faire basculer les encaissements du soir sur le lendemain.
+  fuseauHoraire: ${FUSEAU_HORAIRE:Africa/Douala}
   jwtSecret: ${JWT_SECRET}
   # En millisecondes : 86400000 = 24 h. La valeur precedente, 3600, etait lue en millisecondes et
   # donnait des jetons valables 3,6 secondes.
