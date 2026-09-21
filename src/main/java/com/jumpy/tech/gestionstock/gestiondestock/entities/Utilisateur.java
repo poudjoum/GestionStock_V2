@@ -41,6 +41,10 @@ public class Utilisateur extends AbstractEntity{
     private Entreprise entreprise;
    @ManyToMany(fetch = FetchType.LAZY)
    @JoinTable(name="user_roles",joinColumns = @JoinColumn(name="user_id"),inverseJoinColumns = @JoinColumn(name="role_id"))
+   // Sans @Builder.Default, Lombok ignore l'initialisation : un Utilisateur.builder() rendait un
+   // objet dont `roles` valait null, et UserDetailsImpl.build lui applique un `.stream()` — une
+   // NullPointerException a la connexion.
+   @Builder.Default
     private Set<Role> roles=new HashSet<>();
 
     // Appele par /api/auth/signup. Son corps etait vide : l'inscription enregistrait un

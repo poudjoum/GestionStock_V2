@@ -1,6 +1,6 @@
 # GestionDeStock
 
-API REST de gestion de stock (Spring Boot 3.2, Java 17, PostgreSQL) : articles, categories, clients,
+API REST de gestion de stock (Spring Boot 3.5, Java 17, PostgreSQL) : articles, categories, clients,
 fournisseurs, commandes client et fournisseur, ventes, utilisateurs et roles, avec authentification
 par jeton JWT et documentation Swagger.
 
@@ -108,7 +108,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-28 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+33 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -179,4 +179,10 @@ A savoir avant de reprendre le developpement :
 
 - Pas de cycle de vie des commandes (commandee, livree, annulee), d'ou le choix de faire entrer la
   marchandise des l'enregistrement d'une commande fournisseur.
+- Une commande ou une vente ne se modifie pas : ni ajout de ligne, ni retrait, ni correction de
+  quantite.
+- **Spring Boot 4 est disponible et n'est pas pris.** Il repose sur Spring Framework 7, deplace des
+  modules et retire les API depreciees de toute la ligne 3.x : c'est une migration en soi, a mener
+  une fois celle-ci eprouvee. springdoc devra alors passer en 3.x, sa ligne 2.x etant alignee sur
+  Boot 3.
 - Spring Boot 3.2.5 n'est plus suivi, et JJWT 0.11.5 emploie une API depreciee.
