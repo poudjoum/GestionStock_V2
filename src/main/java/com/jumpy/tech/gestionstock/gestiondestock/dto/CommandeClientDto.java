@@ -21,6 +21,8 @@ public class CommandeClientDto {
     private ClientDto client;
     private Long idEntreprise;
     private EtatCommande etat;
+    /** Renseigne quand la commande a ete cloturee sans avoir tout servi. */
+    private String motifCloture;
 
 
     private List<LigneCommandeClientDto> ligneCmndeClients;
@@ -36,6 +38,7 @@ public class CommandeClientDto {
                 .client(ClientDto.fromEntity(cmdClient.getClient()))
                 .idEntreprise(cmdClient.getIdEntreprise())
                 .etat(cmdClient.getEtat())
+                .motifCloture(cmdClient.getMotifCloture())
                 .build();
     }
     public static  CommandeClient toEntity(CommandeClientDto dto) {
@@ -49,6 +52,7 @@ public class CommandeClientDto {
         cl.setClient(ClientDto.toEntity(dto.getClient()));
         cl.setIdEntreprise(dto.getIdEntreprise());
         cl.setEtat(dto.getEtat());
+        cl.setMotifCloture(dto.getMotifCloture());
 
         return cl;
     }

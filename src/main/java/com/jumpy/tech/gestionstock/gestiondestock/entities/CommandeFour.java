@@ -29,6 +29,14 @@ public class CommandeFour extends AbstractEntity{
     @Enumerated(EnumType.STRING)
     @Column(name="etat", nullable = false, length = 20)
     private EtatCommande etat;
+    /**
+     * Pourquoi le reliquat a ete abandonne.
+     *
+     * « Fournisseur en rupture », « article arrete » : c'est ce qu'on cherche six mois plus tard,
+     * quand on se demande pourquoi une commande n'a jamais ete honoree.
+     */
+    @Column(name="motif_cloture")
+    private String motifCloture;
     @ManyToOne
     @JoinColumn(name="idFournisseur")
     private Fournisseur fournisseur;

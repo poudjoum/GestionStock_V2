@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ClotureDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
@@ -39,6 +40,15 @@ public interface CommandeClientApi {
     @PatchMapping(value = APP_ROOT+"/commandes-clients/{idCommandClient}/etat/{etat}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CommandeClientDto> mettreAJourEtat(@PathVariable Long idCommandClient,
                                                       @PathVariable EtatCommande etat);
+
+    /**
+     * Solde le reliquat d'une commande partiellement servie : `{ "motif": "client desiste" }`.
+     *
+     * Rien ne sort du magasin : ce qui n'a pas ete vendu n'a jamais quitte le stock.
+     */
+    @PostMapping(value = APP_ROOT+"/commandes-clients/{idCommandClient}/cloture",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<CommandeClientDto> cloturer(@PathVariable Long idCommandClient,
+                                               @RequestBody ClotureDto cloture);
 
     // --- Lignes de la commande ------------------------------------------------------------
 

@@ -164,6 +164,14 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.DELETE, API + "/ventes/*/lignes/**")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER)
 
+                        // Renoncer a un reliquat n'est pas un constat de magasin mais une
+                        // decision : on cesse d'attendre un fournisseur, ou de devoir a un
+                        // client. Le magasinier enregistre ce qui arrive — la regle POST
+                        // generique juste en dessous lui ouvrirait aussi le droit d'y renoncer.
+                        .requestMatchers(HttpMethod.POST, API + "/commandes-fournisseurs/*/cloture",
+                                API + "/commandes-clients/*/cloture")
+                            .hasAnyRole(ADMIN, MANAGER)
+
                         // Faire avancer une commande — la declarer livree, donc faire entrer la
                         // marchandise en stock — est un geste de magasin, pas une consultation.
                         // Sans cette ligne, PATCH tombait dans le authenticated() final et tout

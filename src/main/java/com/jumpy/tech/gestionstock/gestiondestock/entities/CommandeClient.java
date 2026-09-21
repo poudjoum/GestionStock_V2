@@ -26,6 +26,9 @@ public class CommandeClient extends AbstractEntity{
     @Enumerated(EnumType.STRING)
     @Column(name="etat", nullable = false, length = 20)
     private EtatCommande etat;
+    /** Pourquoi le reste de la commande ne sera pas servi. */
+    @Column(name="motif_cloture")
+    private String motifCloture;
     @ManyToOne
     @JoinColumn(name="idClient")
     private Client client;

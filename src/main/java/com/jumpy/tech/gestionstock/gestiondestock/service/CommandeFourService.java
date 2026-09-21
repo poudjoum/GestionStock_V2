@@ -31,6 +31,18 @@ public interface CommandeFourService {
     CommandeFourDto recevoir(Long id, List<LigneReceptionDto> receptions);
 
     /**
+     * Solde une commande partiellement livree dont le reste n'arrivera pas.
+     *
+     * Sans elle, une commande dont le fournisseur fait defaut restait PARTIELLEMENT_LIVREE
+     * indefiniment : elle figurait parmi les commandes en cours, et le reliquat continuait de
+     * paraitre attendu. La cloture ne touche pas au stock — rien n'est arrive, il n'y a rien a
+     * enregistrer ; elle ne fait que cesser d'attendre.
+     *
+     * Le motif est exige : « on a clos » sans dire pourquoi ne sert a rien six mois plus tard.
+     */
+    CommandeFourDto cloturer(Long id, String motif);
+
+    /**
      * Les lignes d'une commande.
      *
      * Elles ne figurent pas dans CommandeFourDto.fromEntity, qui ne remonte que l'en-tete : une

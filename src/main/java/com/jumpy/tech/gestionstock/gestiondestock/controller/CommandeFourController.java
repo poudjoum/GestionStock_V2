@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.CommandFourApi;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ClotureDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeFourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
@@ -50,6 +51,12 @@ public class CommandeFourController implements CommandFourApi {
     @Override
     public ResponseEntity<CommandeFourDto> recevoir(Long idCommandFour, List<LigneReceptionDto> receptions) {
         return ResponseEntity.ok(cmndeFourServ.recevoir(idCommandFour, receptions));
+    }
+
+    @Override
+    public ResponseEntity<CommandeFourDto> cloturer(Long idCommandFour, ClotureDto cloture) {
+        return ResponseEntity.ok(cmndeFourServ.cloturer(idCommandFour,
+                cloture == null ? null : cloture.getMotif()));
     }
 
     @Override

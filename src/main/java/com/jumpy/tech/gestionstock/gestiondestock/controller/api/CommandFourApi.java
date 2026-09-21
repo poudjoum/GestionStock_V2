@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ClotureDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeFourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
@@ -60,6 +61,16 @@ public interface CommandFourApi {
     @PostMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/receptions",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CommandeFourDto> recevoir(@PathVariable Long idCommandFour,
                                              @RequestBody List<LigneReceptionDto> receptions);
+
+    /**
+     * Solde le reliquat d'une commande partiellement livree : `{ "motif": "fournisseur en rupture" }`.
+     *
+     * `POST` et non `PATCH .../etat/CLOTUREE` : clore n'est pas declarer un etat au hasard, c'est
+     * un geste qui porte une explication, et l'etat en decoule. Rien n'entre en stock.
+     */
+    @PostMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/cloture",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<CommandeFourDto> cloturer(@PathVariable Long idCommandFour,
+                                             @RequestBody ClotureDto cloture);
 
     // --- Lignes de la commande ------------------------------------------------------------
     // Une commande enregistree ne se corrigeait pas : ni ajout, ni retrait, ni changement de

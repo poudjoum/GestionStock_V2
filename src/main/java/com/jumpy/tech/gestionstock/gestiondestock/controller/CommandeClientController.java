@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.CommandeClientApi;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ClotureDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
@@ -42,6 +43,12 @@ public class CommandeClientController implements CommandeClientApi {
     @Override
     public ResponseEntity<CommandeClientDto> mettreAJourEtat(Long idCommandClient, EtatCommande etat) {
         return ResponseEntity.ok(cmdeCliService.mettreAJourEtat(idCommandClient, etat));
+    }
+
+    @Override
+    public ResponseEntity<CommandeClientDto> cloturer(Long idCommandClient, ClotureDto cloture) {
+        return ResponseEntity.ok(cmdeCliService.cloturer(idCommandClient,
+                cloture == null ? null : cloture.getMotif()));
     }
 
     @Override

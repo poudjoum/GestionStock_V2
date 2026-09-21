@@ -149,14 +149,22 @@ public class CommandeClientServiceImpl implements CommandeClientService {
     @Override
     @Transactional
     public CommandeClientDto mettreAJourEtat(Long id, EtatCommande etat) {
-        CommandeClient commande = commandeClientRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucune commande client avec l'identifiant " + id + " n'a été trouvée",
-                        ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
+        // Par `commande` et non par le repository : cette methode etait la derniere a lire une
+        // commande sans passer par le cloisonnement, et faire avancer l'etat de la commande d'une
+        // autre entreprise suffisait a en connaitre l'identifiant.
+        CommandeClient commande = commande(id);
 
         if (etat == null) {
             throw new InvalidEntityException("L'état visé doit être renseigné",
                     ErrorCodes.COMMANDE_CLIENT_NOT_VALID);
+        }
+        // La cloture passe par son propre geste : declaree ici, elle arriverait sans motif, et
+        // l'etat ne dirait plus que « on n'attend plus rien » sans dire pourquoi.
+        if (etat == EtatCommande.CLOTUREE) {
+            throw new InvalidEntityException(
+                    "La clôture d'un reliquat se demande avec son motif",
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID,
+                    List.of("POST /commandes-clients/" + id + "/cloture"));
         }
         if (!commande.getEtat().peutPasserA(etat)) {
             throw new InvalidEntityException(
@@ -168,6 +176,37 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         }
 
         commande.setEtat(etat);
+        return CommandeClientDto.fromEntity(commandeClientRepository.save(commande));
+    }
+
+    /**
+     * Cesse de devoir le reliquat.
+     *
+     * Aucun mouvement de stock, pour la meme raison qu'a la livraison : c'est la vente qui sort la
+     * marchandise, et ce qui n'a jamais ete servi n'est jamais sorti. Les lignes restent
+     * intactes — l'ecart entre le commande et le vendu dit ce qui n'a pas ete honore.
+     */
+    @Override
+    @Transactional
+    public CommandeClientDto cloturer(Long id, String motif) {
+        CommandeClient commande = commande(id);
+        if (!commande.getEtat().peutPasserA(EtatCommande.CLOTUREE)) {
+            throw new InvalidEntityException(
+                    "Une commande " + commande.getEtat() + " ne se clôture pas",
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID,
+                    List.of(commande.getEtat().estTerminal()
+                            ? "L'état " + commande.getEtat() + " est définitif"
+                            : "Seule une commande partiellement livrée a un reliquat à clôturer"));
+        }
+        if (!StringUtils.hasText(motif)) {
+            throw new InvalidEntityException("Le motif de clôture est obligatoire",
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID,
+                    List.of("Sans motif, on ne saura plus pourquoi le reliquat a été abandonné"));
+        }
+
+        commande.setEtat(EtatCommande.CLOTUREE);
+        commande.setMotifCloture(motif.trim());
+        log.info("Commande client {} : cloturee ({})", id, commande.getMotifCloture());
         return CommandeClientDto.fromEntity(commandeClientRepository.save(commande));
     }
 
@@ -227,10 +266,16 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         return commande;
     }
 
-    /** Une commande figee — livree ou annulee — ne se corrige plus : c'est une trace. */
+    /**
+     * Une commande figee — livree, cloturee ou annulee — ne se corrige plus : c'est une trace.
+     *
+     * `estEngagee` et non `estTerminal` : une commande partiellement servie restait modifiable,
+     * et baisser la quantite d'une ligne deja servie pour partie faisait mentir le reliquat — le
+     * reste du se calcule par difference entre ce qui est commande et ce qui est vendu.
+     */
     private CommandeClient commandeModifiable(Long id) {
         CommandeClient commande = commande(id);
-        if (commande.getEtat().estTerminal()) {
+        if (commande.getEtat().estEngagee()) {
             throw new InvalidEntityException(
                     "Une commande " + commande.getEtat() + " ne se modifie plus",
                     ErrorCodes.COMMANDE_CLIENT_NOT_VALID,

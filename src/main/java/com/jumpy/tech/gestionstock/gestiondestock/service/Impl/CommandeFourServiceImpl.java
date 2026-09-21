@@ -118,6 +118,14 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     @Transactional
     public CommandeFourDto mettreAJourEtat(Long id, EtatCommande etat) {
         CommandeFour commande = commande(id);
+        // La cloture passe par son propre geste : declaree ici, elle arriverait sans motif, et
+        // l'etat ne dirait plus que « on n'attend plus rien » sans dire pourquoi.
+        if (etat == EtatCommande.CLOTUREE) {
+            throw new InvalidEntityException(
+                    "La clôture d'un reliquat se demande avec son motif",
+                    ErrorCodes.COMMANDE_FOURNISSEUR_NOT_VALID,
+                    List.of("POST /commandes-fournisseurs/" + id + "/cloture"));
+        }
         verifierTransition(commande.getEtat(), etat);
 
         if (etat == EtatCommande.LIVREE) {
@@ -210,6 +218,40 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         commande.setEtat(toutRecu ? EtatCommande.LIVREE : EtatCommande.PARTIELLEMENT_LIVREE);
         log.info("Commande fournisseur {} : reception de {} ligne(s), etat {}",
                 id, receptions.size(), commande.getEtat());
+        return CommandeFourDto.fromEntity(commandeFourRepository.save(commande));
+    }
+
+    /**
+     * Cesse d'attendre le reliquat.
+     *
+     * Aucun mouvement de stock : ce qui est deja arrive a ete enregistre a sa reception, et ce qui
+     * manque n'est jamais venu. Clore, c'est constater une absence, pas une entree — la seule
+     * chose qui change est que la commande quitte les commandes en cours.
+     *
+     * Les lignes ne sont pas retouchees : `quantiteLivree` reste en dessous de `quantite`, et
+     * l'ecart dit exactement ce qui n'a pas ete honore.
+     */
+    @Override
+    @Transactional
+    public CommandeFourDto cloturer(Long id, String motif) {
+        CommandeFour commande = commande(id);
+        if (!commande.getEtat().peutPasserA(EtatCommande.CLOTUREE)) {
+            throw new InvalidEntityException(
+                    "Une commande " + commande.getEtat() + " ne se clôture pas",
+                    ErrorCodes.COMMANDE_FOURNISSEUR_NOT_VALID,
+                    List.of(commande.getEtat().estTerminal()
+                            ? "L'état " + commande.getEtat() + " est définitif"
+                            : "Seule une commande partiellement livrée a un reliquat à clôturer"));
+        }
+        if (!StringUtils.hasText(motif)) {
+            throw new InvalidEntityException("Le motif de clôture est obligatoire",
+                    ErrorCodes.COMMANDE_FOURNISSEUR_NOT_VALID,
+                    List.of("Sans motif, on ne saura plus pourquoi le reliquat a été abandonné"));
+        }
+
+        commande.setEtat(EtatCommande.CLOTUREE);
+        commande.setMotifCloture(motif.trim());
+        log.info("Commande fournisseur {} : cloturee ({})", id, commande.getMotifCloture());
         return CommandeFourDto.fromEntity(commandeFourRepository.save(commande));
     }
 

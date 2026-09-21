@@ -87,6 +87,8 @@ demarrage :
   Les lignes des commandes deja livrees y sont marquees livrees en entier, sans quoi elles
   paraitraient attendre encore toute leur marchandise — et l'on pourrait la recevoir une seconde
   fois.
+- `V16__cloture_des_reliquats.sql` — l'etat `CLOTUREE` et le motif qui l'accompagne, pour solder
+  une commande dont le reste n'arrivera jamais.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -206,6 +208,7 @@ POST /gestiondestock/v1/mouvements/sortie
 ```
 EN_PREPARATION ──> VALIDEE ──> PARTIELLEMENT_LIVREE ──> LIVREE
        │              │    └──────────────────────────────┘
+       │              │                 └─────────────> CLOTUREE
        └──────────────┴──> ANNULEE
 ```
 
@@ -257,11 +260,45 @@ Une commande client peut donc etre servie par **plusieurs ventes**. L'index uniq
 est tombe avec ce lot ; ce qu'il protegeait — sortir deux fois la meme marchandise — est desormais
 garanti par le reliquat.
 
-Une commande nait `EN_PREPARATION`. `LIVREE` et `ANNULEE` sont **definitifs** : une commande
-livree ne se deprogramme pas — la marchandise a bouge, et l'annuler laisserait le stock mentir —
-et une commande annulee ne se reprend pas, on en saisit une nouvelle. C'est aussi ce qui garantit
-qu'une commande fournisseur n'entre en stock qu'une fois : une seconde livraison est refusee avant
-d'avoir relu la moindre ligne.
+Une commande nait `EN_PREPARATION`. `LIVREE`, `CLOTUREE` et `ANNULEE` sont **definitifs** : une
+commande livree ne se deprogramme pas — la marchandise a bouge, et l'annuler laisserait le stock
+mentir — et une commande annulee ne se reprend pas, on en saisit une nouvelle. C'est aussi ce qui
+garantit qu'une commande fournisseur n'entre en stock qu'une fois : une seconde livraison est
+refusee avant d'avoir relu la moindre ligne.
+
+### Cloture d'un reliquat
+
+Une commande partiellement livree dont le reste n'arrivera jamais restait bloquee dans cet etat :
+elle figurait indefiniment parmi les commandes en cours, et le reliquat continuait de paraitre
+attendu.
+
+```
+POST /gestiondestock/v1/commandes-fournisseurs/{id}/cloture
+POST /gestiondestock/v1/commandes-clients/{id}/cloture
+
+{ "motif": "Fournisseur en rupture, article arrete" }
+```
+
+**`CLOTUREE` n'est pas un raccourci vers `LIVREE`** : un fournisseur qui a tout livre et un qui a
+fait defaut ne doivent pas se ressembler six mois plus tard. L'etat dit « on n'attend plus rien »,
+pas « tout est arrive ».
+
+Ce qui en decoule :
+
+- **Aucun mouvement de stock.** Ce qui est arrive a ete enregistre a sa reception, ce qui manque
+  n'est jamais venu. Cote client, ce qui n'a pas ete servi n'a jamais quitte le magasin : il n'y
+  a rien a rendre non plus.
+- **Les lignes restent intactes.** `quantiteLivree` reste en dessous de `quantite`, et l'ecart dit
+  exactement ce qui n'a pas ete honore. Les raboter effacerait la seule trace du manquement.
+- **Le motif est obligatoire.** « On a clos » sans dire pourquoi ne sert a rien a celui qui relira
+  l'historique ; `motifCloture` remonte avec la commande.
+- **Seule une commande `PARTIELLEMENT_LIVREE` se clot.** Une commande dont rien n'est arrive
+  s'annule — la clore laisserait croire qu'une partie est passee.
+- **La route des etats ne clot pas.** `PATCH .../etat/CLOTUREE` est refuse : la cloture y
+  arriverait sans motif.
+
+Renoncer a un reliquat est reserve aux roles `ADMIN` et `MANAGER`. Le magasinier enregistre ce
+qui arrive ; cesser d'attendre un fournisseur, ou de devoir a un client, est une decision.
 
 ## Facturation
 
@@ -512,6 +549,7 @@ et une route ajoutee demain naitra fermee.
 | Reprendre un reglement | ADMIN, COMPTABLE |
 | Annuler une facture | ADMIN, MANAGER, COMPTABLE |
 | Creer articles, categories, commandes | ADMIN, MANAGER, MAGASINIER |
+| Cloturer un reliquat | ADMIN, MANAGER |
 | Supprimer | ADMIN, MANAGER |
 | Comptes et entreprises | ADMIN |
 | Voir au-dela de son entreprise | SUPER_ADMIN |
@@ -526,7 +564,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-145 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+160 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -600,8 +638,8 @@ A savoir avant de reprendre le developpement :
   comptes qui n'en ont pas eux-memes, et du super-administrateur ; une reprise les rattacherait.
 - Le taux applique est fige a l'emission de la facture, mais deux ventes du meme article au meme
   moment ne peuvent pas avoir deux taux : l'exception se porte sur l'article, pas sur la ligne.
-- Un reliquat ne s'abandonne pas : une commande partiellement livree dont le reste n'arrivera
-  jamais reste `PARTIELLEMENT_LIVREE`, sans moyen de la clore.
+- Une commande cloturee ne se rouvre pas. Si le fournisseur livre finalement, il faut saisir une
+  nouvelle commande — ce qui est voulu, mais demande de la ressaisie.
 - Rien ne rapproche les encaissements d'un relevé : le mode et la reference sont saisis, personne
   ne les confronte a ce que la banque ou l'operateur mobile a reellement recu.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra

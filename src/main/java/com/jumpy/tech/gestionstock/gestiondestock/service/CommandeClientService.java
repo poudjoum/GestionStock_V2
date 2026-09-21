@@ -20,6 +20,16 @@ public interface CommandeClientService {
      */
     CommandeClientDto mettreAJourEtat(Long id, EtatCommande etat);
 
+    /**
+     * Solde une commande partiellement servie dont le reste ne le sera pas.
+     *
+     * Le client s'est desiste, l'article est arrete : sans cette operation la commande restait
+     * PARTIELLEMENT_LIVREE indefiniment, et son reliquat continuait de paraitre du. La cloture
+     * n'ecrit aucun mouvement — c'est la vente qui sort la marchandise, et ce qui n'a pas ete
+     * servi n'est jamais sorti.
+     */
+    CommandeClientDto cloturer(Long id, String motif);
+
     /** Les lignes d'une commande ; CommandeClientDto.fromEntity ne remonte que l'en-tete. */
     List<LigneCommandeClientDto> lignes(Long idCommande);
 

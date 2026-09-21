@@ -21,6 +21,8 @@ public class CommandeFourDto {
     private FournisseurDto fournisseur;
     private Long idEntreprise;
     private EtatCommande etat;
+    /** Renseigne quand la commande a ete cloturee sans avoir tout recu. */
+    private String motifCloture;
 
     private List<LigneCmndeFournisseurDto> ligneCmndeFournisseur;
 
@@ -35,6 +37,7 @@ public class CommandeFourDto {
                 .fournisseur(FournisseurDto.fromEntity(cmdeF.getFournisseur()))
                 .idEntreprise(cmdeF.getIdEntreprise())
                 .etat(cmdeF.getEtat())
+                .motifCloture(cmdeF.getMotifCloture())
                 .build();
     }
     public static CommandeFour toEntity(CommandeFourDto dto) {
@@ -48,6 +51,7 @@ public class CommandeFourDto {
         cf.setFournisseur(FournisseurDto.toEntity(dto.getFournisseur()));
         cf.setIdEntreprise(dto.getIdEntreprise());
         cf.setEtat(dto.getEtat());
+        cf.setMotifCloture(dto.getMotifCloture());
         return cf;
     }
 }
