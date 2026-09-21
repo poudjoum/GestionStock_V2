@@ -10,10 +10,10 @@ import com.jumpy.tech.gestionstock.gestiondestock.service.ArticleService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.ArticleValidators;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +25,7 @@ public class ArticleServiceImpl implements ArticleService {
         this.articleRepository=articleRepository;
     }
     @Override
+    @Transactional
     public ArticleDto save(ArticleDto dto) {
         List<String>errors= ArticleValidators.validate(dto);
         if(!errors.isEmpty()){
@@ -39,23 +40,31 @@ public class ArticleServiceImpl implements ArticleService {
     public ArticleDto findById(Long id) {
         if(id==null){
             log.error("Article id is null");
+            throw new InvalidEntityException("Aucun Article ne peut etre cherche sans identifiant",
+                    ErrorCodes.ARTICLE_NOT_VALID);
         }
-        Optional<Article> article=articleRepository.findById(id);
-        ArticleDto dto=ArticleDto.fromEntity(article.get());
-        return Optional.of(dto).orElseThrow(()->
-                new EntityNotFoundException("Aucun Article avec l'id= "+id+" n'a été trouvé dans la base de donnée",ErrorCodes.ARTICLE_NOT_FOUND));
+        // `article.get()` precedait le orElseThrow : sur un identifiant inconnu, c'est
+        // NoSuchElementException qui partait — une erreur 500 — et le orElseThrow, applique a un
+        // Optional.of() toujours plein, ne pouvait jamais lever le 404 qu'il decrivait.
+        return articleRepository.findById(id)
+                .map(ArticleDto::fromEntity)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun Article avec l'id = " + id + " n'a ete trouve dans la base de donnees",
+                        ErrorCodes.ARTICLE_NOT_FOUND));
     }
 
     @Override
     public ArticleDto findByCodeArticle(String codeArticle) {
         if(!StringUtils.hasLength(codeArticle)){
             log.error("Le code Article est vide");
-            return null;
+            throw new InvalidEntityException("Aucun Article ne peut etre cherche sans code",
+                    ErrorCodes.ARTICLE_NOT_VALID);
         }
-        Optional<Article> article= articleRepository.findArticleByCodeArticle(codeArticle);
-        ArticleDto dto= ArticleDto.fromEntity(article.get());
-        return Optional.of(dto).orElseThrow(()->
-                new EntityNotFoundException("Aucun Article avec le code = "+codeArticle +"n'a été trouvé dans la base de donnée",ErrorCodes.ARTICLE_NOT_FOUND));
+        return articleRepository.findArticleByCodeArticle(codeArticle)
+                .map(ArticleDto::fromEntity)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun Article avec le code = " + codeArticle + " n'a ete trouve dans la base de donnees",
+                        ErrorCodes.ARTICLE_NOT_FOUND));
     }
 
     @Override
@@ -66,6 +75,7 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         if(id==null){
             log.error("Article Id est null");

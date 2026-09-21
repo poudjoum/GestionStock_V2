@@ -1,7 +1,9 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeFourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.*;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
@@ -11,10 +13,12 @@ import com.jumpy.tech.gestionstock.gestiondestock.repository.CommandeFourReposit
 import com.jumpy.tech.gestionstock.gestiondestock.repository.FournisseurRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneCmndeFourRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.CommandeFourService;
+import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.CommandFourValidator;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -29,16 +33,28 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     private ArticleRepository articleRepository;
     private LigneCmndeFourRepository ligneCmndeFourRepository;
     private FournisseurRepository fournisseurRepository;
+    private MvtStkService mvtStkService;
 
     public CommandeFourServiceImpl(CommandeFourRepository commandeFourRepository, ArticleRepository articleRepository,
-                                   LigneCmndeFourRepository ligneCmndeFourRepository, FournisseurRepository fournisseurRepository){
+                                   LigneCmndeFourRepository ligneCmndeFourRepository, FournisseurRepository fournisseurRepository,
+                                   MvtStkService mvtStkService){
         this.commandeFourRepository=commandeFourRepository;
         this.articleRepository=articleRepository;
         this.fournisseurRepository=fournisseurRepository;
         this.ligneCmndeFourRepository=ligneCmndeFourRepository;
+        this.mvtStkService=mvtStkService;
     }
 
+    /**
+     * Enregistre la commande, ses lignes, et l'entree en stock de chaque ligne.
+     *
+     * Le modele ne connait pas d'etat de commande : une commande fournisseur enregistree vaut donc
+     * marchandise recue, et alimente le magasin. Le jour ou la commande recevra un cycle de vie
+     * (commandee, livree, annulee), c'est au passage en « livree » que l'entree devra se faire ;
+     * en attendre un aujourd'hui laisserait simplement le stock a zero pour toujours.
+     */
     @Override
+    @Transactional
     public CommandeFourDto save(CommandeFourDto dto) {
         List<String> errors= CommandFourValidator.validate(dto);
         if(!errors.isEmpty()){
@@ -74,9 +90,17 @@ public class CommandeFourServiceImpl implements CommandeFourService {
                 LigneCmndeFournisseur ligneCmndeFour = LigneCmndeFournisseurDto.toEntity(ligCmdFour);
                 ligneCmndeFour.setCommandeFournisseur(saveCmndFour);
                 ligneCmndeFourRepository.save(ligneCmndeFour);
+                entrerEnStock(ligCmdFour);
             });
         }
         return CommandeFourDto.fromEntity(saveCmndFour);
+    }
+
+    private void entrerEnStock(LigneCmndeFournisseurDto ligne) {
+        mvtStkService.entreeStock(MvtStkDto.builder()
+                .article(ArticleDto.builder().Id(ligne.getArticle().getId()).build())
+                .quantite(ligne.getQuantite())
+                .build());
     }
 
     @Override
@@ -109,9 +133,11 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         if(id==null){
-            log.error("Commande Client ID is null");
+            log.error("Commande Fournisseur ID is null");
+            return;
         }
         commandeFourRepository.deleteById(id);
     }

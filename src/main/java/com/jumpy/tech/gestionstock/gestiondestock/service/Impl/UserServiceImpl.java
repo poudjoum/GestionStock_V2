@@ -10,10 +10,10 @@ import com.jumpy.tech.gestionstock.gestiondestock.service.UserService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.UserValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +24,7 @@ public class UserServiceImpl implements UserService {
         this.userRepository=userRepository;
     }
     @Override
+    @Transactional
     public UserDto save(UserDto dto) {
         List<String> errors= UserValidator.validate(dto);
         if(!errors.isEmpty()){
@@ -40,23 +41,28 @@ public class UserServiceImpl implements UserService {
     public UserDto findById(Long id) {
         if(id==null){
             log.error("user id is null");
+            throw new InvalidEntityException("Aucun Utilisateur ne peut etre cherche sans identifiant",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
         }
-        Optional<Utilisateur> user=userRepository.findById(id);
-        UserDto dto=UserDto.fromEntity(user.get());
-        return Optional.of(dto).orElseThrow(()->
-                new EntityNotFoundException("Aucun Utilisateur avec l'id= "+id+" n'a été trouvé dans la base de donnée",ErrorCodes.UTILISATEUR_NOT_FOUND));
+        return userRepository.findById(id)
+                .map(UserDto::fromEntity)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun Utilisateur avec l'id = " + id + " n'a ete trouve dans la base de donnees",
+                        ErrorCodes.UTILISATEUR_NOT_FOUND));
     }
 
     @Override
     public UserDto findUserByEmail(String email) {
         if(!StringUtils.hasLength(email)){
             log.error("L'email est vide");
-            return null;
+            throw new InvalidEntityException("Aucun Utilisateur ne peut etre cherche sans adresse de courriel",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
         }
-        Optional<Utilisateur> user= userRepository.findUtilisateurByEmail(email);
-        UserDto dto= UserDto.fromEntity(user.get());
-        return Optional.of(dto).orElseThrow(()->
-                new EntityNotFoundException("Aucun Utilisateur avec l'email = "+email +"n'a été trouvé dans la base de donnée",ErrorCodes.UTILISATEUR_NOT_FOUND));
+        return userRepository.findUtilisateurByEmail(email)
+                .map(UserDto::fromEntity)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun Utilisateur avec l'email = " + email + " n'a ete trouve dans la base de donnees",
+                        ErrorCodes.UTILISATEUR_NOT_FOUND));
     }
 
     @Override
@@ -67,6 +73,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         if(id==null){
             log.error("Article Id est null");

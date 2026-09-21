@@ -22,6 +22,10 @@ public enum ErrorCodes {
     LIGNE_VENTE_NOT_FOUND(10000),
     LIGNE_VENTE_NOT_VALID(10100),
     MVT_STK_NOT_FOUND(11000),
+    MVT_STK_NOT_VALID(11100),
+    // Une sortie qui depasse ce qui reste en magasin. Ce n'est pas une donnee mal formee mais un
+    // refus metier, et le client a besoin de le distinguer pour le dire a l'operateur.
+    STOCK_INSUFFISANT(11200),
     UTILISATEUR_NOT_FOUND(12000),
     UTILISATEUR_NOT_VALID(12100),
     VENTE_NOT_FOUND(13000),

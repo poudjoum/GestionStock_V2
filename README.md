@@ -58,13 +58,60 @@ faisait `update`.
 
 Pour repartir d'une base vide : `docker compose down -v && docker compose up -d`.
 
+## Mouvements de stock
+
+Le stock reel d'un article est la somme de ses entrees moins celle de ses sorties — jamais une
+colonne « quantite en stock » tenue a jour a cote : une colonne se desynchronise au premier
+traitement interrompu, une somme de mouvements non.
+
+- Une **vente** sort la marchandise du magasin. Vente, lignes et mouvements sont ecrits dans une
+  seule transaction : si une ligne manque de stock, la vente entiere est refusee. Vendre la moitie
+  d'un panier sans le dire serait pire que refuser.
+- Une **commande fournisseur** fait entrer la marchandise. Le modele n'ayant pas d'etat de
+  commande, l'enregistrement vaut reception ; le jour ou la commande aura un cycle de vie, l'entree
+  devra se faire au passage en « livree ».
+- Une **commande client** ne bouge pas le stock : c'est un engagement, pas une sortie.
+- Le sens d'un mouvement vient de la route appelee (`/mouvements/entree`, `/mouvements/sortie`) et
+  jamais du corps de la requete, sans quoi il suffirait de mentir sur le type pour creer du stock.
+
+```
+GET  /gestiondestock/v1/mouvements/stockreel/{idArticle}
+GET  /gestiondestock/v1/mouvements/article/{idArticle}
+POST /gestiondestock/v1/mouvements/entree
+POST /gestiondestock/v1/mouvements/sortie
+```
+
+## Acces et roles
+
+L'API est fermee : toute route inconnue du tableau ci-dessous exige au minimum un compte valide,
+et une route ajoutee demain naitra fermee.
+
+| Ce qu'on fait | Qui le peut |
+|---|---|
+| Consulter (GET) | tout compte connecte |
+| Entrer ou sortir du stock | ADMIN, MANAGER, MAGASINIER |
+| Vendre, enregistrer un client | ADMIN, MANAGER, CAISSIER |
+| Creer articles, categories, commandes | ADMIN, MANAGER, MAGASINIER |
+| Supprimer | ADMIN, MANAGER |
+| Comptes et entreprises | ADMIN |
+
+`/api/auth/signup` est reserve aux administrateurs, avec une seule exception : sur une base ou
+aucun compte n'existe, la premiere inscription est libre — il faut bien creer le premier, et
+personne ne peut alors l'autoriser.
+
 ## Tests
 
 ```bash
 ./mvnw test
 ```
 
-Un seul test aujourd'hui (`contextLoads`), et il exige la base demarree et `.env` charge.
+21 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
+revanche plus besoin d'une base installee sur la machine.
+
+Le conteneur de test demarre une fois pour toute la campagne, dans un bloc statique plutot que par
+`@Container` : JUnit arrete un `@Container` a la fin de chaque classe, quand Spring, lui, reutilise
+ses contextes en cache — la classe suivante se connectait alors a une base disparue.
 
 ## Premiers appels
 
@@ -78,23 +125,46 @@ curl -X POST http://localhost:9092/api/auth/signin -H 'Content-Type: application
   -d '{"username":"gerant","password":"MotDePasse123!"}'
 ```
 
+## Deploiement
+
+Le serveur heberge deja plusieurs applications ; celle-ci n'en partage aucune ressource : reseau
+Docker, PostgreSQL, volume et port lui sont propres (`docker-compose.prod.yml`).
+
+Le serveur n'a ni JDK ni Maven — le Dockerfile en deux temps les apporte le temps de la
+construction, et l'image finale n'embarque qu'un JRE.
+
+```bash
+# Depuis le poste de developpement : envoi des sources
+tar --exclude=.git --exclude=target --exclude=.env -czf /tmp/src.tgz .
+scp /tmp/src.tgz jumpy@<serveur>:~/apps/gestionstock/
+ssh jumpy@<serveur> 'cd ~/apps/gestionstock && tar -xzf src.tgz -C source && rm src.tgz'
+
+# Sur le serveur : construction et demarrage
+ssh jumpy@<serveur> 'cd ~/apps/gestionstock/source && docker build -t gestionstock:latest .'
+ssh jumpy@<serveur> 'cd ~/apps/gestionstock && docker compose -p gestionstock -f docker-compose.prod.yml up -d'
+```
+
+Le `.env` de production vit dans `~/apps/gestionstock/.env`, en `chmod 600`, et ses secrets sont
+generes sur le serveur (`openssl rand`) : ils n'ont jamais a transiter par un poste de travail.
+
+Sonde : `curl http://<serveur>:9092/gestiondestock/v1/articles/all` — un **401** signifie que
+l'application tourne et que la securite fait son office.
+
+`APP_BIND` vaut `0.0.0.0` pour que l'API soit joignable depuis le LAN pendant le developpement ;
+la passer a `127.0.0.1` la referme sur le serveur seul.
+
 ## Limites connues
 
 A savoir avant de reprendre le developpement :
 
-- **Les mouvements de stock ne sont pas implementes.** L'entite `MvtStk` et son repository existent,
-  mais aucun service ne les ecrit ni ne les lit : une vente ou une commande ne modifie aucune
-  quantite, et le stock disponible d'un article n'est calcule nulle part.
-- **L'API n'est pas protegee.** `SecurityConfiguration` se termine par `anyRequest().permitAll()` :
-  le filtre JWT est en place mais ne garde aucune route.
-- **L'inscription est ouverte et laisse choisir son role**, `admin` compris
-  (`AuthControler.registerUser`).
-- Les services d'ecriture n'ont pas de frontiere transactionnelle : une commande et ses lignes sont
-  enregistrees par des appels separes, sans transaction commune.
-- Plusieurs services appellent `Optional.get()` avant leur `orElseThrow` : l'entite absente produit
-  une erreur 500 au lieu du 404 metier attendu.
 - Deux routes GET se disputent le meme chemin dans plusieurs controleurs
-  (`/articles/{idArticle}` et `/articles/{codeArticle}`, idem pour `category`).
+  (`/articles/{idArticle}` et `/articles/{codeArticle}`, idem pour `category`) : la seconde est
+  inatteignable.
 - Aucune contrainte d'unicite sur `utilisateur.username` et `utilisateur.email` : la verification est
   faite en Java avant insertion, ce qui laisse passer deux inscriptions simultanees.
 - Aucune pagination sur les listes.
+- Pas de cycle de vie des commandes (commandee, livree, annulee), d'ou le choix de faire entrer la
+  marchandise des l'enregistrement d'une commande fournisseur.
+- Les messages de plusieurs validateurs et services portent encore des accents mal encodes, herites
+  d'une relecture du depot dans le mauvais jeu de caracteres.
+- Spring Boot 3.2.5 n'est plus suivi, et JJWT 0.11.5 emploie une API depreciee.

@@ -13,6 +13,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.repository.RoleRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.UtilisateurRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -64,8 +65,19 @@ public class AuthControler {
                  userDetails.getEmail(),
                  roles));
      }
+    /**
+     * Cree un compte.
+     *
+     * Cette route etait ouverte a tous et laissait le demandeur choisir son role, `admin`
+     * compris : n'importe qui pouvait se declarer administrateur de l'application. Elle est
+     * desormais reservee aux administrateurs, avec une seule exception — une base ou aucun compte
+     * n'existe encore, puisqu'il faut bien creer le premier et que personne ne peut alors
+     * l'autoriser.
+     */
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+        verifierDroitDInscription();
+
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return ResponseEntity
                     .badRequest()
@@ -135,5 +147,19 @@ public class AuthControler {
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+    }
+
+    private void verifierDroitDInscription() {
+        // Amorcage : sur une base sans aucun compte, la premiere inscription est libre. Elle est
+        // la seule, et elle n'a rien a prendre a personne.
+        if (userRepository.count() == 0) {
+            return;
+        }
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        boolean administrateur = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(autorite -> ERole.ROLE_ADMIN.name().equals(autorite.getAuthority()));
+        if (!administrateur) {
+            throw new AccessDeniedException("Seul un administrateur peut creer un compte");
+        }
     }
 }

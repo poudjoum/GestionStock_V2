@@ -1,0 +1,68 @@
+# Deploiement sur le serveur Ubuntu partage (jumpy@192.168.1.100).
+#
+# Ce serveur heberge deja livraison, hotspot, tontinepro, pressing, genealogie et le site hotspot.
+# Rien n'est mis en commun avec eux :
+#   - reseau Docker dedie ;
+#   - PostgreSQL dedie, sans port publie sur l'hote — joignable par ce seul reseau ;
+#   - volume nomme propre au projet ;
+#   - journaux plafonnes, le disque de l'hote etant a moitie plein ;
+#   - port 9092, verifie libre avant le premier demarrage.
+#
+#   docker compose -p gestionstock -f docker-compose.prod.yml up -d
+#
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gestionstock-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:?}
+      POSTGRES_USER: ${DB_USERNAME:?}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [gestionstock]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  app:
+    image: gestionstock:latest
+    container_name: gestionstock-app
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      SERVER_PORT: 9092
+      # Depuis un conteneur, la base n'est pas sur localhost mais sur le nom du service.
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      FLICKR_API_KEY: ${FLICKR_API_KEY:-}
+      FLICKR_API_SECRET: ${FLICKR_API_SECRET:-}
+      FLICKR_APP_KEY: ${FLICKR_APP_KEY:-}
+      FLICKR_APP_SECRET: ${FLICKR_APP_SECRET:-}
+    ports:
+      # APP_BIND vaut 0.0.0.0 pour que l'API soit joignable depuis le LAN pendant le
+      # developpement. La passer a 127.0.0.1 la referme sur le serveur seul, sans rien changer
+      # d'autre.
+      - "${APP_BIND:-0.0.0.0}:9092:9092"
+    networks: [gestionstock]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+networks:
+  gestionstock:
+    name: gestionstock
+
+volumes:
+  pgdata:
+    name: gestionstock-pgdata

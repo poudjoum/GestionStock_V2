@@ -16,8 +16,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 @Slf4j
 public class AuthTokenFilter extends OncePerRequestFilter {
-    private JwtUtils jwtUtils;
-    private UserDetailsServiceImpl userDetailsService;
+
+    // Ces deux collaborateurs n'etaient jamais fournis : le filtre etait construit par un
+    // `new AuthTokenFilter()` sans argument, et sans @Autowired sur les champs. A la premiere
+    // requete portant un jeton, `jwtUtils.validateJwtToken` levait donc une NullPointerException
+    // que le `catch` plus bas avalait en une ligne de journal — et la requete continuait sans
+    // authentification. Comme toutes les routes etaient en permitAll(), personne ne l'a vu : le
+    // filtre JWT n'a jamais authentifie qui que ce soit.
+    private final JwtUtils jwtUtils;
+    private final UserDetailsServiceImpl userDetailsService;
+
+    public AuthTokenFilter(JwtUtils jwtUtils, UserDetailsServiceImpl userDetailsService) {
+        this.jwtUtils = jwtUtils;
+        this.userDetailsService = userDetailsService;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {

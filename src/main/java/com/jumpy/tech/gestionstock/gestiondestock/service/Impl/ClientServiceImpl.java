@@ -10,9 +10,9 @@ import com.jumpy.tech.gestionstock.gestiondestock.service.ClientService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.ClientValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +24,7 @@ public class ClientServiceImpl implements ClientService {
         this.clientRepository=clientRepository;
     }
     @Override
+    @Transactional
     public ClientDto save(ClientDto dto) {
         List<String>errors= ClientValidator.validate(dto);
         if(!errors.isEmpty()){
@@ -40,11 +41,13 @@ public class ClientServiceImpl implements ClientService {
             log.error("Client ID is null");
             return null;
         }
-        Optional<Client> client=clientRepository.findById(id);
-        ClientDto dto=ClientDto.fromEntity(client.get());
-
-        return Optional.of(dto).orElseThrow(()->
-                new EntityNotFoundException("Aucun Client avec l' ID "+id+" n'a été trouvé dans la Base de Données",ErrorCodes.CLIENT_NOT_FOUND));
+        // `client.get()` levait NoSuchElementException — un 500 — avant que le orElseThrow, pose
+        // sur un Optional toujours plein, n'ait la moindre chance de rendre le 404 annonce.
+        return clientRepository.findById(id)
+                .map(ClientDto::fromEntity)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun Client avec l'ID " + id + " n'a ete trouve dans la base de donnees",
+                        ErrorCodes.CLIENT_NOT_FOUND));
     }
 
     @Override
@@ -55,6 +58,7 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         if(id==null){
             log.error("Client Id est null");

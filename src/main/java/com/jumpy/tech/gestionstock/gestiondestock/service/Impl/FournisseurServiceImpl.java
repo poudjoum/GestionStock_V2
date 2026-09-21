@@ -11,10 +11,10 @@ import com.jumpy.tech.gestionstock.gestiondestock.validator.FournisseurValidator
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,6 +26,7 @@ public class FournisseurServiceImpl implements FournisseurService {
         this.fournisseurRepository=fournisseurRepository;
     }
     @Override
+    @Transactional
     public FournisseurDto save(FournisseurDto dto) {
         List<String> errors= FournisseurValidator.validate(dto);
          if(!errors.isEmpty()){
@@ -40,22 +41,28 @@ public class FournisseurServiceImpl implements FournisseurService {
     public FournisseurDto findById(Long id) {
         if(id==null){
             log.error("Fournisseur Id is null");
+            throw new InvalidEntityException("Aucun Fournisseur ne peut etre cherche sans identifiant",
+                    ErrorCodes.FOURNISSEUR_NOT_VALID);
         }
-        Optional<Fournisseur> four=fournisseurRepository.findById(id);
-        FournisseurDto dto= FournisseurDto.fromEntity(four.get());
-
-        return Optional.of(dto).orElseThrow(()-> new EntityNotFoundException("Aucun Fournisseur avec l'id "+id+" n' a été trouvé dans la base de donnée",ErrorCodes.FOURNISSEUR_NOT_FOUND));
+        return fournisseurRepository.findById(id)
+                .map(FournisseurDto::fromEntity)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun Fournisseur avec l'id " + id + " n'a ete trouve dans la base de donnees",
+                        ErrorCodes.FOURNISSEUR_NOT_FOUND));
     }
 
     @Override
     public FournisseurDto findFournisseurByNom(String nomFournisseur) {
         if(!StringUtils.hasLength(nomFournisseur)){
             log.error("Le nom Fournisseur est vide ");
+            throw new InvalidEntityException("Aucun Fournisseur ne peut etre cherche sans nom",
+                    ErrorCodes.FOURNISSEUR_NOT_VALID);
         }
-        Optional<Fournisseur> four=fournisseurRepository.findFournisseurByNom(nomFournisseur);
-        FournisseurDto dto= FournisseurDto.fromEntity(four.get());
-
-        return Optional.of(dto).orElseThrow(()-> new EntityNotFoundException("Aucun Fournisseur avec le nom  "+nomFournisseur+" n' a été trouvé dans la base de donnée",ErrorCodes.FOURNISSEUR_NOT_FOUND));
+        return fournisseurRepository.findFournisseurByNom(nomFournisseur)
+                .map(FournisseurDto::fromEntity)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun Fournisseur avec le nom " + nomFournisseur + " n'a ete trouve dans la base de donnees",
+                        ErrorCodes.FOURNISSEUR_NOT_FOUND));
     }
 
     @Override
@@ -66,6 +73,7 @@ public class FournisseurServiceImpl implements FournisseurService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         if(id==null){
             log.error("Fournisseur Id is null");

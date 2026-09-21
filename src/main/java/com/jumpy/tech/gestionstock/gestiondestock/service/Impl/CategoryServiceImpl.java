@@ -9,6 +9,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.service.CategoryService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.CategoryValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -24,6 +25,7 @@ public class CategoryServiceImpl implements CategoryService {
         this.categoryRepository=cat;
     }
     @Override
+    @Transactional
     public CategoryDto save(CategoryDto dto) {
         List<String> errors= CategoryValidator.validate(dto);
         if(!errors.isEmpty()){
@@ -62,12 +64,15 @@ public class CategoryServiceImpl implements CategoryService {
                 .map(CategoryDto::fromEntity)
                 .orElseThrow(()-> new EntityNotFoundException(
                         "Aucune Catégory avec le code "+code+ " n'a été trouvé dans la base de donnée",
-                        ErrorCodes.ARTICLE_NOT_FOUND)
+                        // Le code rendu etait ARTICLE_NOT_FOUND : une categorie introuvable
+                        // s'annoncait au client comme un article introuvable.
+                        ErrorCodes.CATEGORY_NOT_FOUND)
                 );
     }
 
 
     @Override
+    @Transactional
     public void delete(Long id){
         if(id==null){
             log.error("Catégory Id is null");

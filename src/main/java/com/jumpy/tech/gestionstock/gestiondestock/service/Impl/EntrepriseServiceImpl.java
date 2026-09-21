@@ -10,9 +10,9 @@ import com.jumpy.tech.gestionstock.gestiondestock.service.EntrepriseService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.EntrepriseValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +25,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         this.entrepriseRepository=entrepriseRepository;
     }
     @Override
+    @Transactional
     public EntrepriseDto save(EntrepriseDto dto) {
         List<String> errors= EntrepriseValidator.validate(dto);
          if(!errors.isEmpty()){
@@ -41,12 +42,14 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     public EntrepriseDto findById(Long id) {
         if(id==null){
             log.error("Entreprise id is null");
+            throw new InvalidEntityException("Aucune Entreprise ne peut etre cherchee sans identifiant",
+                    ErrorCodes.ENTREPRISE_NOT_VALID);
         }
-        Optional<Entreprise> entreprise=entrepriseRepository.findById(id);
-        EntrepriseDto dto=EntrepriseDto.fromEntity(entreprise.get());
-
-        return Optional.of(dto).orElseThrow(()->
-                new EntityNotFoundException("Aucune Entreprise avec l'id " +id+" n'a été trouvé dans la base de donnée",ErrorCodes.ENTREPRISE_NOT_FOUND));
+        return entrepriseRepository.findById(id)
+                .map(EntrepriseDto::fromEntity)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune Entreprise avec l'id " + id + " n'a ete trouvee dans la base de donnees",
+                        ErrorCodes.ENTREPRISE_NOT_FOUND));
     }
 
     @Override
@@ -57,6 +60,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         if(id==null){
             log.error("Entreprise ID is null");

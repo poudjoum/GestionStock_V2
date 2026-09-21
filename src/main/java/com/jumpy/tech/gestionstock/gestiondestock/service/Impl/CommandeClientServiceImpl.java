@@ -17,6 +17,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.service.CommandeClientService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.CommandeClientValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -41,7 +42,17 @@ public class CommandeClientServiceImpl implements CommandeClientService {
     }
 
 
+    /**
+     * La commande et ses lignes sont desormais ecrites dans une seule transaction : une panne
+     * entre les deux laissait jusqu'ici une commande sans contenu, indistinguable d'une commande
+     * vide.
+     *
+     * Aucun mouvement de stock ici, volontairement : une commande client est un engagement, pas
+     * une sortie de marchandise. Le stock diminue a la vente (cf. VenteServiceImpl), qui est le
+     * moment ou l'article quitte reellement le magasin.
+     */
     @Override
+    @Transactional
     public CommandeClientDto save(CommandeClientDto dto) {
         List<String> errors= CommandeClientValidator.validate(dto);
         if(!errors.isEmpty()){
@@ -113,9 +124,11 @@ public class CommandeClientServiceImpl implements CommandeClientService {
     }
 
     @Override
+    @Transactional
     public void delete(Long id) {
         if(id==null){
             log.error("Commande Client ID is null");
+            return;
         }
         commandeClientRepository.deleteById(id);
     }
