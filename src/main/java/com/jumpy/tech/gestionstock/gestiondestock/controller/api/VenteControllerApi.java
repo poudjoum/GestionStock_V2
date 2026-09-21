@@ -49,9 +49,13 @@ public interface VenteControllerApi {
     ResponseEntity<LigneVenteDto> ajouterLigne(@PathVariable Long idVente,
                                                @RequestBody LigneVenteDto ligne);
 
+    /** Attribue ou change le client d'une vente, tant qu'elle n'est ni annulee ni facturee. */
+    @PatchMapping(path = APP_ROOT+"/ventes/{idVente}/client/{idClient}")
+    ResponseEntity<VenteDto> attribuerClient(@PathVariable Long idVente, @PathVariable Long idClient);
+
     /**
-     * Cree la vente qui sert une commande client validee, et passe la commande en livree. C'est
-     * le seul chemin par lequel une vente connait son client.
+     * Cree la vente qui sert une commande client validee, et passe la commande en livree. Le
+     * client de la commande devient celui de la vente.
      */
     @PostMapping(path = APP_ROOT+"/commandes-clients/{idCommandeClient}/vente")
     ResponseEntity<VenteDto> servirCommandeClient(@PathVariable Long idCommandeClient);

@@ -160,17 +160,20 @@ public class FactureServiceImpl implements FactureService {
     }
 
     /**
-     * Le client, quand la vente sert une commande.
+     * Le client de la vente, quand il est connu.
      *
-     * Une vente au comptoir n'en a pas, et la facture reste alors anonyme — c'est le ticket de
-     * caisse, pas une anomalie. Le nom est recopie a cote de l'identifiant : un client renomme ou
-     * supprime ne doit pas changer une facture deja remise.
+     * Il se lit directement sur la vente, qu'elle vienne du comptoir ou d'une commande : servir
+     * une commande y recopie son client, de sorte qu'il n'y a ici qu'un seul chemin a suivre. Une
+     * vente anonyme donne une facture anonyme — c'est le ticket de caisse, pas une anomalie.
+     *
+     * Le nom est recopie a cote de l'identifiant : un client renomme ou supprime ne doit pas
+     * changer une facture deja remise.
      */
     private void renseignerClient(Facture facture, Vente vente) {
-        if (vente.getCommandeClient() == null || vente.getCommandeClient().getClient() == null) {
+        Client client = vente.getClient();
+        if (client == null) {
             return;
         }
-        Client client = vente.getCommandeClient().getClient();
         facture.setClient(client);
         facture.setNomClient(nomComplet(client));
     }

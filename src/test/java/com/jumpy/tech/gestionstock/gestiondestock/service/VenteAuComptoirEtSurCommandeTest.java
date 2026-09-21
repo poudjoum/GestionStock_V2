@@ -195,6 +195,46 @@ class VenteAuComptoirEtSurCommandeTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void une_vente_au_comptoir_se_fait_au_nom_d_un_client_sans_passer_par_une_commande() {
+        ClientDto client = client();
+
+        VenteDto vente = venteService.save(VenteDto.builder()
+                .code("VTE-" + UUID.randomUUID())
+                .client(client)
+                .ligneVente(List.of(LigneVenteDto.builder()
+                        .article(ArticleDto.builder().Id(idArticle).build())
+                        .quantite(BigDecimal.ONE)
+                        .prixUnitaire(new BigDecimal("500"))
+                        .build()))
+                .build());
+
+        assertThat(vente.getClient().getId()).isEqualTo(client.getId());
+        assertThat(factureService.emettre(vente.getId()).getNomClient()).isEqualTo("Mballa Jeanne");
+    }
+
+    @Test
+    void le_client_s_attribue_apres_coup_tant_que_la_vente_n_est_pas_facturee() {
+        VenteDto vente = venteService.save(VenteDto.builder()
+                .code("VTE-" + UUID.randomUUID())
+                .ligneVente(List.of(LigneVenteDto.builder()
+                        .article(ArticleDto.builder().Id(idArticle).build())
+                        .quantite(BigDecimal.ONE)
+                        .prixUnitaire(new BigDecimal("500"))
+                        .build()))
+                .build());
+        ClientDto client = client();
+
+        // Le client se fait connaitre au moment de payer : la vente etait deja ouverte.
+        VenteDto nommee = venteService.attribuerClient(vente.getId(), client.getId());
+        assertThat(nommee.getClient().getId()).isEqualTo(client.getId());
+
+        factureService.emettre(vente.getId());
+        assertThatThrownBy(() -> venteService.attribuerClient(vente.getId(), client.getId()))
+                .isInstanceOf(InvalidEntityException.class)
+                .hasMessageContaining("facturée");
+    }
+
+    @Test
     void la_facture_d_une_vente_au_comptoir_reste_anonyme() {
         VenteDto vente = venteService.save(VenteDto.builder()
                 .code("VTE-" + UUID.randomUUID())

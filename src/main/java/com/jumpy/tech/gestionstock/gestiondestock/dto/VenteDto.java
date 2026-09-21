@@ -15,6 +15,8 @@ public class VenteDto {
     private Instant datevente;
     private String Commentaires;
     private boolean annulee;
+    /** A qui l'on vend, s'il est connu. Une vente de comptoir anonyme n'en a pas. */
+    private ClientDto client;
     /** Nul pour une vente au comptoir ; renseigne quand la vente sert une commande client. */
     private Long idCommandeClient;
     private List<LigneVenteDto> ligneVente;
@@ -30,6 +32,7 @@ public class VenteDto {
                 .datevente(vente.getDatevente())
                 .Commentaires(vente.getCommentaires())
                 .annulee(vente.isAnnulee())
+                .client(ClientDto.fromEntity(vente.getClient()))
                 .idCommandeClient(vente.getCommandeClient() == null ? null : vente.getCommandeClient().getId())
                 .build();
     }

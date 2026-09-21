@@ -36,10 +36,16 @@ public class Vente extends AbstractEntity{
     @Column(name="annulee", nullable = false)
     private boolean annulee;
     /**
-     * La commande servie par cette vente, s'il y en a une.
+     * A qui l'on vend. Nul pour une vente de comptoir anonyme, qui reste le cas ordinaire.
      *
-     * Nul pour une vente au comptoir, qui n'a pas de commande derriere elle. Quand il est
-     * renseigne, c'est le seul chemin par lequel la vente connait son client.
+     * Le client appartient a la vente et non a la seule commande : vendre nominativement ne doit
+     * pas obliger a ouvrir une commande dont personne n'a besoin.
+     */
+    @ManyToOne
+    @JoinColumn(name="id_client")
+    private Client client;
+    /**
+     * La commande servie par cette vente, s'il y en a une. Nul pour une vente au comptoir.
      */
     @ManyToOne
     @JoinColumn(name="id_commande_client")

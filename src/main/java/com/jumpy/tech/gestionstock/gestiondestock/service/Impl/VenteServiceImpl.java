@@ -5,6 +5,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Client;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.CommandeClient;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneCmndeClient;
@@ -15,6 +16,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundExcept
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.ClientRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.CommandeClientRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.FactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneCmndeClientRepository;
@@ -47,6 +49,7 @@ public class VenteServiceImpl implements VenteService {
     private final FactureRepository factureRepository;
     private final CommandeClientRepository commandeClientRepository;
     private final LigneCmndeClientRepository ligneCmndeClientRepository;
+    private final ClientRepository clientRepository;
     private final MvtStkService mvtStkService;
 
     public VenteServiceImpl(VenteRepository venteRepository, ArticleRepository articleRepository,
@@ -54,7 +57,9 @@ public class VenteServiceImpl implements VenteService {
                             FactureRepository factureRepository,
                             CommandeClientRepository commandeClientRepository,
                             LigneCmndeClientRepository ligneCmndeClientRepository,
+                            ClientRepository clientRepository,
                             MvtStkService mvtStkService) {
+        this.clientRepository = clientRepository;
         this.venteRepository = venteRepository;
         this.articleRepository = articleRepository;
         this.ligneVenteRepository = ligneVenteRepository;
@@ -112,7 +117,12 @@ public class VenteServiceImpl implements VenteService {
                     ErrorCodes.VENTE_NOT_VALID, articleErrors);
         }
 
-        Vente savedVente = venteRepository.save(VenteDto.toEntity(dto));
+        Vente aEnregistrer = VenteDto.toEntity(dto);
+        // Le client est facultatif : la vente de comptoir anonyme reste le cas ordinaire.
+        if (dto.getClient() != null && dto.getClient().getId() != null) {
+            aEnregistrer.setClient(client(dto.getClient().getId()));
+        }
+        Vente savedVente = venteRepository.save(aEnregistrer);
 
         for (LigneVenteDto ligneDto : lignes) {
             LigneVente ligne = LigneVenteDto.toEntity(ligneDto);
@@ -187,6 +197,32 @@ public class VenteServiceImpl implements VenteService {
     }
 
     /**
+     * Attribue ou change le client d'une vente.
+     *
+     * Le caissier ne sait pas toujours d'avance a qui il vend : le client se presente, ou se fait
+     * connaitre au moment de payer. Tant que la vente n'est ni annulee ni facturee, elle peut
+     * donc recevoir son nom.
+     */
+    @Override
+    @Transactional
+    public VenteDto attribuerClient(Long idVente, Long idClient) {
+        Vente vente = venteModifiable(idVente);
+        vente.setClient(client(idClient));
+        return VenteDto.fromEntity(venteRepository.save(vente));
+    }
+
+    private Client client(Long idClient) {
+        if (idClient == null) {
+            throw new InvalidEntityException("Aucun client ne peut être désigné sans identifiant",
+                    ErrorCodes.CLIENT_NOT_VALID);
+        }
+        return clientRepository.findById(idClient)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun client avec l'identifiant " + idClient + " n'a été trouvé",
+                        ErrorCodes.CLIENT_NOT_FOUND));
+    }
+
+    /**
      * Cree la vente qui sert une commande client.
      *
      * La commande doit etre VALIDEE : servir une commande encore en preparation reviendrait a
@@ -219,6 +255,9 @@ public class VenteServiceImpl implements VenteService {
         vente.setDatevente(Instant.now());
         vente.setIdEntreprise(commande.getIdEntreprise());
         vente.setCommandeClient(commande);
+        // Le client de la commande devient celui de la vente : la lecture n'a ensuite qu'un seul
+        // chemin a suivre, que la vente vienne du comptoir ou d'une commande.
+        vente.setClient(commande.getClient());
         Vente enregistree = venteRepository.save(vente);
 
         for (LigneCmndeClient ligneCommande : lignesCommande) {

@@ -65,6 +65,8 @@ demarrage :
 - `V7__vente_liee_a_une_commande.sql` — le lien entre une vente et la commande qu'elle sert, et le
   client sur la facture. Le lien est nullable — une vente au comptoir n'a pas de commande derriere
   elle — mais unique : deux ventes sur la meme commande sortiraient deux fois la marchandise.
+- `V8__client_sur_la_vente.sql` — le client rattache a la vente elle-meme. Les ventes deja issues
+  d'une commande y recopient le sien, pour que la lecture n'ait qu'un seul chemin a suivre.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -99,12 +101,18 @@ traitement interrompu, une somme de mouvements non.
 connait le panier qu'une fois le dernier article passe.
 
 ```
-POST /gestiondestock/v1/ventes/create          la vente et ses premieres lignes
-POST /gestiondestock/v1/ventes/{id}/lignes     un article de plus
+POST  /gestiondestock/v1/ventes/create                    la vente et ses premieres lignes
+POST  /gestiondestock/v1/ventes/{id}/lignes               un article de plus
+PATCH /gestiondestock/v1/ventes/{id}/client/{idClient}    a qui l'on vend
 ```
 
 Chaque ajout sort immediatement sa quantite du magasin, et echoue si le stock ne suit pas — sans
 rien laisser derriere lui.
+
+Le **client appartient a la vente** : il se donne a la creation, ou s'attribue apres coup tant que
+la vente n'est ni annulee ni facturee — le caissier ne sait pas toujours d'avance a qui il vend,
+le client se faisant souvent connaitre au moment de payer. Il reste facultatif : la vente de
+comptoir anonyme est le cas ordinaire.
 
 **Sur commande client.** La commande est un engagement : elle ne touche pas au stock. C'est la
 vente qui la sert qui sort la marchandise.
@@ -118,9 +126,9 @@ une marchandise que personne n'a confirmee. La vente reprend ses lignes, le stoc
 commande passe `LIVREE`, ce qui la fige : une commande ne se sert donc qu'une fois. Le tout dans
 une seule transaction — servir a moitie une commande sans le dire serait pire que de refuser.
 
-**C'est aussi le seul chemin par lequel une vente connait son client**, la vente seule ne le
-designant pas. La facture d'une vente sur commande porte donc le nom du client ; celle d'une vente
-au comptoir reste anonyme, et c'est le ticket de caisse, pas une anomalie.
+Le client de la commande devient celui de la vente : la lecture n'a ensuite qu'un seul chemin a
+suivre, que la vente vienne du comptoir ou d'une commande. La facture porte le nom du client
+lorsqu'il est connu, et reste anonyme sinon — c'est le ticket de caisse, pas une anomalie.
 
 ## Corriger une vente
 
@@ -241,7 +249,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-74 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+76 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -313,8 +321,6 @@ A savoir avant de reprendre le developpement :
 - Les mouvements anterieurs a la V5 n'ont pas de motif, et aucun ne leur a ete invente.
 - Le taux de TVA est pris sur l'article, faute d'etre porte par la ligne de vente. Il est fige a
   l'emission, mais deux ventes du meme article au meme moment ne peuvent pas avoir deux taux.
-- Une vente au comptoir ne peut pas se voir attribuer un client apres coup : le lien passe par la
-  commande. Vendre nominativement demande donc d'ouvrir une commande.
 - Servir une commande la solde d'un coup : pas de livraison partielle.
 - Rien ne suit le **paiement** d'une facture : elle est emise ou annulee, jamais reglee.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra

@@ -29,6 +29,14 @@ public interface VenteService {
     LigneVenteDto ajouterLigne(Long idVente, LigneVenteDto ligne);
 
     /**
+     * Attribue ou change le client d'une vente, tant qu'elle n'est ni annulee ni facturee.
+     *
+     * Le caissier ne sait pas toujours d'avance a qui il vend : le client se presente, ou se fait
+     * connaitre au moment de payer.
+     */
+    VenteDto attribuerClient(Long idVente, Long idClient);
+
+    /**
      * Cree la vente qui sert une commande client, et passe celle-ci en livree.
      *
      * Une commande client est un engagement : elle ne touche pas au stock. C'est la vente qui la
