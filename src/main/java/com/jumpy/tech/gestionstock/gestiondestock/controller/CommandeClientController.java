@@ -2,12 +2,14 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.CommandeClientApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeClientDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import com.jumpy.tech.gestionstock.gestiondestock.service.CommandeClientService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 @RestController
 public class CommandeClientController implements CommandeClientApi {
@@ -40,6 +42,27 @@ public class CommandeClientController implements CommandeClientApi {
     @Override
     public ResponseEntity<CommandeClientDto> mettreAJourEtat(Long idCommandClient, EtatCommande etat) {
         return ResponseEntity.ok(cmdeCliService.mettreAJourEtat(idCommandClient, etat));
+    }
+
+    @Override
+    public ResponseEntity<List<LigneCommandeClientDto>> lignes(Long idCommandClient) {
+        return ResponseEntity.ok(cmdeCliService.lignes(idCommandClient));
+    }
+
+    @Override
+    public ResponseEntity<LigneCommandeClientDto> ajouterLigne(Long idCommandClient, LigneCommandeClientDto ligne) {
+        return ResponseEntity.ok(cmdeCliService.ajouterLigne(idCommandClient, ligne));
+    }
+
+    @Override
+    public ResponseEntity<LigneCommandeClientDto> modifierQuantite(Long idCommandClient, Long idLigne, BigDecimal quantite) {
+        return ResponseEntity.ok(cmdeCliService.modifierQuantite(idCommandClient, idLigne, quantite));
+    }
+
+    @Override
+    public ResponseEntity<Void> retirerLigne(Long idCommandClient, Long idLigne) {
+        cmdeCliService.retirerLigne(idCommandClient, idLigne);
+        return ResponseEntity.noContent().build();
     }
 
     @Override

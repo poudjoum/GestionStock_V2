@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -127,6 +128,107 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         commande.setEtat(etat);
         log.info("Commande fournisseur {} : {} -> {}", id, commande.getEtat(), etat);
         return CommandeFourDto.fromEntity(commandeFourRepository.save(commande));
+    }
+
+    @Override
+    public List<LigneCmndeFournisseurDto> lignes(Long idCommande) {
+        commande(idCommande);
+        return ligneCmndeFourRepository.findAllByCommandeFournisseurId(idCommande).stream()
+                .map(LigneCmndeFournisseurDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public LigneCmndeFournisseurDto ajouterLigne(Long idCommande, LigneCmndeFournisseurDto ligne) {
+        CommandeFour commande = commandeModifiable(idCommande);
+        if (ligne == null || ligne.getArticle() == null || ligne.getArticle().getId() == null) {
+            throw new InvalidEntityException("Une ligne de commande désigne un article",
+                    ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID);
+        }
+        Article article = article(ligne.getArticle().getId());
+
+        LigneCmndeFournisseur nouvelle = new LigneCmndeFournisseur();
+        nouvelle.setCommandeFournisseur(commande);
+        nouvelle.setArticles(article);
+        nouvelle.setQuantite(quantiteValide(ligne.getQuantite()));
+        nouvelle.setPrixUnitaire(ligne.getPrixUnitaire());
+        nouvelle.setIdEntreprise(commande.getIdEntreprise());
+
+        return LigneCmndeFournisseurDto.fromEntity(ligneCmndeFourRepository.save(nouvelle));
+    }
+
+    @Override
+    @Transactional
+    public LigneCmndeFournisseurDto modifierQuantite(Long idCommande, Long idLigne, BigDecimal quantite) {
+        commandeModifiable(idCommande);
+        LigneCmndeFournisseur ligne = ligne(idCommande, idLigne);
+        ligne.setQuantite(quantiteValide(quantite));
+        return LigneCmndeFournisseurDto.fromEntity(ligneCmndeFourRepository.save(ligne));
+    }
+
+    @Override
+    @Transactional
+    public void retirerLigne(Long idCommande, Long idLigne) {
+        commandeModifiable(idCommande);
+        ligneCmndeFourRepository.delete(ligne(idCommande, idLigne));
+    }
+
+    private CommandeFour commande(Long id) {
+        return commandeFourRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune commande fournisseur avec l'identifiant " + id + " n'a été trouvée",
+                        ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
+    }
+
+    /**
+     * Une commande ne se corrige que tant qu'elle n'est pas figee. Livree, ses lignes ont deja
+     * fait entrer la marchandise et les toucher ferait mentir le stock ; annulee, elle n'a plus
+     * a changer — c'est une trace.
+     */
+    private CommandeFour commandeModifiable(Long id) {
+        CommandeFour commande = commande(id);
+        if (commande.getEtat().estTerminal()) {
+            throw new InvalidEntityException(
+                    "Une commande " + commande.getEtat() + " ne se modifie plus",
+                    ErrorCodes.COMMANDE_FOURNISSEUR_NOT_VALID,
+                    List.of("L'état " + commande.getEtat() + " est définitif"));
+        }
+        return commande;
+    }
+
+    /**
+     * La ligne doit appartenir a la commande : sans ce controle, connaitre un identifiant de
+     * ligne suffirait pour modifier la commande d'un autre.
+     */
+    private LigneCmndeFournisseur ligne(Long idCommande, Long idLigne) {
+        LigneCmndeFournisseur ligne = ligneCmndeFourRepository.findById(idLigne)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune ligne avec l'identifiant " + idLigne + " n'a été trouvée",
+                        ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_FOUND));
+        if (ligne.getCommandeFournisseur() == null
+                || !idCommande.equals(ligne.getCommandeFournisseur().getId())) {
+            throw new InvalidEntityException(
+                    "La ligne " + idLigne + " n'appartient pas à la commande " + idCommande,
+                    ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID);
+        }
+        return ligne;
+    }
+
+    private BigDecimal quantiteValide(BigDecimal quantite) {
+        if (quantite == null || quantite.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidEntityException(
+                    "La quantité d'une ligne de commande doit être strictement positive",
+                    ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID);
+        }
+        return quantite;
+    }
+
+    private Article article(Long idArticle) {
+        return articleRepository.findById(idArticle)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun article avec l'identifiant " + idArticle + " n'a été trouvé",
+                        ErrorCodes.ARTICLE_NOT_FOUND));
     }
 
     private void verifierTransition(EtatCommande actuel, EtatCommande cible) {

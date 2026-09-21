@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -158,6 +159,97 @@ public class CommandeClientServiceImpl implements CommandeClientService {
 
         commande.setEtat(etat);
         return CommandeClientDto.fromEntity(commandeClientRepository.save(commande));
+    }
+
+    @Override
+    public List<LigneCommandeClientDto> lignes(Long idCommande) {
+        commande(idCommande);
+        return ligneCmndeClientRepository.findAllByCommandeClientId(idCommande).stream()
+                .map(LigneCommandeClientDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public LigneCommandeClientDto ajouterLigne(Long idCommande, LigneCommandeClientDto ligne) {
+        CommandeClient commande = commandeModifiable(idCommande);
+        if (ligne == null || ligne.getArticle() == null || ligne.getArticle().getId() == null) {
+            throw new InvalidEntityException("Une ligne de commande désigne un article",
+                    ErrorCodes.LIGNE_COMMANDE_CLIENT_NOT_VALID);
+        }
+        Article article = articleRepository.findById(ligne.getArticle().getId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun article avec l'identifiant " + ligne.getArticle().getId() + " n'a été trouvé",
+                        ErrorCodes.ARTICLE_NOT_FOUND));
+
+        LigneCmndeClient nouvelle = new LigneCmndeClient();
+        nouvelle.setCommandeClient(commande);
+        nouvelle.setArticles(article);
+        nouvelle.setQuantite(quantiteValide(ligne.getQuantite()));
+        nouvelle.setPrixUnitaire(ligne.getPrixUnitaire());
+        nouvelle.setIdEntreprise(commande.getIdEntreprise());
+
+        return LigneCommandeClientDto.fromEntity(ligneCmndeClientRepository.save(nouvelle));
+    }
+
+    @Override
+    @Transactional
+    public LigneCommandeClientDto modifierQuantite(Long idCommande, Long idLigne, BigDecimal quantite) {
+        commandeModifiable(idCommande);
+        LigneCmndeClient ligne = ligne(idCommande, idLigne);
+        ligne.setQuantite(quantiteValide(quantite));
+        return LigneCommandeClientDto.fromEntity(ligneCmndeClientRepository.save(ligne));
+    }
+
+    @Override
+    @Transactional
+    public void retirerLigne(Long idCommande, Long idLigne) {
+        commandeModifiable(idCommande);
+        ligneCmndeClientRepository.delete(ligne(idCommande, idLigne));
+    }
+
+    private CommandeClient commande(Long id) {
+        return commandeClientRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune commande client avec l'identifiant " + id + " n'a été trouvée",
+                        ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
+    }
+
+    /** Une commande figee — livree ou annulee — ne se corrige plus : c'est une trace. */
+    private CommandeClient commandeModifiable(Long id) {
+        CommandeClient commande = commande(id);
+        if (commande.getEtat().estTerminal()) {
+            throw new InvalidEntityException(
+                    "Une commande " + commande.getEtat() + " ne se modifie plus",
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID,
+                    List.of("L'état " + commande.getEtat() + " est définitif"));
+        }
+        return commande;
+    }
+
+    private LigneCmndeClient ligne(Long idCommande, Long idLigne) {
+        LigneCmndeClient ligne = ligneCmndeClientRepository.findById(idLigne)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune ligne avec l'identifiant " + idLigne + " n'a été trouvée",
+                        ErrorCodes.LIGNE_COMMANDE_CLIENT_NOT_FOUND));
+        // Sans ce controle, connaitre un identifiant de ligne suffirait a modifier la commande
+        // d'un autre.
+        if (ligne.getCommandeClient() == null
+                || !idCommande.equals(ligne.getCommandeClient().getId())) {
+            throw new InvalidEntityException(
+                    "La ligne " + idLigne + " n'appartient pas à la commande " + idCommande,
+                    ErrorCodes.LIGNE_COMMANDE_CLIENT_NOT_VALID);
+        }
+        return ligne;
+    }
+
+    private BigDecimal quantiteValide(BigDecimal quantite) {
+        if (quantite == null || quantite.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidEntityException(
+                    "La quantité d'une ligne de commande doit être strictement positive",
+                    ErrorCodes.LIGNE_COMMANDE_CLIENT_NOT_VALID);
+        }
+        return quantite;
     }
 
     @Override

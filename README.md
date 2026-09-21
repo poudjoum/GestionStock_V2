@@ -101,6 +101,19 @@ PATCH /gestiondestock/v1/commandes-fournisseurs/{id}/etat/{etat}
 PATCH /gestiondestock/v1/commandes-clients/{id}/etat/{etat}
 ```
 
+Tant que la commande n'est pas figee, ses lignes se corrigent :
+
+```
+GET    /gestiondestock/v1/commandes-fournisseurs/{id}/lignes
+POST   /gestiondestock/v1/commandes-fournisseurs/{id}/lignes
+PATCH  /gestiondestock/v1/commandes-fournisseurs/{id}/lignes/{idLigne}?quantite=25
+DELETE /gestiondestock/v1/commandes-fournisseurs/{id}/lignes/{idLigne}
+```
+
+Ces operations n'ecrivent aucun mouvement de stock et n'ont rien a rattraper : la marchandise
+n'entre qu'a la livraison, qui relit les lignes telles qu'elles sont a ce moment-la. Les memes
+routes existent sous `/commandes-clients`.
+
 Une commande nait `EN_PREPARATION`. `LIVREE` et `ANNULEE` sont **definitifs** : une commande
 livree ne se deprogramme pas — la marchandise a bouge, et l'annuler laisserait le stock mentir —
 et une commande annulee ne se reprend pas, on en saisit une nouvelle. C'est aussi ce qui garantit
@@ -132,7 +145,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-40 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+48 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -201,8 +214,9 @@ pour Spring, et n'etaient donc pas joignables.
 
 A savoir avant de reprendre le developpement :
 
-- Une commande ou une vente ne se modifie pas : ni ajout de ligne, ni retrait, ni correction de
-  quantite.
+- **Une vente ne se modifie pas.** Contrairement a une commande, sa sortie de stock est immediate :
+  corriger une ligne demanderait un mouvement de compensation, et non une simple reecriture. Les
+  commandes, elles, se corrigent tant qu'elles ne sont pas figees.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra
   une operation dediee plutot qu'un retour en arriere.
 - **Spring Boot 4 est disponible et n'est pas pris.** Il repose sur Spring Framework 7, deplace des

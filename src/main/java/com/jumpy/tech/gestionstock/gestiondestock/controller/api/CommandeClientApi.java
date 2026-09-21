@@ -1,12 +1,14 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeClientDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static com.jumpy.tech.gestionstock.gestiondestock.utils.Constants.APP_ROOT;
@@ -37,6 +39,23 @@ public interface CommandeClientApi {
     @PatchMapping(value = APP_ROOT+"/commandes-clients/{idCommandClient}/etat/{etat}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CommandeClientDto> mettreAJourEtat(@PathVariable Long idCommandClient,
                                                       @PathVariable EtatCommande etat);
+
+    // --- Lignes de la commande ------------------------------------------------------------
+
+    @GetMapping(value = APP_ROOT+"/commandes-clients/{idCommandClient}/lignes",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<List<LigneCommandeClientDto>> lignes(@PathVariable Long idCommandClient);
+
+    @PostMapping(value = APP_ROOT+"/commandes-clients/{idCommandClient}/lignes",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<LigneCommandeClientDto> ajouterLigne(@PathVariable Long idCommandClient,
+                                                        @RequestBody LigneCommandeClientDto ligne);
+
+    @PatchMapping(value = APP_ROOT+"/commandes-clients/{idCommandClient}/lignes/{idLigne}",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<LigneCommandeClientDto> modifierQuantite(@PathVariable Long idCommandClient,
+                                                            @PathVariable Long idLigne,
+                                                            @RequestParam BigDecimal quantite);
+
+    @DeleteMapping(value = APP_ROOT+"/commandes-clients/{idCommandClient}/lignes/{idLigne}")
+    ResponseEntity<Void> retirerLigne(@PathVariable Long idCommandClient, @PathVariable Long idLigne);
 
     @DeleteMapping(value = APP_ROOT+"/commandes-clients/delete/{idCommandClient}")
     ResponseEntity delete(@PathVariable Long idCommandClient);

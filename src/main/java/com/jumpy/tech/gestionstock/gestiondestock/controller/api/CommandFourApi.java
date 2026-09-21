@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeFourDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
@@ -11,7 +12,9 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static com.jumpy.tech.gestionstock.gestiondestock.utils.Constants.APP_ROOT;
@@ -46,6 +49,25 @@ public interface CommandFourApi {
     @PatchMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/etat/{etat}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CommandeFourDto> mettreAJourEtat(@PathVariable Long idCommandFour,
                                                     @PathVariable EtatCommande etat);
+
+    // --- Lignes de la commande ------------------------------------------------------------
+    // Une commande enregistree ne se corrigeait pas : ni ajout, ni retrait, ni changement de
+    // quantite. Ces operations restent ouvertes tant que la commande n'est pas figee.
+
+    @GetMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/lignes",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<List<LigneCmndeFournisseurDto>> lignes(@PathVariable Long idCommandFour);
+
+    @PostMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/lignes",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<LigneCmndeFournisseurDto> ajouterLigne(@PathVariable Long idCommandFour,
+                                                          @RequestBody LigneCmndeFournisseurDto ligne);
+
+    @PatchMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/lignes/{idLigne}",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<LigneCmndeFournisseurDto> modifierQuantite(@PathVariable Long idCommandFour,
+                                                              @PathVariable Long idLigne,
+                                                              @RequestParam BigDecimal quantite);
+
+    @DeleteMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/lignes/{idLigne}")
+    ResponseEntity<Void> retirerLigne(@PathVariable Long idCommandFour, @PathVariable Long idLigne);
 
     @DeleteMapping(value = APP_ROOT+"/commandes-fournisseurs/delete/{idCommandFour}")
     ResponseEntity delete(@PathVariable Long idCommandFour);
