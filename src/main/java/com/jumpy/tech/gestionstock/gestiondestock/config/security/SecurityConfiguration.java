@@ -103,6 +103,11 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, API + "/mouvements/**")
                             .hasAnyRole(ADMIN, MANAGER, MAGASINIER)
 
+                        // L'inscription d'une entreprise s'arbitre dans le service, comme celle
+                        // d'un compte : le super-administrateur, ou une installation qui ne
+                        // compte encore aucune entreprise.
+                        .requestMatchers(HttpMethod.POST, API + "/entreprises/inscription").permitAll()
+
                         // Chacun change son propre mot de passe : le seul point de /users ouvert
                         // a tout compte. La regle vient avant celle des comptes, qui sinon le
                         // reserverait a l'administration.

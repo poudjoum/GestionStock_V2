@@ -82,6 +82,9 @@ public class AuthControler {
      */
     @PostMapping("/signup")
     public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+        // Releve avant toute ecriture : une fois le compte enregistre, la base n'est plus vide et
+        // la question ne se poserait plus de la meme facon.
+        boolean premiereInscription = userRepository.count() == 0;
         verifierDroitDInscription();
 
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
@@ -111,6 +114,13 @@ public class AuthControler {
 
         Set<String> strRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
+
+        // Le tout premier compte d'une installation est celui qui l'installe : il recoit le rang
+        // au-dessus des entreprises, faute de quoi personne ne pourrait en creer une — et le
+        // rattachement des comptes resterait a faire en base.
+        if (premiereInscription) {
+            roleRepository.findByRoleName(ERole.ROLE_SUPER_ADMIN).ifPresent(roles::add);
+        }
 
         if (strRoles == null) {
             Role userRole = roleRepository.findByRoleName(ERole.ROLE_USER)

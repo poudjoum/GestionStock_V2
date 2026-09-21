@@ -76,6 +76,9 @@ demarrage :
   ne peut pas vivre avec deux types.
 - `V11__comptes_actifs.sql` — l'etat ouvert ou ferme d'un compte. Les comptes existants restent
   ouverts.
+- `V12__amorcage_super_admin.sql` — promeut le compte le plus ancien non rattache a une entreprise,
+  s'il n'existe aucun super-administrateur. Sans lui, une installation deja en service n'aurait
+  personne pour ouvrir une entreprise.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -283,6 +286,39 @@ n'en ont pas ; et un appel hors authentification — traitement interne ou test 
 personne a qui demander, et ou rien n'est filtre. Toutes les routes HTTP exigeant un compte, ce
 dernier cas ne se presente pas a travers l'API.
 
+## Ouvrir une entreprise
+
+```
+POST /gestiondestock/v1/entreprises/inscription
+```
+
+```json
+{
+  "entreprise":      { "nom": "...", "registreCommerce": "...", "email": "...", "tel": "..." },
+  "administrateur":  { "username": "...", "email": "...", "motdepasse": "...", "nom": "...", "prenoms": "..." }
+}
+```
+
+L'entreprise et le compte qui l'administrera se creent **ensemble**, dans la meme transaction : un
+identifiant deja pris annule l'entreprise plutot que de la laisser derriere, orpheline. Avant, il
+fallait creer l'entreprise, creer un compte, puis les rattacher — et cette derniere etape n'etait
+possible qu'en modifiant la base.
+
+L'administrateur nait rattache, actif, avec `ROLE_ADMIN` et son mot de passe chiffre.
+
+Qui peut le faire : le **super-administrateur**, ou n'importe qui sur une installation qui ne
+compte encore aucune entreprise — il faut bien creer la premiere, et personne ne peut alors
+l'autoriser. C'est la meme regle que pour le tout premier compte.
+
+### Amorcage d'une installation
+
+Le **premier compte** cree par `/api/auth/signup` sur une base vierge recoit `ROLE_SUPER_ADMIN` :
+celui qui installe l'application est l'editeur, et sans ce rang personne ne pourrait ouvrir
+d'entreprise. Sur une installation deja en service, la migration `V12` promeut le compte le plus
+ancien **non rattache a une entreprise** — celui qui a installe, et non l'employe d'un client. Si
+tous les comptes appartiennent deja a une entreprise, elle ne promeut personne : mieux vaut cela
+que de promouvoir le mauvais.
+
 ## Administration des comptes
 
 ```
@@ -340,7 +376,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-103 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+108 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 

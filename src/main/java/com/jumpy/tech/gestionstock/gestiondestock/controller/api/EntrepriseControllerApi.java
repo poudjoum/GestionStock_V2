@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.EntrepriseDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.InscriptionEntrepriseDto;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,15 @@ public interface EntrepriseControllerApi {
     @PostMapping(value = APP_ROOT+"/entreprise/create",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<EntrepriseDto> save(@RequestBody EntrepriseDto dto);
     @Tag(name="Get",description = "Get Methods of Gestion de Stock APIs")
+    /**
+     * Inscrit une entreprise et son premier administrateur d'un seul geste.
+     *
+     * Reserve au super-administrateur, sauf sur une installation qui ne compte encore aucune
+     * entreprise : il faut bien creer la premiere, et personne ne peut alors l'autoriser.
+     */
+    @PostMapping(value = APP_ROOT+"/entreprises/inscription",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<EntrepriseDto> inscrire(@RequestBody InscriptionEntrepriseDto inscription);
+
     @GetMapping(value = APP_ROOT+"/entreprise/{idEntreprise}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<EntrepriseDto> findById(@PathVariable Long idEntreprise);
     @GetMapping(value = APP_ROOT+"/entreprises/all",produces = MediaType.APPLICATION_JSON_VALUE)
