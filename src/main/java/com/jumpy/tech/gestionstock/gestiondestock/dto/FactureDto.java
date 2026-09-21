@@ -22,6 +22,8 @@ public class FactureDto {
     private BigDecimal totalTva;
     private BigDecimal totalTtc;
     private boolean annulee;
+    private Long idClient;
+    private String nomClient;
     private Long idEntreprise;
     private List<LigneFactureDto> lignes;
 
@@ -47,6 +49,8 @@ public class FactureDto {
                 .totalTva(facture.getTotalTva())
                 .totalTtc(facture.getTotalTtc())
                 .annulee(facture.isAnnulee())
+                .idClient(facture.getClient() == null ? null : facture.getClient().getId())
+                .nomClient(facture.getNomClient())
                 .idEntreprise(facture.getIdEntreprise())
                 .lignes(lignes)
                 .build();

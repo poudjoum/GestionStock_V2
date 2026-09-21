@@ -5,6 +5,9 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.CommandeClient;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneCmndeClient;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneVente;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Vente;
@@ -12,7 +15,9 @@ import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundExcept
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.CommandeClientRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.FactureRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneCmndeClientRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneVenteRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.VenteRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
@@ -26,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -39,15 +45,22 @@ public class VenteServiceImpl implements VenteService {
     private final ArticleRepository articleRepository;
     private final LigneVenteRepository ligneVenteRepository;
     private final FactureRepository factureRepository;
+    private final CommandeClientRepository commandeClientRepository;
+    private final LigneCmndeClientRepository ligneCmndeClientRepository;
     private final MvtStkService mvtStkService;
 
     public VenteServiceImpl(VenteRepository venteRepository, ArticleRepository articleRepository,
                             LigneVenteRepository ligneVenteRepository,
-                            FactureRepository factureRepository, MvtStkService mvtStkService) {
+                            FactureRepository factureRepository,
+                            CommandeClientRepository commandeClientRepository,
+                            LigneCmndeClientRepository ligneCmndeClientRepository,
+                            MvtStkService mvtStkService) {
         this.venteRepository = venteRepository;
         this.articleRepository = articleRepository;
         this.ligneVenteRepository = ligneVenteRepository;
         this.factureRepository = factureRepository;
+        this.commandeClientRepository = commandeClientRepository;
+        this.ligneCmndeClientRepository = ligneCmndeClientRepository;
         this.mvtStkService = mvtStkService;
     }
 
@@ -131,6 +144,107 @@ public class VenteServiceImpl implements VenteService {
         return ligneVenteRepository.findAllByVenteId(idVente).stream()
                 .map(LigneVenteDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Ajoute un article a une vente en cours. C'est le geste du comptoir : la vente se construit
+     * article par article, sans qu'il faille connaitre tout le panier d'avance.
+     *
+     * La sortie de stock est immediate, comme a l'enregistrement de la vente, et porte le meme
+     * motif : ce n'est pas une correction, c'est de la marchandise vendue.
+     */
+    @Override
+    @Transactional
+    public LigneVenteDto ajouterLigne(Long idVente, LigneVenteDto ligne) {
+        Vente vente = venteModifiable(idVente);
+        if (ligne == null || ligne.getArticle() == null || ligne.getArticle().getId() == null) {
+            throw new InvalidEntityException("Une ligne de vente désigne un article",
+                    ErrorCodes.LIGNE_VENTE_NOT_VALID);
+        }
+        Article article = articleRepository.findById(ligne.getArticle().getId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun article avec l'identifiant " + ligne.getArticle().getId() + " n'a été trouvé",
+                        ErrorCodes.ARTICLE_NOT_FOUND));
+        BigDecimal quantite = quantiteValide(ligne.getQuantite());
+
+        // Le stock est debite avant l'ecriture de la ligne : s'il manque, la transaction echoue et
+        // la vente reste telle qu'elle etait.
+        mvtStkService.sortieStock(MvtStkDto.builder()
+                .article(ArticleDto.builder().Id(article.getId()).build())
+                .quantite(quantite)
+                .motif(MotifMvtStk.VENTE)
+                .build());
+
+        LigneVente nouvelle = new LigneVente();
+        nouvelle.setVente(vente);
+        nouvelle.setArticles(article);
+        nouvelle.setQuantite(quantite);
+        nouvelle.setPrixUnitaire(ligne.getPrixUnitaire() != null
+                ? ligne.getPrixUnitaire() : article.getPrixUnitaire());
+        nouvelle.setIdEntreprise(vente.getIdEntreprise());
+
+        return LigneVenteDto.fromEntity(ligneVenteRepository.save(nouvelle));
+    }
+
+    /**
+     * Cree la vente qui sert une commande client.
+     *
+     * La commande doit etre VALIDEE : servir une commande encore en preparation reviendrait a
+     * sortir une marchandise que personne n'a confirmee. La vente reprend les lignes telles
+     * qu'elles sont au moment ou on sert, et la commande passe LIVREE — ce qui la fige a son tour.
+     */
+    @Override
+    @Transactional
+    public VenteDto servirCommandeClient(Long idCommandeClient) {
+        CommandeClient commande = commandeClientRepository.findById(idCommandeClient)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune commande client avec l'identifiant " + idCommandeClient + " n'a été trouvée",
+                        ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
+
+        if (commande.getEtat() != EtatCommande.VALIDEE) {
+            throw new InvalidEntityException(
+                    "Seule une commande VALIDEE se sert, celle-ci est " + commande.getEtat(),
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID,
+                    List.of("Validez la commande avant de la servir"));
+        }
+
+        List<LigneCmndeClient> lignesCommande = ligneCmndeClientRepository.findAllByCommandeClientId(idCommandeClient);
+        if (lignesCommande.isEmpty()) {
+            throw new InvalidEntityException("Une commande sans ligne ne se sert pas",
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID);
+        }
+
+        Vente vente = new Vente();
+        vente.setCode(commande.getCode());
+        vente.setDatevente(Instant.now());
+        vente.setIdEntreprise(commande.getIdEntreprise());
+        vente.setCommandeClient(commande);
+        Vente enregistree = venteRepository.save(vente);
+
+        for (LigneCmndeClient ligneCommande : lignesCommande) {
+            LigneVente ligneVente = new LigneVente();
+            ligneVente.setVente(enregistree);
+            ligneVente.setArticles(ligneCommande.getArticles());
+            ligneVente.setQuantite(ligneCommande.getQuantite());
+            ligneVente.setPrixUnitaire(ligneCommande.getPrixUnitaire());
+            ligneVente.setIdEntreprise(commande.getIdEntreprise());
+            ligneVenteRepository.save(ligneVente);
+
+            mvtStkService.sortieStock(MvtStkDto.builder()
+                    .article(ArticleDto.builder().Id(ligneCommande.getArticles().getId()).build())
+                    .quantite(ligneCommande.getQuantite())
+                    .motif(MotifMvtStk.VENTE)
+                    .build());
+        }
+
+        // Tout est dans la meme transaction : si une ligne manque de stock, ni la vente ni le
+        // changement d'etat ne subsistent. Servir a moitie une commande sans le dire serait pire
+        // que de refuser.
+        commande.setEtat(EtatCommande.LIVREE);
+        commandeClientRepository.save(commande);
+
+        log.info("Commande client {} servie par la vente {}", idCommandeClient, enregistree.getId());
+        return VenteDto.fromEntity(enregistree);
     }
 
     @Override

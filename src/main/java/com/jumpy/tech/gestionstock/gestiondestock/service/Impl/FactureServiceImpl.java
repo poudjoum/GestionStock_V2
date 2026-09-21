@@ -2,6 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FactureDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Client;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Facture;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneFacture;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneVente;
@@ -83,6 +84,7 @@ public class FactureServiceImpl implements FactureService {
         facture.setDateEmission(Instant.now());
         facture.setVente(vente);
         facture.setIdEntreprise(vente.getIdEntreprise());
+        renseignerClient(facture, vente);
         facture.setTotalHt(BigDecimal.ZERO);
         facture.setTotalTva(BigDecimal.ZERO);
         facture.setTotalTtc(BigDecimal.ZERO);
@@ -155,6 +157,28 @@ public class FactureServiceImpl implements FactureService {
             return article.getPrixUnitaire();
         }
         return BigDecimal.ZERO;
+    }
+
+    /**
+     * Le client, quand la vente sert une commande.
+     *
+     * Une vente au comptoir n'en a pas, et la facture reste alors anonyme — c'est le ticket de
+     * caisse, pas une anomalie. Le nom est recopie a cote de l'identifiant : un client renomme ou
+     * supprime ne doit pas changer une facture deja remise.
+     */
+    private void renseignerClient(Facture facture, Vente vente) {
+        if (vente.getCommandeClient() == null || vente.getCommandeClient().getClient() == null) {
+            return;
+        }
+        Client client = vente.getCommandeClient().getClient();
+        facture.setClient(client);
+        facture.setNomClient(nomComplet(client));
+    }
+
+    private String nomComplet(Client client) {
+        String noms = client.getNom() == null ? "" : client.getNom().trim();
+        String prenoms = client.getPrenoms() == null ? "" : client.getPrenoms().trim();
+        return (noms + " " + prenoms).trim();
     }
 
     /** Format `FA-2026-000012` : l'annee se lit sans ouvrir la facture, le rang ne se rejoue pas. */

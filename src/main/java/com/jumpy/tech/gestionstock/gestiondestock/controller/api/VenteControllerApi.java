@@ -4,6 +4,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,6 +40,21 @@ public interface VenteControllerApi {
 
     @GetMapping(path = APP_ROOT+"/ventes/{idVente}/lignes")
     ResponseEntity<List<LigneVenteDto>> lignes(@PathVariable Long idVente);
+
+    /**
+     * Ajoute un article a une vente en cours : le geste du comptoir, ou le panier se construit
+     * article par article. La sortie de stock est immediate.
+     */
+    @PostMapping(path = APP_ROOT+"/ventes/{idVente}/lignes", consumes = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<LigneVenteDto> ajouterLigne(@PathVariable Long idVente,
+                                               @RequestBody LigneVenteDto ligne);
+
+    /**
+     * Cree la vente qui sert une commande client validee, et passe la commande en livree. C'est
+     * le seul chemin par lequel une vente connait son client.
+     */
+    @PostMapping(path = APP_ROOT+"/commandes-clients/{idCommandeClient}/vente")
+    ResponseEntity<VenteDto> servirCommandeClient(@PathVariable Long idCommandeClient);
 
     /** Annule la vente et remet sa marchandise en magasin. La vente reste lisible. */
     @PostMapping(path = APP_ROOT+"/ventes/{idVente}/annulation")

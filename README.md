@@ -62,6 +62,9 @@ demarrage :
   mouvement de stock. Le motif est nullable : les mouvements anterieurs n'en ont pas, et leur en
   inventer un serait pire que de reconnaitre qu'on l'ignore.
 - `V6__facturation.sql` — factures, lignes de facture et la sequence des numeros.
+- `V7__vente_liee_a_une_commande.sql` — le lien entre une vente et la commande qu'elle sert, et le
+  client sur la facture. Le lien est nullable — une vente au comptoir n'a pas de commande derriere
+  elle — mais unique : deux ventes sur la meme commande sortiraient deux fois la marchandise.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -80,8 +83,8 @@ traitement interrompu, une somme de mouvements non.
   d'un panier sans le dire serait pire que refuser.
 - Une **commande fournisseur** fait entrer la marchandise **a sa livraison**, pas a son
   enregistrement : le stock ne monte plus avant que le camion n'arrive.
-- Une **commande client** ne bouge pas le stock, a aucun moment de son cycle : c'est un
-  engagement, pas une sortie.
+- Une **commande client** ne bouge pas le stock par elle-meme : c'est un engagement. La sortie a
+  lieu quand une vente la sert (`POST /commandes-clients/{id}/vente`).
 - Le sens d'un mouvement vient de la route appelee (`/mouvements/entree`, `/mouvements/sortie`) et
   jamais du corps de la requete, sans quoi il suffirait de mentir sur le type pour creer du stock.
   Le **motif** obeit a la meme regle : il dit ce qui a reellement eu lieu (livraison, vente,
@@ -89,6 +92,35 @@ traitement interrompu, une somme de mouvements non.
   entrees de 15 sur un article, l'une venue du fournisseur et l'autre d'une vente annulee, seraient
   indiscernables — et c'est justement ce qu'on cherche a comprendre quand un stock ne tombe pas
   juste.
+
+## Les deux facons de vendre
+
+**Au comptoir.** La vente se construit article par article : c'est le supermarche, ou l'on ne
+connait le panier qu'une fois le dernier article passe.
+
+```
+POST /gestiondestock/v1/ventes/create          la vente et ses premieres lignes
+POST /gestiondestock/v1/ventes/{id}/lignes     un article de plus
+```
+
+Chaque ajout sort immediatement sa quantite du magasin, et echoue si le stock ne suit pas — sans
+rien laisser derriere lui.
+
+**Sur commande client.** La commande est un engagement : elle ne touche pas au stock. C'est la
+vente qui la sert qui sort la marchandise.
+
+```
+POST /gestiondestock/v1/commandes-clients/{id}/vente
+```
+
+La commande doit etre `VALIDEE` — servir une commande encore en preparation reviendrait a sortir
+une marchandise que personne n'a confirmee. La vente reprend ses lignes, le stock sort, et la
+commande passe `LIVREE`, ce qui la fige : une commande ne se sert donc qu'une fois. Le tout dans
+une seule transaction — servir a moitie une commande sans le dire serait pire que de refuser.
+
+**C'est aussi le seul chemin par lequel une vente connait son client**, la vente seule ne le
+designant pas. La facture d'une vente sur commande porte donc le nom du client ; celle d'une vente
+au comptoir reste anonyme, et c'est le ticket de caisse, pas une anomalie.
 
 ## Corriger une vente
 
@@ -209,7 +241,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-66 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+74 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -278,13 +310,12 @@ pour Spring, et n'etaient donc pas joignables.
 
 A savoir avant de reprendre le developpement :
 
-- On ne peut pas **ajouter** une ligne a une vente enregistree : il faut en saisir une seconde.
-  Corriger et retirer sont possibles, ajouter ne l'est pas encore.
 - Les mouvements anterieurs a la V5 n'ont pas de motif, et aucun ne leur a ete invente.
-- La facture ne porte **pas le client** : la vente ne le connait pas, seule la commande client le
-  designe. Une facture nominative demande d'abord de relier vente et client.
 - Le taux de TVA est pris sur l'article, faute d'etre porte par la ligne de vente. Il est fige a
   l'emission, mais deux ventes du meme article au meme moment ne peuvent pas avoir deux taux.
+- Une vente au comptoir ne peut pas se voir attribuer un client apres coup : le lien passe par la
+  commande. Vendre nominativement demande donc d'ouvrir une commande.
+- Servir une commande la solde d'un coup : pas de livraison partielle.
 - Rien ne suit le **paiement** d'une facture : elle est emise ou annulee, jamais reglee.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra
   une operation dediee plutot qu'un retour en arriere.

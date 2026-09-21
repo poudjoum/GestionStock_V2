@@ -20,6 +20,24 @@ public interface VenteService {
     List<LigneVenteDto> lignes(Long idVente);
 
     /**
+     * Ajoute un article a une vente deja enregistree, et sort sa quantite du magasin.
+     *
+     * C'est le geste du comptoir : le caissier ouvre une vente et y ajoute les articles au fur et
+     * a mesure qu'ils se presentent. Sans cette operation, il fallait connaitre tout le panier
+     * avant d'enregistrer quoi que ce soit, ou saisir une seconde vente.
+     */
+    LigneVenteDto ajouterLigne(Long idVente, LigneVenteDto ligne);
+
+    /**
+     * Cree la vente qui sert une commande client, et passe celle-ci en livree.
+     *
+     * Une commande client est un engagement : elle ne touche pas au stock. C'est la vente qui la
+     * sert qui sort la marchandise, et ce lien est le seul endroit ou l'on sait a qui la vente est
+     * faite — la vente, seule, ne connait pas son client.
+     */
+    VenteDto servirCommandeClient(Long idCommandeClient);
+
+    /**
      * Annule une vente et remet sa marchandise en magasin.
      *
      * La vente n'est pas effacee : une recette encaissee puis rendue doit rester lisible. Le

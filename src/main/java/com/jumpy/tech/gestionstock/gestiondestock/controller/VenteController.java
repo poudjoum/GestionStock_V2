@@ -51,6 +51,16 @@ public class VenteController implements VenteControllerApi {
     }
 
     @Override
+    public ResponseEntity<LigneVenteDto> ajouterLigne(Long idVente, LigneVenteDto ligne) {
+        return ResponseEntity.ok(venteService.ajouterLigne(idVente, ligne));
+    }
+
+    @Override
+    public ResponseEntity<VenteDto> servirCommandeClient(Long idCommandeClient) {
+        return ResponseEntity.ok(venteService.servirCommandeClient(idCommandeClient));
+    }
+
+    @Override
     public ResponseEntity<VenteDto> annuler(Long idVente) {
         return ResponseEntity.ok(venteService.annuler(idVente));
     }

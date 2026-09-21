@@ -3,6 +3,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.entities;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -51,6 +52,17 @@ public class Facture extends AbstractEntity {
     /** Une facture ne se supprime pas : elle s'annule et reste lisible. */
     @Column(name = "annulee", nullable = false)
     private boolean annulee;
+
+    /**
+     * Le client, quand la vente sert une commande. Le nom est recopie a cote de l'identifiant :
+     * un client renomme ou supprime ne doit pas changer une facture deja remise.
+     */
+    @ManyToOne
+    @JoinColumn(name = "id_client")
+    private Client client;
+
+    @Column(name = "nom_client")
+    private String nomClient;
 
     @Column(name = "id_entreprise")
     private Long idEntreprise;

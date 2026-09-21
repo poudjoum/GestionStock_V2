@@ -15,6 +15,8 @@ public class VenteDto {
     private Instant datevente;
     private String Commentaires;
     private boolean annulee;
+    /** Nul pour une vente au comptoir ; renseigne quand la vente sert une commande client. */
+    private Long idCommandeClient;
     private List<LigneVenteDto> ligneVente;
     public static VenteDto fromEntity(Vente vente) {
         if(vente==null) {
@@ -28,6 +30,7 @@ public class VenteDto {
                 .datevente(vente.getDatevente())
                 .Commentaires(vente.getCommentaires())
                 .annulee(vente.isAnnulee())
+                .idCommandeClient(vente.getCommandeClient() == null ? null : vente.getCommandeClient().getId())
                 .build();
     }
     public static Vente toEntity(VenteDto dto) {

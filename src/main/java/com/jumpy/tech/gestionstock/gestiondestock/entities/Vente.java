@@ -2,6 +2,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,4 +35,13 @@ public class Vente extends AbstractEntity{
      */
     @Column(name="annulee", nullable = false)
     private boolean annulee;
+    /**
+     * La commande servie par cette vente, s'il y en a une.
+     *
+     * Nul pour une vente au comptoir, qui n'a pas de commande derriere elle. Quand il est
+     * renseigne, c'est le seul chemin par lequel la vente connait son client.
+     */
+    @ManyToOne
+    @JoinColumn(name="id_commande_client")
+    private CommandeClient commandeClient;
 }
