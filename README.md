@@ -633,7 +633,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-231 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+232 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -738,6 +738,10 @@ sous-seuil se commandent au fournisseur.
 chaque vente : sans cette cle de regroupement, une journee de comptoir enterrerait la boite aux
 lettres sous le meme message. Une fois lue, elle peut revenir — la situation qui persiste merite
 d'etre rappelee.
+
+La cle porte l'article **et la gravite**. Sans cette seconde part, une alerte « sous le seuil »
+non lue masquerait l'aggravation vers la rupture : le magasinier lirait « il reste 9 » sur un
+article deja epuise. Une aggravation passe donc toujours, une repetition non.
 
 Une notification est ecrite **par destinataire**, parce que l'etat « lu » est personnel : une
 alerte que le magasinier a traitee ne doit pas disparaitre de l'ecran du gerant.

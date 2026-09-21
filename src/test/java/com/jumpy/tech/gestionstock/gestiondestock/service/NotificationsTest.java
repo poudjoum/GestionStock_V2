@@ -190,6 +190,24 @@ class NotificationsTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void une_aggravation_passe_malgre_une_alerte_non_lue() {
+        Long article = unArticle("10");
+        entree(article, "12");
+
+        sortie(article, "3");   // 9 : sous le seuil
+        sortie(article, "9");   // 0 : rupture
+
+        // Trouve en verifiant sur le serveur : avec une cle portant le seul article, l'alerte
+        // « sous le seuil » non lue masquait la rupture, et le magasinier lisait « il reste 9 »
+        // sur un article deja epuise. La gravite entre donc dans la cle.
+        connecte(magasinier, idEntreprise, ERole.ROLE_MAGASINIER);
+        assertThat(notifications.compteNonLues()).isEqualTo(2);
+        assertThat(notifications.mesNotifications(true, PageRequest.of(0, 10)).getContent())
+                .extracting(n -> n.getTitre().split(" :")[0])
+                .containsExactlyInAnyOrder("Rupture", "Sous le seuil");
+    }
+
+    @Test
     void une_rupture_et_un_negatif_ne_disent_pas_la_meme_chose() {
         Long article = unArticle(null);
         entree(article, "3");

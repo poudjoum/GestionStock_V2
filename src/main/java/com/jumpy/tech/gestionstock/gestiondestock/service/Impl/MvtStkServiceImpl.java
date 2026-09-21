@@ -148,7 +148,13 @@ public class MvtStkServiceImpl implements MvtStkService {
 
         String titre;
         String corps;
+        // La gravite entre dans la cle : sans elle, une alerte « sous le seuil » non lue
+        // masquerait l'aggravation vers la rupture, puis vers le negatif. Le magasinier lirait
+        // « il reste 8 » sur un article deja tombe a zero — et les trois situations n'appellent
+        // justement pas le meme geste.
+        String gravite;
         if (restant.signum() < 0) {
+            gravite = "negatif";
             // Pas une erreur a masquer : la marchandise est partie. C'est le signal qu'un
             // inventaire est a faire, et il se lit aussi sur /stock/alertes.
             log.warn("Stock negatif sur l'article {} : {}", article.getCodeArticle(), restant);
@@ -157,10 +163,12 @@ public class MvtStkServiceImpl implements MvtStkService {
                     + ") que le magasin n'en avait reçu : " + restant + " en stock. "
                     + "Un comptage sur l'étagère est nécessaire.";
         } else if (restant.signum() == 0) {
+            gravite = "rupture";
             titre = "Rupture : " + article.getDesignation();
             corps = "« " + article.getDesignation() + " » (" + article.getCodeArticle()
                     + ") est épuisé.";
         } else if (seuil != null && restant.compareTo(seuil) <= 0) {
+            gravite = "sous-seuil";
             titre = "Sous le seuil : " + article.getDesignation();
             corps = "Il reste " + restant + " « " + article.getDesignation() + " » ("
                     + article.getCodeArticle() + "), pour un seuil d'alerte de " + seuil + ".";
@@ -171,10 +179,11 @@ public class MvtStkServiceImpl implements MvtStkService {
         notifications.prevenirLesRoles(
                 article.getIdEntreprise(), ROLES_ALERTES_STOCK, TypeNotification.STOCK_ALERTE,
                 titre, corps, "/stock/alertes",
-                // La cle porte l'article : tant que l'alerte n'est pas lue, les ventes suivantes
-                // n'en ecrivent pas d'autre. Sans elle, une journee de comptoir enterrerait la
-                // boite aux lettres sous le meme message.
-                "stock:" + article.getId());
+                // La cle porte l'article et la gravite : tant qu'une alerte de meme nature n'est
+                // pas lue, les ventes suivantes n'en ecrivent pas d'autre — sans quoi une journee
+                // de comptoir enterrerait la boite aux lettres sous le meme message. Une
+                // aggravation, elle, passe : c'est une nouvelle information.
+                "stock:" + article.getId() + ":" + gravite);
     }
 
     /**
