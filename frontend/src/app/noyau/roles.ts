@@ -35,6 +35,15 @@ export interface EntreeDeMenu {
 
 export const MENU: EntreeDeMenu[] = [
   {
+    chemin: '/accueil',
+    libelle: 'Accueil',
+    icone: 'dashboard',
+    // Le caissier et le magasinier en sont ecartes : ce qu'ils y liraient — valeur du magasin,
+    // recette du jour — ne les regarde pas, et les conduirait a un clic de plus avant l'ecran ou
+    // ils travaillent.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE', 'ROLE_SUPER_ADMIN'],
+  },
+  {
     chemin: '/comptoir',
     libelle: 'Vendre',
     icone: 'point_of_sale',

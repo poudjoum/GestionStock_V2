@@ -749,11 +749,39 @@ Les gardes de route sont **une commodite de navigation, jamais une securite** : 
 refuse ce qu'elle doit refuser. Un front ne protege rien — il tourne sur la machine de celui
 qu'il pretend limiter.
 
+### L'apparence
+
+Le theme est construit autour d'un vert profond — la couleur des enseignes de quincaillerie — avec
+l'ambre en accent, qui se lit naturellement comme une alerte de stock sans qu'on ait a
+l'expliquer. Le bleu par defaut d'Angular Material ne disait rien de personne.
+
+`density: -2` resserre les composants : un magasinier a besoin de voir dix articles a l'ecran,
+pas quatre. La densite par defaut est pensee pour des formulaires, pas pour des listes qu'on
+parcourt toute la journee. `color-scheme: light dark` fait suivre le reglage du telephone.
+
+Les attentes sont des **squelettes** et non des barres de progression : un squelette montre la
+forme de la liste avant qu'elle n'existe, et l'ecran ne sursaute pas quand les donnees tombent.
+
+### L'accueil
+
+Ce qu'on voit en arrivant : la caisse du jour, la valeur du magasin, ce qui manque, les dernieres
+factures et l'encaisse par moyen de paiement.
+
+Il manquait, et c'etait le principal reproche a faire a cette interface : un gerant se connectait
+pour tomber sur un ecran de caisse. Aucune route nouvelle n'a ete necessaire — `/stock/etat` et
+`/caisse/etat` existaient depuis leurs lots respectifs, et personne ne les lisait.
+
+Le caissier et le magasinier n'y ont pas acces : ce qu'ils y liraient ne les regarde pas, et les
+conduirait a un clic de plus avant l'ecran ou ils travaillent.
+
 ### Les trois ecrans du terrain
 
 Ceux qu'on fait cent fois par jour, ecrits mobile d'abord et non retrecis depuis le bureau.
 
-**Vendre** (`/comptoir`). Le panier se construit article par article : on ne connait pas ce qu'un
+**Vendre** (`/comptoir`). Deux volets sur grand ecran, le catalogue a gauche et le ticket a
+droite, comme sur une caisse ; tout s'empile sur telephone, ou le caissier tient l'appareil d'une
+main. Les articles sont des tuiles qu'on vise au doigt, pas des lignes de liste. Le panier se
+construit article par article : on ne connait pas ce qu'un
 client achete avant qu'il ait pose son dernier article. Rien ne part au serveur avant le bouton
 final — une vente a moitie enregistree serait pire que pas de vente. Passer deux fois le meme
 article veut dire « deux unites », pas « deux lignes ». Le total et le bouton restent colles
@@ -761,7 +789,9 @@ au-dessus de la barre de navigation, pour ne pas obliger a faire defiler un long
 vendre. La vente porte deja une `referenceClient` : reposter la meme rend la vente enregistree au
 lieu d'en creer une seconde.
 
-**Stock** (`/stock`). Une recherche, une liste, rien d'autre. Un magasinier debout dans les rayons
+**Stock** (`/stock`). Un vrai tableau sur grand ecran — le comptable compare des colonnes, et lui
+servir des cartes empilees l'obligerait a faire defiler pour additionner de tete — et des cartes
+sur telephone, ou six colonnes ne tiennent pas. Un magasinier debout dans les rayons
 cherche un article precis et veut savoir combien il en reste ; lui servir le tableau de
 valorisation du comptable sur cinq pouces ne l'aiderait pas. Le statut se lit d'un coup d'oeil, et
 un stock negatif s'affiche en rouge — c'est lui qui reclame un comptage.

@@ -15,13 +15,6 @@ body {
   margin: 0;
 }
 
-body {
-  font-family: Roboto, 'Helvetica Neue', system-ui, sans-serif;
-  /* La couleur de fond vient du theme Material, pour que le clair et le sombre suivent. */
-  background: var(--mat-sys-surface);
-  color: var(--mat-sys-on-surface);
-}
-
 /*
  * Les encoches et la barre de gestes des telephones.
  *
@@ -31,4 +24,88 @@ body {
 :root {
   --marge-haut: env(safe-area-inset-top, 0px);
   --marge-bas: env(safe-area-inset-bottom, 0px);
+  /* La hauteur de la barre du bas, dont plusieurs ecrans ont besoin pour s'y coller. */
+  --barre-basse: calc(64px + var(--marge-bas));
+}
+
+/*
+ * Les chiffres s'alignent en colonne.
+ *
+ * Une quantite ou un montant qui change de largeur a chaque chiffre fait sauter la ligne entiere
+ * quand on met a jour un panier. Les chiffres tabulaires coutent une declaration et suppriment le
+ * probleme.
+ */
+.nombre {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/*
+ * La carte, motif principal de l'application.
+ *
+ * `mat-card` impose ses marges et sa typographie ; celle-ci ne fait que poser un fond, un rayon
+ * et une bordure discrete, ce qui suffit a separer les blocs sans les alourdir.
+ */
+.carte {
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 12px;
+}
+
+.carte-cliquable {
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+.carte-cliquable:hover {
+  background: var(--mat-sys-surface-container);
+  border-color: var(--mat-sys-outline);
+}
+
+/* L'etiquette de statut : un mot, un fond, jamais une phrase. */
+.pastille {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/*
+ * Le squelette d'attente.
+ *
+ * Une barre de progression indeterminee ne dit pas ce qui arrive ; un squelette montre la forme
+ * de la liste avant qu'elle n'existe, et l'ecran ne sursaute pas quand les donnees tombent.
+ */
+.squelette {
+  background: linear-gradient(
+    90deg,
+    var(--mat-sys-surface-container) 25%,
+    var(--mat-sys-surface-container-high) 37%,
+    var(--mat-sys-surface-container) 63%
+  );
+  background-size: 400% 100%;
+  animation: glissement 1.4s ease infinite;
+  border-radius: 8px;
+}
+
+@keyframes glissement {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .squelette {
+    animation: none;
+  }
 }

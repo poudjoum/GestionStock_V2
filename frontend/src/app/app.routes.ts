@@ -21,6 +21,11 @@ export const routes: Routes = [
     loadComponent: () => import('./coque/coque').then((m) => m.Coque),
     children: [
       {
+        path: 'accueil',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE', 'ROLE_SUPER_ADMIN')],
+        loadComponent: () => import('./accueil/tableau-de-bord').then((m) => m.TableauDeBord),
+      },
+      {
         path: 'notifications',
         loadComponent: () =>
           import('./notifications/liste-notifications').then((m) => m.ListeNotifications),

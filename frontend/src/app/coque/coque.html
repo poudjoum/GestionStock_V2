@@ -1,26 +1,91 @@
-<div class="flex min-h-dvh flex-col">
-  <mat-toolbar
-    class="!sticky z-20 shrink-0 gap-2"
-    style="top: 0; padding-top: var(--marge-haut); height: calc(64px + var(--marge-haut))"
+<div class="flex h-dvh overflow-hidden">
+  <!--
+    Colonne de gauche, a partir de la taille tablette.
+    Elle porte l'identite en haut et le compte en bas : ce qui est rare en bas, ce qui sert tout
+    le temps au milieu.
+  -->
+  <nav
+    class="hidden w-60 shrink-0 flex-col border-r md:flex"
+    style="background: var(--mat-sys-surface-container); border-color: var(--mat-sys-outline-variant)"
   >
-    <span class="text-base font-medium">Gestion de stock</span>
-    <span class="flex-1"></span>
+    <div class="flex items-center gap-2 px-5" style="height: 64px">
+      <mat-icon style="color: var(--mat-sys-primary)">inventory</mat-icon>
+      <span class="text-sm font-medium leading-tight">Gestion<br />de stock</span>
+    </div>
 
-    <a
-      mat-icon-button
-      routerLink="/notifications"
-      aria-label="Notifications"
-      [matBadge]="nonLues() > 99 ? '99+' : nonLues()"
-      [matBadgeHidden]="nonLues() === 0"
-      matBadgeColor="warn"
-      matBadgeSize="small"
+    <div class="flex-1 overflow-y-auto px-2 py-2">
+      @for (entree of entrees(); track entree.chemin) {
+        <a
+          [routerLink]="entree.chemin"
+          routerLinkActive="font-medium"
+          #actif="routerLinkActive"
+          class="mb-0.5 flex items-center gap-3 rounded-full px-4 py-2.5 text-sm no-underline"
+          [style.background]="actif.isActive ? 'var(--mat-sys-secondary-container)' : 'transparent'"
+          [style.color]="actif.isActive ? 'var(--mat-sys-on-secondary-container)' : 'var(--mat-sys-on-surface-variant)'"
+        >
+          <mat-icon class="!h-5 !w-5 !text-xl">{{ entree.icone }}</mat-icon>
+          {{ entree.libelle }}
+        </a>
+      }
+    </div>
+
+    <div class="border-t p-2" style="border-color: var(--mat-sys-outline-variant)">
+      <button
+        class="flex w-full cursor-pointer items-center gap-3 rounded-full border-0 bg-transparent px-3 py-2 text-left"
+        style="color: var(--mat-sys-on-surface)"
+        [matMenuTriggerFor]="compte"
+      >
+        <span
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium"
+          style="background: var(--mat-sys-primary); color: var(--mat-sys-on-primary)"
+        >
+          {{ initiales() }}
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-sm">{{ username() }}</span>
+          <span class="block truncate text-xs opacity-60">{{ metier() }}</span>
+        </span>
+        <mat-icon class="!h-5 !w-5 !text-xl opacity-50">more_vert</mat-icon>
+      </button>
+    </div>
+  </nav>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <!-- La barre du haut : le titre de la page a gauche, la cloche et le compte a droite. -->
+    <header
+      class="z-20 flex shrink-0 items-center gap-2 border-b px-4"
+      style="
+        background: var(--mat-sys-surface);
+        border-color: var(--mat-sys-outline-variant);
+        padding-top: var(--marge-haut);
+        height: calc(64px + var(--marge-haut));
+      "
     >
-      <mat-icon>notifications</mat-icon>
-    </a>
+      <mat-icon class="md:hidden" style="color: var(--mat-sys-primary)">inventory</mat-icon>
+      <span class="flex-1 truncate text-base font-medium">{{ titre() }}</span>
 
-    <button mat-icon-button [matMenuTriggerFor]="compte" aria-label="Mon compte">
-      <mat-icon>account_circle</mat-icon>
-    </button>
+      <a
+        mat-icon-button
+        routerLink="/notifications"
+        aria-label="Notifications"
+        [matBadge]="nonLues() > 99 ? '99+' : nonLues()"
+        [matBadgeHidden]="nonLues() === 0"
+        matBadgeColor="warn"
+        matBadgeSize="small"
+      >
+        <mat-icon>notifications</mat-icon>
+      </a>
+
+      <button
+        class="md:hidden flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-0 text-xs font-medium"
+        style="background: var(--mat-sys-primary); color: var(--mat-sys-on-primary)"
+        [matMenuTriggerFor]="compte"
+        aria-label="Mon compte"
+      >
+        {{ initiales() }}
+      </button>
+    </header>
+
     <mat-menu #compte="matMenu">
       <div class="px-4 py-2">
         <p class="text-sm font-medium">{{ username() }}</p>
@@ -31,38 +96,17 @@
         <span>Se déconnecter</span>
       </button>
     </mat-menu>
-  </mat-toolbar>
 
-  <div class="flex flex-1">
-    <!-- Colonne de gauche : uniquement a partir de la taille tablette. -->
-    <nav class="hidden w-56 shrink-0 border-r p-2 md:block" style="border-color: var(--mat-sys-outline-variant)">
-      @for (entree of entrees(); track entree.chemin) {
-        <a
-          [routerLink]="entree.chemin"
-          routerLinkActive="font-medium"
-          #actif="routerLinkActive"
-          class="mb-1 flex items-center gap-3 rounded-full px-4 py-2.5 text-sm no-underline"
-          [style.background]="actif.isActive ? 'var(--mat-sys-secondary-container)' : 'transparent'"
-          [style.color]="actif.isActive ? 'var(--mat-sys-on-secondary-container)' : 'var(--mat-sys-on-surface)'"
-        >
-          <mat-icon>{{ entree.icone }}</mat-icon>
-          {{ entree.libelle }}
-        </a>
-      }
-    </nav>
-
-    <main class="min-w-0 flex-1 p-4 pb-24 md:pb-4">
+    <!-- Le contenu defile seul : la barre du haut et celle du bas restent en place. -->
+    <main class="min-h-0 flex-1 overflow-y-auto p-4" [style.padding-bottom]="'calc(1rem + var(--barre-basse))'">
       <router-outlet />
     </main>
   </div>
 
-  <!--
-    Barre du bas : les gestes de tous les jours, sous le pouce, et seulement sur telephone.
-    La marge basse tient compte de la barre de gestes, l'application etant installable.
-  -->
+  <!-- Barre du bas : les gestes de tous les jours, sous le pouce, et seulement sur telephone. -->
   @if (principales().length > 1) {
     <nav
-      class="fixed inset-x-0 bottom-0 z-20 flex border-t md:hidden"
+      class="fixed inset-x-0 bottom-0 z-30 flex border-t md:hidden"
       style="
         background: var(--mat-sys-surface-container);
         border-color: var(--mat-sys-outline-variant);
@@ -77,7 +121,12 @@
           class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs no-underline"
           [style.color]="actif.isActive ? 'var(--mat-sys-primary)' : 'var(--mat-sys-on-surface-variant)'"
         >
-          <mat-icon>{{ entree.icone }}</mat-icon>
+          <span
+            class="flex h-7 w-14 items-center justify-center rounded-full"
+            [style.background]="actif.isActive ? 'var(--mat-sys-secondary-container)' : 'transparent'"
+          >
+            <mat-icon class="!h-5 !w-5 !text-xl">{{ entree.icone }}</mat-icon>
+          </span>
           {{ entree.libelle }}
         </a>
       }

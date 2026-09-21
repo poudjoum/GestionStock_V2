@@ -1,0 +1,199 @@
+@let s = stock();
+@let c = caisse();
+
+<div class="mx-auto max-w-6xl">
+  <header class="mb-6">
+    <h1 class="text-2xl font-medium">{{ salutation() }}, {{ prenom() }}</h1>
+    <p class="mt-0.5 text-sm opacity-60">Voici l’état de la maison aujourd’hui.</p>
+  </header>
+
+  @if (chargement() && !s && !c) {
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="squelette h-28"></div>
+      }
+    </div>
+  } @else {
+    <!-- Les quatre chiffres qui comptent -->
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      @if (peutVoirLaCaisse()) {
+        <div class="carte p-4">
+          <div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide opacity-60">
+            <mat-icon class="!h-4 !w-4 !text-base">payments</mat-icon>
+            Caisse du jour
+          </div>
+          <p class="nombre mt-2 text-3xl font-medium">
+            {{ c?.total ?? 0 | number: '1.0-0' }}
+            <span class="text-base font-normal opacity-60">F</span>
+          </p>
+          <p class="mt-1 text-xs opacity-60">
+            {{ c?.nombreReglements ?? 0 }} règlement{{ (c?.nombreReglements ?? 0) > 1 ? 's' : '' }}
+          </p>
+        </div>
+      }
+
+      @if (peutVoirLeStock()) {
+        <div class="carte p-4">
+          <div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide opacity-60">
+            <mat-icon class="!h-4 !w-4 !text-base">inventory</mat-icon>
+            Valeur du stock
+          </div>
+          <p class="nombre mt-2 text-3xl font-medium">
+            {{ s?.valeurAuCout ?? 0 | number: '1.0-0' }}
+            <span class="text-base font-normal opacity-60">F</span>
+          </p>
+          <p class="mt-1 text-xs opacity-60">
+            au coût d’achat
+            @if ((s?.nombreSansCoutConnu ?? 0) > 0) {
+              · {{ s?.nombreSansCoutConnu }} sans coût connu
+            }
+          </p>
+        </div>
+
+        <div class="carte p-4">
+          <div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide opacity-60">
+            <mat-icon class="!h-4 !w-4 !text-base">category</mat-icon>
+            Articles
+          </div>
+          <p class="nombre mt-2 text-3xl font-medium">{{ s?.nombreArticles ?? 0 }}</p>
+          <p class="mt-1 text-xs opacity-60">au catalogue</p>
+        </div>
+
+        <div
+          class="carte p-4"
+          [style.border-color]="
+            (s?.nombreEnRupture ?? 0) > 0 ? 'var(--mat-sys-error)' : 'var(--mat-sys-outline-variant)'
+          "
+        >
+          <div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide opacity-60">
+            <mat-icon class="!h-4 !w-4 !text-base">warning</mat-icon>
+            À recommander
+          </div>
+          <p
+            class="nombre mt-2 text-3xl font-medium"
+            [style.color]="(s?.nombreEnRupture ?? 0) > 0 ? 'var(--mat-sys-error)' : 'inherit'"
+          >
+            {{ (s?.nombreEnRupture ?? 0) + (s?.nombreSousSeuil ?? 0) }}
+          </p>
+          <p class="mt-1 text-xs opacity-60">
+            dont {{ s?.nombreEnRupture ?? 0 }} en rupture
+          </p>
+        </div>
+      }
+    </div>
+
+    <div class="mt-4 grid gap-4 lg:grid-cols-2">
+      <!-- Ce qu'il faut recommander -->
+      @if (peutVoirLeStock()) {
+        <section class="carte p-4">
+          <div class="mb-3 flex items-center gap-2">
+            <h2 class="flex-1 text-sm font-medium uppercase tracking-wide opacity-70">
+              Ce qui manque
+            </h2>
+            <a mat-button routerLink="/stock">Tout voir</a>
+          </div>
+
+          @if (alertes().length === 0) {
+            <p class="py-8 text-center text-sm opacity-50">
+              <mat-icon class="!h-8 !w-8 !text-3xl">task_alt</mat-icon><br />
+              Rien à recommander.
+            </p>
+          } @else {
+            <ul class="flex list-none flex-col gap-0 p-0">
+              @for (ligne of alertes(); track ligne.idArticle) {
+                <li
+                  class="flex items-center gap-3 border-b py-2 last:border-b-0"
+                  style="border-color: var(--mat-sys-outline-variant)"
+                >
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm">{{ ligne.designation }}</span>
+                    <span class="pastille mt-0.5"
+                          [style.background]="pastille[ligne.statut ?? 'SANS_SEUIL'].fond"
+                          [style.color]="pastille[ligne.statut ?? 'SANS_SEUIL'].texte">
+                      {{ pastille[ligne.statut ?? 'SANS_SEUIL'].libelle }}
+                    </span>
+                  </span>
+                  <span
+                    class="nombre shrink-0 text-lg font-medium"
+                    [style.color]="ligne.statut === 'NEGATIF' ? 'var(--mat-sys-error)' : 'inherit'"
+                  >
+                    {{ ligne.quantite | number: '1.0-2' }}
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+
+      <!-- La caisse, par moyen de paiement -->
+      @if (peutVoirLaCaisse()) {
+        <section class="carte p-4">
+          <div class="mb-3 flex items-center gap-2">
+            <h2 class="flex-1 text-sm font-medium uppercase tracking-wide opacity-70">
+              Encaissé aujourd’hui
+            </h2>
+            <a mat-button routerLink="/caisse">Détail</a>
+          </div>
+
+          @if (!c || c.nombreReglements === 0) {
+            <p class="py-8 text-center text-sm opacity-50">
+              <mat-icon class="!h-8 !w-8 !text-3xl">point_of_sale</mat-icon><br />
+              Aucun encaissement pour l’instant.
+            </p>
+          } @else {
+            <ul class="flex list-none flex-col gap-2 p-0">
+              @for (mode of c.parMode ?? []; track mode.mode) {
+                <li>
+                  <div class="flex items-baseline gap-2 text-sm">
+                    <span class="flex-1">{{ modes[mode.mode ?? ''] ?? mode.mode }}</span>
+                    <span class="text-xs opacity-60">{{ mode.nombre }}×</span>
+                    <span class="nombre font-medium">{{ mode.total | number: '1.0-0' }} F</span>
+                  </div>
+                  <!-- La part de chaque mode, lisible sans lire les chiffres. -->
+                  <div class="mt-1 h-1.5 overflow-hidden rounded-full"
+                       style="background: var(--mat-sys-surface-container-high)">
+                    <div
+                      class="h-full rounded-full"
+                      style="background: var(--mat-sys-primary)"
+                      [style.width.%]="((mode.total ?? 0) / (c.total || 1)) * 100"
+                    ></div>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (factures().length > 0) {
+            <h3 class="mb-2 mt-5 text-xs font-medium uppercase tracking-wide opacity-60">
+              Dernières factures
+            </h3>
+            <ul class="flex list-none flex-col gap-0 p-0">
+              @for (f of factures(); track f.id) {
+                <li
+                  class="flex items-center gap-2 border-b py-2 text-sm last:border-b-0"
+                  style="border-color: var(--mat-sys-outline-variant)"
+                >
+                  <span class="min-w-0 flex-1 truncate">
+                    {{ f.numero }}
+                    @if (f.nomClient) {
+                      <span class="opacity-60">· {{ f.nomClient }}</span>
+                    }
+                  </span>
+                  <span class="pastille shrink-0"
+                        [style.background]="statutFacture(f).fond"
+                        [style.color]="statutFacture(f).texte">
+                    {{ statutFacture(f).libelle }}
+                  </span>
+                  <span class="nombre w-24 shrink-0 text-right font-medium">
+                    {{ f.totalTtc | number: '1.0-0' }} F
+                  </span>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
+    </div>
+  }
+</div>

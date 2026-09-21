@@ -10,33 +10,7 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Stock } from './stock.service';
 import type { LigneInventaireDto } from '../noyau/api';
-
-type Statut = NonNullable<LigneInventaireDto['statut']>;
-
-/** Ce que chaque statut dit, et de quelle couleur on le dit. */
-const STATUTS: Record<Statut, { libelle: string; fond: string; texte: string }> = {
-  NEGATIF: { libelle: 'Négatif', fond: 'var(--mat-sys-error)', texte: 'var(--mat-sys-on-error)' },
-  RUPTURE: {
-    libelle: 'Rupture',
-    fond: 'var(--mat-sys-error-container)',
-    texte: 'var(--mat-sys-on-error-container)',
-  },
-  SOUS_SEUIL: {
-    libelle: 'Sous le seuil',
-    fond: 'var(--mat-sys-tertiary-container)',
-    texte: 'var(--mat-sys-on-tertiary-container)',
-  },
-  SUFFISANT: {
-    libelle: 'Suffisant',
-    fond: 'var(--mat-sys-secondary-container)',
-    texte: 'var(--mat-sys-on-secondary-container)',
-  },
-  SANS_SEUIL: {
-    libelle: 'Non surveillé',
-    fond: 'var(--mat-sys-surface-container-high)',
-    texte: 'var(--mat-sys-on-surface-variant)',
-  },
-};
+import { pastilleDe } from '../noyau/statuts';
 
 /**
  * L'etat du stock, tel qu'on le consulte debout dans les rayons.
@@ -107,7 +81,7 @@ export class EtatDuStock implements OnInit {
   }
 
   protected statut(ligne: LigneInventaireDto) {
-    return STATUTS[ligne.statut ?? 'SANS_SEUIL'];
+    return pastilleDe(ligne);
   }
 
   /** Une quantite negative se lit d'un coup d'oeil : c'est elle qui demande un comptage. */
