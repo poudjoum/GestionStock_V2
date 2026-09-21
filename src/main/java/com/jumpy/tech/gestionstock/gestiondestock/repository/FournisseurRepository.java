@@ -7,4 +7,11 @@ import java.util.Optional;
 
 public interface FournisseurRepository extends JpaRepository<Fournisseur,Long> {
     Optional<Fournisseur> findFournisseurByNom(String nomFournisseur);
+
+    java.util.List<Fournisseur> findAllByIdEntreprise(Long idEntreprise);
+
+    org.springframework.data.domain.Page<Fournisseur> findAllByIdEntreprise(
+            Long idEntreprise, org.springframework.data.domain.Pageable pageable);
+
+    Optional<Fournisseur> findFournisseurByNomAndIdEntreprise(String nomFournisseur, Long idEntreprise);
 }

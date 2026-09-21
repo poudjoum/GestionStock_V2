@@ -12,6 +12,11 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
 
     Optional<Facture> findByVenteId(Long idVente);
 
+    org.springframework.data.domain.Page<Facture> findAllByIdEntreprise(
+            Long idEntreprise, org.springframework.data.domain.Pageable pageable);
+
+    Optional<Facture> findByNumeroAndIdEntreprise(String numero, Long idEntreprise);
+
     boolean existsByVenteId(Long idVente);
 
     /**

@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FournisseurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Fournisseur;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
@@ -24,8 +25,19 @@ import java.util.stream.Collectors;
 public class FournisseurServiceImpl implements FournisseurService {
     private static final Logger log = LoggerFactory.getLogger(FournisseurServiceImpl.class);
     private FournisseurRepository fournisseurRepository;
-    public FournisseurServiceImpl(FournisseurRepository fournisseurRepository){
+    private final Cloisonnement cloisonnement;
+    public FournisseurServiceImpl(FournisseurRepository fournisseurRepository, Cloisonnement cloisonnement){
         this.fournisseurRepository=fournisseurRepository;
+        this.cloisonnement=cloisonnement;
+    }
+
+    private Fournisseur fournisseur(Long id) {
+        Fournisseur fournisseur = fournisseurRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun fournisseur avec l'identifiant " + id + " n'a été trouvé",
+                        ErrorCodes.FOURNISSEUR_NOT_FOUND));
+        cloisonnement.verifierAcces(fournisseur.getIdEntreprise(), "fournisseur", id);
+        return fournisseur;
     }
     @Override
     @Transactional
@@ -35,8 +47,13 @@ public class FournisseurServiceImpl implements FournisseurService {
              log.error(" Fournisseur not Valid {}",dto);
              throw new InvalidEntityException("Le fournisseur n'est pas valide", ErrorCodes.FOURNISSEUR_NOT_VALID,errors);
          }
-        Fournisseur four=fournisseurRepository.save(FournisseurDto.toEntity(dto));
-        return FournisseurDto.fromEntity(four);
+        Fournisseur aEnregistrer = FournisseurDto.toEntity(dto);
+        if (aEnregistrer.getId() != null) {
+            aEnregistrer.setIdEntreprise(fournisseur(aEnregistrer.getId()).getIdEntreprise());
+        } else if (cloisonnement.filtre()) {
+            aEnregistrer.setIdEntreprise(cloisonnement.entrepriseCourante());
+        }
+        return FournisseurDto.fromEntity(fournisseurRepository.save(aEnregistrer));
     }
 
     @Override
@@ -46,11 +63,7 @@ public class FournisseurServiceImpl implements FournisseurService {
             throw new InvalidEntityException("Aucun fournisseur ne peut être cherché sans identifiant",
                     ErrorCodes.FOURNISSEUR_NOT_VALID);
         }
-        return fournisseurRepository.findById(id)
-                .map(FournisseurDto::fromEntity)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Aucun fournisseur avec l'identifiant " + id + " n'a été trouvé",
-                        ErrorCodes.FOURNISSEUR_NOT_FOUND));
+        return FournisseurDto.fromEntity(fournisseur(id));
     }
 
     @Override
@@ -60,7 +73,9 @@ public class FournisseurServiceImpl implements FournisseurService {
             throw new InvalidEntityException("Aucun fournisseur ne peut être cherché sans nom",
                     ErrorCodes.FOURNISSEUR_NOT_VALID);
         }
-        return fournisseurRepository.findFournisseurByNom(nomFournisseur)
+        return (cloisonnement.filtre()
+                ? fournisseurRepository.findFournisseurByNomAndIdEntreprise(nomFournisseur, cloisonnement.entrepriseCourante())
+                : fournisseurRepository.findFournisseurByNom(nomFournisseur))
                 .map(FournisseurDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucun fournisseur nommé " + nomFournisseur + " n'a été trouvé",
@@ -69,14 +84,19 @@ public class FournisseurServiceImpl implements FournisseurService {
 
     @Override
     public List<FournisseurDto> findAll() {
-      return fournisseurRepository.findAll().stream()
+      return (cloisonnement.filtre()
+              ? fournisseurRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante())
+              : fournisseurRepository.findAll()).stream()
               .map(FournisseurDto::fromEntity)
               .collect(Collectors.toList());
     }
 
     @Override
     public Page<FournisseurDto> findAll(Pageable pageable) {
-        return fournisseurRepository.findAll(pageable).map(FournisseurDto::fromEntity);
+        return (cloisonnement.filtre()
+                ? fournisseurRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
+                : fournisseurRepository.findAll(pageable))
+                .map(FournisseurDto::fromEntity);
     }
 
     @Override
@@ -85,7 +105,7 @@ public class FournisseurServiceImpl implements FournisseurService {
         if(id==null){
             log.error("Fournisseur Id is null");
              return;
-        }fournisseurRepository.deleteById(id);
+        }fournisseurRepository.delete(fournisseur(id));
 
     }
 }

@@ -37,7 +37,7 @@ class JwtUtilsTest {
 
     private Authentication authentificationDe(String username) {
         UserDetailsImpl principal = new UserDetailsImpl(1L, username, username + "@exemple.test",
-                "peu-importe", List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+                "peu-importe", 7L, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
         return new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
     }
 

@@ -19,7 +19,7 @@ public class MvtStkDto {
     private ArticleDto article;
     private TypeMvtStk typeMvt;
     private MotifMvtStk motif;
-    private Integer idEntreprise;
+    private Long idEntreprise;
 
     public static MvtStkDto fromEntity(MvtStk mvtStk) {
         if (mvtStk == null) {

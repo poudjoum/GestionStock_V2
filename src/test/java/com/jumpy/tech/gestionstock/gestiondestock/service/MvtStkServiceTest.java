@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
@@ -41,7 +42,9 @@ class MvtStkServiceTest {
     void setUp() {
         mvtStkRepository = mock(MvtStkRepository.class);
         articleRepository = mock(ArticleRepository.class);
-        service = new MvtStkServiceImpl(mvtStkRepository, articleRepository);
+        // Un Cloisonnement reel, mais sans utilisateur authentifie : hors de toute requete HTTP,
+        // il ne filtre rien, ce qui est exactement le contexte de ce test unitaire.
+        service = new MvtStkServiceImpl(mvtStkRepository, articleRepository, new Cloisonnement());
 
         Article article = new Article();
         article.setId(ID_ARTICLE);

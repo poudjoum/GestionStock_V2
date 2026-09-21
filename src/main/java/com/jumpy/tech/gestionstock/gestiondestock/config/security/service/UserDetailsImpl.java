@@ -19,13 +19,22 @@ public class UserDetailsImpl implements UserDetails {
     private String email;
     @JsonIgnore
     private String password;
+    /**
+     * L'entreprise a laquelle ce compte appartient.
+     *
+     * C'est elle qui delimite tout ce que l'utilisateur voit et ecrit. Elle est portee par le
+     * compte, jamais par la requete : un identifiant d'entreprise envoye par l'appelant serait
+     * une invitation a travailler chez le voisin.
+     */
+    private Long idEntreprise;
     private Collection<? extends GrantedAuthority> authorities;
 
-    public UserDetailsImpl(Long id,String username,String email,String password,Collection<?extends GrantedAuthority> authorities){
+    public UserDetailsImpl(Long id,String username,String email,String password,Long idEntreprise,Collection<?extends GrantedAuthority> authorities){
         this.id=id;
         this.username=username;
         this.email=email;
         this.password=password;
+        this.idEntreprise=idEntreprise;
         this.authorities=authorities;
     }
 
@@ -36,6 +45,7 @@ public class UserDetailsImpl implements UserDetails {
                 utilisateur.getUsername(),
                 utilisateur.getEmail(),
                 utilisateur.getMotdepasse(),
+                utilisateur.getEntreprise() == null ? null : utilisateur.getEntreprise().getId(),
                 authorities
         );
     }

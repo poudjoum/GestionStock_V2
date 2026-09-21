@@ -8,4 +8,8 @@ import java.util.Optional;
 
 public interface CategoryRepository extends JpaRepository<Category,Long> {
     Optional<Category>findCategoriesByCodeCat(String code);
+
+    java.util.List<Category> findAllByIdEntreprise(Long idEntreprise);
+
+    Optional<Category> findCategoriesByCodeCatAndIdEntreprise(String code, Long idEntreprise);
 }

@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
@@ -33,14 +34,16 @@ import java.util.stream.Collectors;
 public class CommandeClientServiceImpl implements CommandeClientService {
 
     private CommandeClientRepository commandeClientRepository;
+    private final Cloisonnement cloisonnement;
     private ClientRepository clientRepository;
     private ArticleRepository articleRepository;
     private LigneCmndeClientRepository ligneCmndeClientRepository;
-    public CommandeClientServiceImpl(CommandeClientRepository commandeClientRepository, ClientRepository clientRepository,ArticleRepository articleRepository,LigneCmndeClientRepository ligneCmndeClientRepository){
+    public CommandeClientServiceImpl(CommandeClientRepository commandeClientRepository, ClientRepository clientRepository,ArticleRepository articleRepository,LigneCmndeClientRepository ligneCmndeClientRepository,Cloisonnement cloisonnement){
         this.commandeClientRepository=commandeClientRepository;
         this.articleRepository=articleRepository;
         this.clientRepository=clientRepository;
         this.ligneCmndeClientRepository=ligneCmndeClientRepository;
+        this.cloisonnement=cloisonnement;
     }
 
 
@@ -87,6 +90,9 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         }
         CommandeClient aEnregistrer = CommandeClientDto.toEntity(dto);
         aEnregistrer.setEtat(EtatCommande.EN_PREPARATION);
+        if (cloisonnement.filtre()) {
+            aEnregistrer.setIdEntreprise(cloisonnement.entrepriseCourante());
+        }
         CommandeClient saveCmndClt=commandeClientRepository.save(aEnregistrer);
         if(dto.getLigneCmndeClients()!=null) {
             dto.getLigneCmndeClients().forEach(ligCmdClt -> {
@@ -105,7 +111,7 @@ public class CommandeClientServiceImpl implements CommandeClientService {
             log.error("Commande client Id is null");
             return null;
         }
-    return  commandeClientRepository.findById(id)
+    return  java.util.Optional.of(commande(id))
             .map(CommandeClientDto::fromEntity)
             // Le « {} » d'un journal SLF4J etait reste dans une concatenation : le client lisait
             // « Aucune Commande avec l'id {}12 ».
@@ -118,14 +124,18 @@ public class CommandeClientServiceImpl implements CommandeClientService {
             log.error("Commande client Id is Null");
             return null;
         }
-        return commandeClientRepository.findCommandeClientByCode(code)
+        return (cloisonnement.filtre()
+                ? commandeClientRepository.findCommandeClientByCodeAndIdEntreprise(code, cloisonnement.entrepriseCourante())
+                : commandeClientRepository.findCommandeClientByCode(code))
                 .map(CommandeClientDto::fromEntity)
                 .orElseThrow(()->new EntityNotFoundException("Aucune commande client avec le code "+code+" n'a été trouvée",ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
     }
 
     @Override
     public List<CommandeClientDto> findAll() {
-        return commandeClientRepository.findAll().stream()
+        return (cloisonnement.filtre()
+                ? commandeClientRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante())
+                : commandeClientRepository.findAll()).stream()
                 .map(CommandeClientDto::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -209,10 +219,12 @@ public class CommandeClientServiceImpl implements CommandeClientService {
     }
 
     private CommandeClient commande(Long id) {
-        return commandeClientRepository.findById(id)
+        CommandeClient commande = commandeClientRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucune commande client avec l'identifiant " + id + " n'a été trouvée",
                         ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
+        cloisonnement.verifierAcces(commande.getIdEntreprise(), "commande client", id);
+        return commande;
     }
 
     /** Une commande figee — livree ou annulee — ne se corrige plus : c'est une trace. */

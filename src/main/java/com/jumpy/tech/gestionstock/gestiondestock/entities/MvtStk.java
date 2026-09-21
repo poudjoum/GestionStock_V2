@@ -37,6 +37,8 @@ public class MvtStk extends  AbstractEntity{
     @Enumerated(EnumType.STRING)
     @Column(name="motif", length = 40)
     private MotifMvtStk motif;
+    // Long comme partout ailleurs : c'etait un Integer, seule table a s'en ecarter, et un
+    // cloisonnement qui compare des identifiants ne peut pas vivre avec deux types.
     @Column(name="idEntreprise")
-    private Integer idEntreprise;
+    private Long idEntreprise;
 }

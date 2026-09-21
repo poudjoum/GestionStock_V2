@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk;
@@ -26,10 +27,13 @@ public class MvtStkServiceImpl implements MvtStkService {
 
     private final MvtStkRepository mvtStkRepository;
     private final ArticleRepository articleRepository;
+    private final Cloisonnement cloisonnement;
 
-    public MvtStkServiceImpl(MvtStkRepository mvtStkRepository, ArticleRepository articleRepository) {
+    public MvtStkServiceImpl(MvtStkRepository mvtStkRepository, ArticleRepository articleRepository,
+                             Cloisonnement cloisonnement) {
         this.mvtStkRepository = mvtStkRepository;
         this.articleRepository = articleRepository;
+        this.cloisonnement = cloisonnement;
     }
 
     @Override
@@ -81,10 +85,12 @@ public class MvtStkServiceImpl implements MvtStkService {
         // Un mouvement sans motif connu est une saisie a la main : c'est le cas des deux routes
         // publiques, ou personne ne peut dire quel document porte le mouvement.
         mvtStk.setMotif(dto.getMotif() == null ? MotifMvtStk.SAISIE_MANUELLE : dto.getMotif());
+        // Le mouvement herite de l'entreprise de l'article, pas de ce que dit la requete :
+        // l'article vient d'etre verifie, il fait donc foi.
+        mvtStk.setIdEntreprise(article.getIdEntreprise());
         // Un mouvement est date du moment ou il a lieu. Laisser le client fournir la date
         // permettrait d'antidater une sortie, et donc de fabriquer un stock qui n'a jamais existe.
         mvtStk.setDateMvt(Instant.now());
-        mvtStk.setIdEntreprise(dto.getIdEntreprise());
 
         MvtStk enregistre = mvtStkRepository.save(mvtStk);
         log.info("Mouvement {} de {} sur l'article {}", sens, quantite, article.getId());
@@ -128,9 +134,14 @@ public class MvtStkServiceImpl implements MvtStkService {
             throw new InvalidEntityException("Aucun article ne peut être cherché sans identifiant",
                     ErrorCodes.ARTICLE_NOT_VALID);
         }
-        return articleRepository.findById(idArticle)
+        Article article = articleRepository.findById(idArticle)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucun article avec l'identifiant " + idArticle + " n'a été trouvé",
                         ErrorCodes.ARTICLE_NOT_FOUND));
+        // Le cloisonnement des mouvements passe par l'article : c'est lui qui porte l'entreprise,
+        // et consulter le stock d'un article qui n'est pas le sien reviendrait a lire l'activite
+        // du voisin.
+        cloisonnement.verifierAcces(article.getIdEntreprise(), "article", idArticle);
+        return article;
     }
 }

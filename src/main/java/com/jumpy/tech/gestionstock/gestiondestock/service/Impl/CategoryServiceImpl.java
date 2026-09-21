@@ -1,6 +1,8 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CategoryDto;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Category;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
@@ -21,8 +23,19 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements CategoryService {
 
     private CategoryRepository categoryRepository;
-    public  CategoryServiceImpl(CategoryRepository cat){
+    private final Cloisonnement cloisonnement;
+    public  CategoryServiceImpl(CategoryRepository cat, Cloisonnement cloisonnement){
         this.categoryRepository=cat;
+        this.cloisonnement=cloisonnement;
+    }
+
+    private Category categorie(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune catégorie avec l'identifiant " + id + " n'a été trouvée",
+                        ErrorCodes.CATEGORY_NOT_FOUND));
+        cloisonnement.verifierAcces(category.getIdEntreprise(), "catégorie", id);
+        return category;
     }
     @Override
     @Transactional
@@ -32,7 +45,13 @@ public class CategoryServiceImpl implements CategoryService {
             log.error("Category not valid {}",dto);
             throw new InvalidEntityException("La catégorie n'est pas valide", ErrorCodes.CATEGORY_NOT_VALID,errors);
         }
-        return CategoryDto.fromEntity(categoryRepository.save(CategoryDto.toEntity(dto)));
+        Category aEnregistrer = CategoryDto.toEntity(dto);
+        if (aEnregistrer.getId() != null) {
+            aEnregistrer.setIdEntreprise(categorie(aEnregistrer.getId()).getIdEntreprise());
+        } else if (cloisonnement.filtre()) {
+            aEnregistrer.setIdEntreprise(cloisonnement.entrepriseCourante());
+        }
+        return CategoryDto.fromEntity(categoryRepository.save(aEnregistrer));
     }
 
     @Override
@@ -41,15 +60,14 @@ public class CategoryServiceImpl implements CategoryService {
             log.error("Category Id is null");
             return null;
         }
-        return categoryRepository.findById(id)
-                .map(CategoryDto::fromEntity).
-                orElseThrow(()-> new EntityNotFoundException("Aucune catégorie avec l'identifiant "+id+" n'a été trouvée",
-                        ErrorCodes.CATEGORY_NOT_FOUND));
+        return CategoryDto.fromEntity(categorie(id));
     }
 
     @Override
     public List<CategoryDto> findAll() {
-        return categoryRepository.findAll().stream()
+        return (cloisonnement.filtre()
+                ? categoryRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante())
+                : categoryRepository.findAll()).stream()
                 .map(CategoryDto::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -60,7 +78,9 @@ public class CategoryServiceImpl implements CategoryService {
             log.error("Category Code is null");
             return null;
         }
-        return categoryRepository.findCategoriesByCodeCat(code)
+        return (cloisonnement.filtre()
+                ? categoryRepository.findCategoriesByCodeCatAndIdEntreprise(code, cloisonnement.entrepriseCourante())
+                : categoryRepository.findCategoriesByCodeCat(code))
                 .map(CategoryDto::fromEntity)
                 .orElseThrow(()-> new EntityNotFoundException(
                         "Aucune catégorie avec le code "+code+" n'a été trouvée",
@@ -75,9 +95,9 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public void delete(Long id){
         if(id==null){
-            log.error("Catégory Id is null");
+            log.error("Categorie Id is null");
             return;
         }
-        categoryRepository.deleteById(id);
+        categoryRepository.delete(categorie(id));
     }
 }

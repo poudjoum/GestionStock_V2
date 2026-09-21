@@ -8,4 +8,8 @@ import java.util.Optional;
 public interface CommandeFourRepository extends JpaRepository<CommandeFour,Long> {
 
     Optional<CommandeFour> findCommandeFourByCode(String code);
+
+    java.util.List<CommandeFour> findAllByIdEntreprise(Long idEntreprise);
+
+    Optional<CommandeFour> findCommandeFourByCodeAndIdEntreprise(String code, Long idEntreprise);
 }

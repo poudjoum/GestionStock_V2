@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
@@ -22,9 +23,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ArticleServiceImpl implements ArticleService {
     private ArticleRepository articleRepository;
+    private final Cloisonnement cloisonnement;
 
-    public ArticleServiceImpl(ArticleRepository articleRepository){
+    public ArticleServiceImpl(ArticleRepository articleRepository, Cloisonnement cloisonnement){
         this.articleRepository=articleRepository;
+        this.cloisonnement=cloisonnement;
     }
     @Override
     @Transactional
@@ -34,8 +37,17 @@ public class ArticleServiceImpl implements ArticleService {
             log.error("Article not valid {}",dto);
             throw new InvalidEntityException("L'article n'est pas valide", ErrorCodes.ARTICLE_NOT_VALID,errors);
         }
-        Article savedArticle=articleRepository.save(ArticleDto.toEntity(dto));
-        return ArticleDto.fromEntity(savedArticle);
+        Article article = ArticleDto.toEntity(dto);
+        if (article.getId() != null) {
+            // Modification : on verifie d'abord que l'article vise est bien le sien, sans quoi
+            // connaitre un identifiant suffirait a reecrire le catalogue du voisin.
+            Article existant = article(article.getId());
+            article.setIdEntreprise(existant.getIdEntreprise());
+        } else if (cloisonnement.filtre()) {
+            // L'entreprise vient du compte, jamais du corps de la requete.
+            article.setIdEntreprise(cloisonnement.entrepriseCourante());
+        }
+        return ArticleDto.fromEntity(articleRepository.save(article));
     }
 
     @Override
@@ -48,11 +60,23 @@ public class ArticleServiceImpl implements ArticleService {
         // `article.get()` precedait le orElseThrow : sur un identifiant inconnu, c'est
         // NoSuchElementException qui partait — une erreur 500 — et le orElseThrow, applique a un
         // Optional.of() toujours plein, ne pouvait jamais lever le 404 qu'il decrivait.
-        return articleRepository.findById(id)
-                .map(ArticleDto::fromEntity)
+        return ArticleDto.fromEntity(article(id));
+    }
+
+    /**
+     * L'article, a condition qu'il appartienne a l'entreprise de l'appelant.
+     *
+     * Un article d'une autre entreprise rend un 404 et non un 403 : repondre « interdit »
+     * confirmerait son existence, et permettrait de deviner le catalogue du voisin en essayant
+     * des identifiants.
+     */
+    private Article article(Long id) {
+        Article article = articleRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucun article avec l'identifiant " + id + " n'a été trouvé",
                         ErrorCodes.ARTICLE_NOT_FOUND));
+        cloisonnement.verifierAcces(article.getIdEntreprise(), "article", id);
+        return article;
     }
 
     @Override
@@ -62,7 +86,11 @@ public class ArticleServiceImpl implements ArticleService {
             throw new InvalidEntityException("Aucun article ne peut être cherché sans code",
                     ErrorCodes.ARTICLE_NOT_VALID);
         }
-        return articleRepository.findArticleByCodeArticle(codeArticle)
+        // La recherche est cloisonnee des la requete : deux entreprises peuvent employer le meme
+        // code d'article, et rien ne l'interdit.
+        return (cloisonnement.filtre()
+                ? articleRepository.findArticleByCodeArticleAndIdEntreprise(codeArticle, cloisonnement.entrepriseCourante())
+                : articleRepository.findArticleByCodeArticle(codeArticle))
                 .map(ArticleDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucun article avec le code " + codeArticle + " n'a été trouvé",
@@ -71,7 +99,9 @@ public class ArticleServiceImpl implements ArticleService {
 
     @Override
     public List<ArticleDto> findAll() {
-        return articleRepository.findAll().stream()
+        return (cloisonnement.filtre()
+                ? articleRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante())
+                : articleRepository.findAll()).stream()
                 .map(ArticleDto::fromEntity)
                 .collect(Collectors.toList());
     }
@@ -80,7 +110,10 @@ public class ArticleServiceImpl implements ArticleService {
     public Page<ArticleDto> findAll(Pageable pageable) {
         // `map` sur la Page conserve le total et le numero de page : reconstruire une Page a la
         // main a partir du contenu ferait perdre ce que le client utilise pour naviguer.
-        return articleRepository.findAll(pageable).map(ArticleDto::fromEntity);
+        return (cloisonnement.filtre()
+                ? articleRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
+                : articleRepository.findAll(pageable))
+                .map(ArticleDto::fromEntity);
     }
 
     @Override
@@ -90,6 +123,7 @@ public class ArticleServiceImpl implements ArticleService {
             log.error("Article Id est null");
             return;
         }
-        articleRepository.deleteById(id);
+        // Passe par `article(id)` : on ne supprime pas ce qui n'est pas a soi.
+        articleRepository.delete(article(id));
     }
 }

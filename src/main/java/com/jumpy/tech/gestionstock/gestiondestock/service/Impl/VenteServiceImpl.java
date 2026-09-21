@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
@@ -50,6 +51,7 @@ public class VenteServiceImpl implements VenteService {
     private final CommandeClientRepository commandeClientRepository;
     private final LigneCmndeClientRepository ligneCmndeClientRepository;
     private final ClientRepository clientRepository;
+    private final Cloisonnement cloisonnement;
     private final MvtStkService mvtStkService;
 
     public VenteServiceImpl(VenteRepository venteRepository, ArticleRepository articleRepository,
@@ -58,8 +60,10 @@ public class VenteServiceImpl implements VenteService {
                             CommandeClientRepository commandeClientRepository,
                             LigneCmndeClientRepository ligneCmndeClientRepository,
                             ClientRepository clientRepository,
+                            Cloisonnement cloisonnement,
                             MvtStkService mvtStkService) {
         this.clientRepository = clientRepository;
+        this.cloisonnement = cloisonnement;
         this.venteRepository = venteRepository;
         this.articleRepository = articleRepository;
         this.ligneVenteRepository = ligneVenteRepository;
@@ -118,6 +122,11 @@ public class VenteServiceImpl implements VenteService {
         }
 
         Vente aEnregistrer = VenteDto.toEntity(dto);
+        // L'entreprise vient du compte connecte et ecrase ce que dirait la requete : une vente ne
+        // s'enregistre pas chez le voisin.
+        if (cloisonnement.filtre()) {
+            aEnregistrer.setIdEntreprise(cloisonnement.entrepriseCourante());
+        }
         // Le client est facultatif : la vente de comptoir anonyme reste le cas ordinaire.
         if (dto.getClient() != null && dto.getClient().getId() != null) {
             aEnregistrer.setClient(client(dto.getClient().getId()));
@@ -144,7 +153,7 @@ public class VenteServiceImpl implements VenteService {
                 .article(ArticleDto.builder().Id(ligne.getArticle().getId()).build())
                 .quantite(ligne.getQuantite())
                 .motif(MotifMvtStk.VENTE)
-                .idEntreprise(vente.getIdEntreprise() == null ? null : vente.getIdEntreprise().intValue())
+                .idEntreprise(vente.getIdEntreprise())
                 .build());
     }
 
@@ -350,10 +359,12 @@ public class VenteServiceImpl implements VenteService {
             throw new InvalidEntityException("Aucune vente ne peut être cherchée sans identifiant",
                     ErrorCodes.VENTE_NOT_VALID);
         }
-        return venteRepository.findById(id)
+        Vente vente = venteRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucune vente avec l'identifiant " + id + " n'a été trouvée",
                         ErrorCodes.VENTE_NOT_FOUND));
+        cloisonnement.verifierAcces(vente.getIdEntreprise(), "vente", id);
+        return vente;
     }
 
     /**
@@ -417,14 +428,19 @@ public class VenteServiceImpl implements VenteService {
 
     @Override
     public List<VenteDto> findAll() {
-        return venteRepository.findAll().stream()
+        return (cloisonnement.filtre()
+                ? venteRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante())
+                : venteRepository.findAll()).stream()
                 .map(VenteDto::fromEntity)
                 .collect(Collectors.toList());
     }
 
     @Override
     public Page<VenteDto> findAll(Pageable pageable) {
-        return venteRepository.findAll(pageable).map(VenteDto::fromEntity);
+        return (cloisonnement.filtre()
+                ? venteRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
+                : venteRepository.findAll(pageable))
+                .map(VenteDto::fromEntity);
     }
 
     @Override
@@ -434,7 +450,9 @@ public class VenteServiceImpl implements VenteService {
             throw new InvalidEntityException("Aucune vente ne peut être cherchée sans code",
                     ErrorCodes.VENTE_NOT_VALID);
         }
-        return venteRepository.findVenteByCode(codeVente)
+        return (cloisonnement.filtre()
+                ? venteRepository.findVenteByCodeAndIdEntreprise(codeVente, cloisonnement.entrepriseCourante())
+                : venteRepository.findVenteByCode(codeVente))
                 .map(VenteDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucune vente avec le code " + codeVente + " n'a été trouvée",

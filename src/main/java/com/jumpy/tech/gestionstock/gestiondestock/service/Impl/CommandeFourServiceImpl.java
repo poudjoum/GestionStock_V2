@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeFourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
@@ -34,11 +35,13 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     private ArticleRepository articleRepository;
     private LigneCmndeFourRepository ligneCmndeFourRepository;
     private FournisseurRepository fournisseurRepository;
+    private final Cloisonnement cloisonnement;
     private MvtStkService mvtStkService;
 
     public CommandeFourServiceImpl(CommandeFourRepository commandeFourRepository, ArticleRepository articleRepository,
                                    LigneCmndeFourRepository ligneCmndeFourRepository, FournisseurRepository fournisseurRepository,
-                                   MvtStkService mvtStkService){
+                                   MvtStkService mvtStkService, Cloisonnement cloisonnement){
+        this.cloisonnement=cloisonnement;
         this.commandeFourRepository=commandeFourRepository;
         this.articleRepository=articleRepository;
         this.fournisseurRepository=fournisseurRepository;
@@ -89,6 +92,9 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         // L'etat ne se choisit pas a la creation : une commande que l'on pourrait declarer LIVREE
         // d'emblee ferait entrer en stock une marchandise que personne n'a vue arriver.
         aEnregistrer.setEtat(EtatCommande.EN_PREPARATION);
+        if (cloisonnement.filtre()) {
+            aEnregistrer.setIdEntreprise(cloisonnement.entrepriseCourante());
+        }
         CommandeFour saveCmndFour=commandeFourRepository.save(aEnregistrer);
         if(dto.getLigneCmndeFournisseur()!=null) {
             dto.getLigneCmndeFournisseur().forEach(ligCmdFour -> {
@@ -176,10 +182,12 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     }
 
     private CommandeFour commande(Long id) {
-        return commandeFourRepository.findById(id)
+        CommandeFour commande = commandeFourRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucune commande fournisseur avec l'identifiant " + id + " n'a été trouvée",
                         ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
+        cloisonnement.verifierAcces(commande.getIdEntreprise(), "commande fournisseur", id);
+        return commande;
     }
 
     /**
@@ -253,7 +261,7 @@ public class CommandeFourServiceImpl implements CommandeFourService {
             log.error("Commande client Id is null");
             return null;
         }
-        return  commandeFourRepository.findById(id)
+        return  java.util.Optional.of(commande(id))
                 .map(CommandeFourDto::fromEntity)
                 // Le « {} » d'un journal SLF4J etait reste dans une concatenation.
                 .orElseThrow(()->new EntityNotFoundException("Aucune commande fournisseur avec l'identifiant "+id+" n'a été trouvée",ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
@@ -265,14 +273,18 @@ public class CommandeFourServiceImpl implements CommandeFourService {
             log.error("Commande Fournisseur Id is Null");
             return null;
         }
-        return commandeFourRepository.findCommandeFourByCode(code)
+        return (cloisonnement.filtre()
+                ? commandeFourRepository.findCommandeFourByCodeAndIdEntreprise(code, cloisonnement.entrepriseCourante())
+                : commandeFourRepository.findCommandeFourByCode(code))
                 .map(CommandeFourDto::fromEntity)
                 .orElseThrow(()->new EntityNotFoundException("Aucune commande fournisseur avec le code "+code+" n'a été trouvée",ErrorCodes.COMMANDE_FOURNISSEUR_NOT_FOUND));
     }
 
     @Override
     public List<CommandeFourDto> findAll() {
-        return commandeFourRepository.findAll().stream()
+        return (cloisonnement.filtre()
+                ? commandeFourRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante())
+                : commandeFourRepository.findAll()).stream()
                 .map(CommandeFourDto::fromEntity)
                 .collect(Collectors.toList());
     }

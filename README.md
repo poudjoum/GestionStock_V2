@@ -70,6 +70,10 @@ demarrage :
 - `V9__tva_de_l_entreprise.sql` — le regime de TVA sur l'entreprise, et la mention correspondante
   sur la facture. Les entreprises deja enregistrees recoivent 19,25 % et restent assujetties, ce
   qui reproduit ce que faisaient leurs articles.
+- `V10__cloisonnement_par_entreprise.sql` — le role `ROLE_SUPER_ADMIN`, les index sur la colonne de
+  cloisonnement, et `mvt_stk.id_entreprise` passe en `bigint` : c'etait la seule table a porter un
+  entier la ou toutes les autres ont un `bigint`, et un cloisonnement qui compare des identifiants
+  ne peut pas vivre avec deux types.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -157,9 +161,8 @@ L'ordre des regles, a l'emission de la facture :
 Le taux n'est donc plus exige a la creation d'un article. Une entreprise enregistree sans precision
 est assujettie a **19,25 %**, le taux en vigueur au Cameroun.
 
-C'est la vente qui designe l'entreprise (`idEntreprise`). Une vente qui n'en designe aucune facture
-comme avant, sur le seul taux de l'article : le cloisonnement par entreprise n'a jamais ete rendu
-effectif dans cette application, et une facture ne doit pas perdre sa TVA a cause de cela.
+L'entreprise d'une vente vient du compte connecte (voir le cloisonnement ci-dessous). Une vente qui
+n'en a aucune — cas d'un compte non rattache — facture sur le seul taux de l'article.
 
 ## Corriger une vente
 
@@ -252,6 +255,32 @@ pas si elle est annulee. **Une vente facturee ne se corrige plus** : changer la 
 facture la ferait mentir. Annuler la facture rouvre la vente ; la facture, elle, reste lisible —
 un numero emis puis disparu est exactement ce qu'une comptabilite ne doit pas montrer.
 
+## Cloisonnement par entreprise
+
+`id_entreprise` existait depuis le premier jour sur presque toutes les tables **sans que rien ne le
+renseigne ni ne filtre dessus** : deux entreprises partageant cette base voyaient les articles, les
+clients et les ventes l'une de l'autre.
+
+- **L'entreprise vient du compte connecte, jamais de la requete.** Un `idEntreprise` envoye dans le
+  corps est ignore : ce serait une invitation a ecrire chez le voisin.
+- Les listes ne rendent que l'entreprise de l'appelant, et les recherches par code sont cloisonnees
+  **des la requete** — deux entreprises peuvent employer le meme code d'article, et rien ne
+  l'interdit.
+- Lire, modifier ou supprimer la donnee d'une autre entreprise rend un **404**, pas un 403 :
+  repondre « interdit » confirmerait son existence, et permettrait de deviner ce que le voisin
+  possede en essayant des identifiants.
+- `ROLE_SUPER_ADMIN` regarde au-dela d'une entreprise : c'est l'editeur, celui qui les cree, pas le
+  gerant. `ROLE_ADMIN` administre la sienne.
+
+Tout cela est decide en un seul endroit, `config/security/Cloisonnement`, pour que la reponse soit
+la meme partout.
+
+Trois cas donnent « pas d'entreprise », et ils ne veulent pas dire la meme chose : le
+super-administrateur, qui voit tout ; un compte sans entreprise, qui ne voit que les donnees qui
+n'en ont pas ; et un appel hors authentification — traitement interne ou test — ou il n'y a
+personne a qui demander, et ou rien n'est filtre. Toutes les routes HTTP exigeant un compte, ce
+dernier cas ne se presente pas a travers l'API.
+
 ## Acces et roles
 
 L'API est fermee : toute route inconnue du tableau ci-dessous exige au minimum un compte valide,
@@ -269,6 +298,7 @@ et une route ajoutee demain naitra fermee.
 | Creer articles, categories, commandes | ADMIN, MANAGER, MAGASINIER |
 | Supprimer | ADMIN, MANAGER |
 | Comptes et entreprises | ADMIN |
+| Voir au-dela de son entreprise | SUPER_ADMIN |
 
 `/api/auth/signup` est reserve aux administrateurs, avec une seule exception : sur une base ou
 aucun compte n'existe, la premiere inscription est libre — il faut bien creer le premier, et
@@ -280,7 +310,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-83 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+91 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -350,10 +380,11 @@ pour Spring, et n'etaient donc pas joignables.
 A savoir avant de reprendre le developpement :
 
 - Les mouvements anterieurs a la V5 n'ont pas de motif, et aucun ne leur a ete invente.
-- Le **cloisonnement par entreprise n'est pas effectif** : `idEntreprise` existe sur presque toutes
-  les tables mais n'est renseigne que si l'appelant le fournit, et rien ne l'impose ni ne filtre
-  dessus. C'est ce qui oblige la TVA a se rabattre sur le taux de l'article quand la vente ne
-  designe pas d'entreprise.
+- Le cloisonnement **ne couvre pas encore les comptes** : `/users` n'est pas filtre par entreprise,
+  un administrateur voit donc tous les comptes. Il manque aussi de quoi rattacher un compte a une
+  entreprise autrement qu'en base.
+- Les donnees anterieures au cloisonnement n'ont pas d'entreprise. Elles restent visibles des
+  comptes qui n'en ont pas eux-memes, et du super-administrateur ; une reprise les rattacherait.
 - Le taux applique est fige a l'emission de la facture, mais deux ventes du meme article au meme
   moment ne peuvent pas avoir deux taux : l'exception se porte sur l'article, pas sur la ligne.
 - Servir une commande la solde d'un coup : pas de livraison partielle.

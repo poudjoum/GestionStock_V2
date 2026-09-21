@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FactureDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Client;
@@ -49,13 +50,16 @@ public class FactureServiceImpl implements FactureService {
     private final VenteRepository venteRepository;
     private final LigneVenteRepository ligneVenteRepository;
     private final EntrepriseRepository entrepriseRepository;
+    private final Cloisonnement cloisonnement;
 
     public FactureServiceImpl(FactureRepository factureRepository,
                               LigneFactureRepository ligneFactureRepository,
                               VenteRepository venteRepository,
                               LigneVenteRepository ligneVenteRepository,
-                              EntrepriseRepository entrepriseRepository) {
+                              EntrepriseRepository entrepriseRepository,
+                              Cloisonnement cloisonnement) {
         this.entrepriseRepository = entrepriseRepository;
+        this.cloisonnement = cloisonnement;
         this.factureRepository = factureRepository;
         this.ligneFactureRepository = ligneFactureRepository;
         this.venteRepository = venteRepository;
@@ -257,7 +261,9 @@ public class FactureServiceImpl implements FactureService {
             throw new InvalidEntityException("Aucune facture ne peut être cherchée sans numéro",
                     ErrorCodes.VENTE_NOT_VALID);
         }
-        Facture facture = factureRepository.findByNumero(numero)
+        Facture facture = (cloisonnement.filtre()
+                ? factureRepository.findByNumeroAndIdEntreprise(numero, cloisonnement.entrepriseCourante())
+                : factureRepository.findByNumero(numero))
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucune facture portant le numéro " + numero + " n'a été trouvée",
                         ErrorCodes.VENTE_NOT_FOUND));
@@ -266,6 +272,9 @@ public class FactureServiceImpl implements FactureService {
 
     @Override
     public FactureDto findByVente(Long idVente) {
+        // La vente est verifiee d'abord : demander la facture d'une vente qui n'est pas la sienne
+        // ne doit pas en reveler l'existence.
+        vente(idVente);
         Facture facture = factureRepository.findByVenteId(idVente)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "La vente " + idVente + " n'a pas été facturée",
@@ -276,7 +285,10 @@ public class FactureServiceImpl implements FactureService {
     @Override
     public Page<FactureDto> findAll(Pageable pageable) {
         // Sans les lignes : une liste de factures affiche des totaux, pas le detail de chacune.
-        return factureRepository.findAll(pageable).map(FactureDto::fromEntity);
+        return (cloisonnement.filtre()
+                ? factureRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
+                : factureRepository.findAll(pageable))
+                .map(FactureDto::fromEntity);
     }
 
     @Override
@@ -297,10 +309,12 @@ public class FactureServiceImpl implements FactureService {
             throw new InvalidEntityException("Aucune facture ne peut être cherchée sans identifiant",
                     ErrorCodes.VENTE_NOT_VALID);
         }
-        return factureRepository.findById(id)
+        Facture facture = factureRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucune facture avec l'identifiant " + id + " n'a été trouvée",
                         ErrorCodes.VENTE_NOT_FOUND));
+        cloisonnement.verifierAcces(facture.getIdEntreprise(), "facture", id);
+        return facture;
     }
 
     private Vente vente(Long id) {
@@ -308,9 +322,11 @@ public class FactureServiceImpl implements FactureService {
             throw new InvalidEntityException("Aucune vente ne peut être facturée sans identifiant",
                     ErrorCodes.VENTE_NOT_VALID);
         }
-        return venteRepository.findById(id)
+        Vente vente = venteRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucune vente avec l'identifiant " + id + " n'a été trouvée",
                         ErrorCodes.VENTE_NOT_FOUND));
+        cloisonnement.verifierAcces(vente.getIdEntreprise(), "vente", id);
+        return vente;
     }
 }
