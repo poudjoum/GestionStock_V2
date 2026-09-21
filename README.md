@@ -93,6 +93,8 @@ demarrage :
   motif de sa revocation, parce que c'est lui qui decide de ce qui se passe si ce jeton revient.
 - `V18__ventes_synchronisables.sql` — la reference que le poste de vente donne a une vente avant
   de l'envoyer, unique, pour qu'un envoi rejoue ne vende pas deux fois.
+- `V19__notifications.sql` — ce qu'on lit dans l'application, et ce qui doit en sortir. Deux
+  tables : une notification a un etat « lu », un envoi a des tentatives.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -631,7 +633,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-207 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+231 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -686,6 +688,94 @@ Ce qui en decoule :
 `GET /users/moi` manquait, et c'est le front qui le payait : au rechargement d'une page, il a un
 jeton mais aucun moyen de redemander a qui il appartient. Il devait croire son stockage local, et
 gardait donc le menu d'un role retire jusqu'a l'expiration du jeton.
+
+## Notifications
+
+Rien ne prevenait personne : un article tombait en rupture et on l'apprenait au comptoir, devant
+le client ; une facture s'emettait sans que le client le sache.
+
+```
+GET   /gestiondestock/v1/notifications?nonLues=true&page=0&size=20
+GET   /gestiondestock/v1/notifications/non-lues        le nombre, pour la cloche
+PATCH /gestiondestock/v1/notifications/{id}/lue
+PATCH /gestiondestock/v1/notifications/lues            tout marquer lu
+```
+
+Ces routes parlent du compte connecte, et de lui seul : aucun identifiant d'utilisateur dans les
+chemins. Lire les notifications d'un autre n'est pas interdit, c'est impossible.
+
+### La regle qui tient tout
+
+**Un echec d'envoi ne fait jamais echouer une operation metier.** Une vente ne se refuse pas
+parce que le serveur SMTP est tombe.
+
+D'ou la conception : l'operation enregistre l'intention de notifier **dans sa propre
+transaction** — ce qui ne peut pas rater, c'est une insertion — et la livraison vient apres, par
+un autre chemin. C'est le « mouvement plutot que solde » applique aux envois.
+
+Deux tables, parce que ce sont deux choses :
+
+| | `notification` | `envoi` |
+|---|---|---|
+| Destinataire | un compte | une adresse |
+| Etat | lu / non lu | a envoyer, envoye, abandonne |
+| Pourquoi separees | le client qui recoit sa facture n'a pas de compte ; le magasinier prevenu d'une rupture n'a pas d'adresse a servir |
+
+### Ce qui declenche quoi
+
+| Evenement | Qui est prevenu | Par ou |
+|---|---|---|
+| Article sous son seuil, a zero, ou sous zero | ADMIN, MANAGER, MAGASINIER de l'entreprise | in-app |
+| Facture emise | le client, s'il a une adresse | courriel |
+| Compte ouvert | son titulaire | courriel |
+
+L'alerte de stock ne se declenche que sur une **sortie** : une entree ne fait jamais baisser le
+stock, et verifier apres chaque reception couterait une requete pour rien. Les trois situations
+portent trois messages distincts — un stock negatif se compte sur l'etagere, une rupture et un
+sous-seuil se commandent au fournisseur.
+
+**Une alerte ne se repete pas tant qu'elle n'est pas lue.** Un article sous son seuil le reste a
+chaque vente : sans cette cle de regroupement, une journee de comptoir enterrerait la boite aux
+lettres sous le meme message. Une fois lue, elle peut revenir — la situation qui persiste merite
+d'etre rappelee.
+
+Une notification est ecrite **par destinataire**, parce que l'etat « lu » est personnel : une
+alerte que le magasinier a traitee ne doit pas disparaitre de l'ecran du gerant.
+
+### La file des envois
+
+Un expediteur la vide toutes les minutes (`NOTIFICATIONS_INTERVALLE_MS`).
+
+- **Chaque envoi dans sa propre transaction.** Sans cela, le premier courriel refuse emporterait
+  dans son rollback le compte-rendu de tous les autres du paquet : les reussis repartiraient au
+  passage suivant, et le client recevrait sa facture plusieurs fois.
+- **L'attente double a chaque echec**, d'une minute a une demi-heure. Une adresse momentanement
+  injoignable retentee toutes les minutes remplit les journaux sans rien arranger.
+- **Apres six tentatives, l'envoi est abandonne — pas efface.** Une facture qui n'est jamais
+  partie est une question qu'on se posera, et supprimer la ligne supprimerait la reponse.
+
+```
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USERNAME=adresse@exemple.test
+EMAIL_PASSWORD=<mot de passe d'application>
+EMAIL_FROM=adresse@exemple.test
+```
+
+**Tant que `EMAIL_HOST` est vide, rien ne part et rien n'echoue** : les courriels s'accumulent
+dans la file et s'enverront tels quels le jour ou les variables arrivent. Ne pas les abandonner
+est volontaire — une file qui se vide dans le neant serait pire qu'une file qui attend.
+
+Avec Gmail, `EMAIL_PASSWORD` n'est pas le mot de passe du compte mais un **mot de passe
+d'application**, a generer dans les parametres de securite Google. Il ouvre l'envoi de courriels
+au nom de l'adresse : c'est un secret a part entiere, et il n'a rien a faire ailleurs que dans
+`.env`.
+
+### Ce qui n'y est pas encore
+
+**Web Push.** Notifier le navigateur d'une application qui n'existe pas encore ne mene nulle
+part : cela demande des cles VAPID, une table d'abonnements et un service worker cote client. Le
+canal viendra avec le front, qui interrogera d'ici la `/notifications/non-lues`.
 
 ## CORS
 
@@ -785,6 +875,8 @@ A savoir avant de reprendre le developpement :
   moment ne peuvent pas avoir deux taux : l'exception se porte sur l'article, pas sur la ligne.
 - Une commande cloturee ne se rouvre pas. Si le fournisseur livre finalement, il faut saisir une
   nouvelle commande — ce qui est voulu, mais demande de la ressaisie.
+- Web Push n'est pas branche : les notifications se lisent en interrogeant l'API. Le canal viendra
+  avec le front.
 - Rien ne rapproche les encaissements d'un relevé : le mode et la reference sont saisis, personne
   ne les confronte a ce que la banque ou l'operateur mobile a reellement recu.
 - Un retour de marchandise ne se constate pas : une commande livree etant definitive, il faudra

@@ -13,6 +13,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityExcepti
 import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.RoleRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.UtilisateurRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.service.NotificationService;
 import com.jumpy.tech.gestionstock.gestiondestock.service.UserService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.UserValidator;
 import lombok.extern.slf4j.Slf4j;
@@ -37,10 +38,13 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder encodeur;
     private final Cloisonnement cloisonnement;
     private final ServiceDeRafraichissement rafraichissement;
+    private final NotificationService notifications;
 
     public UserServiceImpl(UtilisateurRepository userRepository, RoleRepository roleRepository,
                            EntrepriseRepository entrepriseRepository, PasswordEncoder encodeur,
-                           Cloisonnement cloisonnement, ServiceDeRafraichissement rafraichissement) {
+                           Cloisonnement cloisonnement, ServiceDeRafraichissement rafraichissement,
+                           NotificationService notifications) {
+        this.notifications = notifications;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.entrepriseRepository = entrepriseRepository;
@@ -73,11 +77,40 @@ public class UserServiceImpl implements UserService {
         if (StringUtils.hasLength(dto.getMotdepasse())) {
             utilisateur.setMotdepasse(encodeur.encode(dto.getMotdepasse()));
         }
-        if (utilisateur.getId() == null) {
+        boolean creation = utilisateur.getId() == null;
+        if (creation) {
             utilisateur.setActif(true);
         }
 
-        return UserDto.fromEntity(userRepository.save(utilisateur));
+        Utilisateur enregistre = userRepository.save(utilisateur);
+        if (creation) {
+            annoncerLOuvertureDuCompte(enregistre);
+        }
+        return UserDto.fromEntity(enregistre);
+    }
+
+    /**
+     * Previent le titulaire qu'un compte lui a ete ouvert.
+     *
+     * Le mot de passe n'y figure pas : il est chiffre avant d'arriver ici, et personne ne le
+     * connait plus en clair. C'est a celui qui cree le compte de le transmettre — l'ecrire dans
+     * un courriel le laisserait dormir dans une boite aux lettres pour des annees.
+     */
+    private void annoncerLOuvertureDuCompte(Utilisateur utilisateur) {
+        if (!StringUtils.hasText(utilisateur.getEmail())) {
+            return;
+        }
+        String maison = utilisateur.getEntreprise() == null || utilisateur.getEntreprise().getNom() == null
+                ? "l'application de gestion de stock" : utilisateur.getEntreprise().getNom();
+
+        notifications.mettreEnFile(
+                utilisateur.getEmail(),
+                "Votre compte a été créé",
+                "Bonjour,\n\nUn compte vient d'être ouvert pour vous sur " + maison + ".\n"
+                        + "Votre identifiant de connexion est : " + utilisateur.getUsername() + "\n\n"
+                        + "Le mot de passe vous est communiqué séparément par la personne qui a "
+                        + "créé ce compte.\n",
+                utilisateur.getEntreprise() == null ? null : utilisateur.getEntreprise().getId());
     }
 
     @Override

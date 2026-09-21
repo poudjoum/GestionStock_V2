@@ -29,6 +29,23 @@ spring:
    flyway:
      enabled: true
      locations: classpath:db/migration
+   # SMTP. Vide tant que EMAIL_HOST n'est pas renseigne : la file des courriels attend alors sans
+   # rien perdre, et repart telle quelle le jour ou les variables arrivent.
+   mail:
+     host: ${EMAIL_HOST:}
+     port: ${EMAIL_PORT:587}
+     username: ${EMAIL_USERNAME:}
+     password: ${EMAIL_PASSWORD:}
+     properties:
+       mail:
+         smtp:
+           auth: true
+           starttls:
+             enable: true
+         # Ne pas rester pendu sur un serveur muet : l'expediteur reprendra au passage suivant.
+         connectiontimeout: 10000
+         timeout: 10000
+         writetimeout: 10000
    servlet:
      multipart:
        max-file-size: 5MB
@@ -67,3 +84,9 @@ app:
   # se connecter puis se faire refuser tout le reste. Nommer les origines coute une variable
   # d'environnement et evite d'ouvrir l'API a n'importe quelle page du web.
   corsOrigines: ${CORS_ORIGINES:http://localhost:4200,http://127.0.0.1:4200}
+  notifications:
+    # L'adresse qui figure comme expediteur des courriels. Vide, c'est celle du compte SMTP.
+    expediteur: ${EMAIL_FROM:}
+    # Entre deux passages de l'expediteur, en millisecondes. Une minute : un courriel n'est pas
+    # une alarme, et interroger la file plus souvent ne ferait que du bruit en base.
+    intervalleMs: ${NOTIFICATIONS_INTERVALLE_MS:60000}

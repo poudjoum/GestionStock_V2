@@ -44,7 +44,11 @@ class MvtStkServiceTest {
         articleRepository = mock(ArticleRepository.class);
         // Un Cloisonnement reel, mais sans utilisateur authentifie : hors de toute requete HTTP,
         // il ne filtre rien, ce qui est exactement le contexte de ce test unitaire.
-        service = new MvtStkServiceImpl(mvtStkRepository, articleRepository, new Cloisonnement());
+        //
+        // Les notifications sont simulees : ce test porte sur l'arithmetique des entrees et des
+        // sorties, et prevenir le magasin est un effet de bord qui a ses propres tests.
+        service = new MvtStkServiceImpl(mvtStkRepository, articleRepository, new Cloisonnement(),
+                mock(NotificationService.class));
 
         Article article = new Article();
         article.setId(ID_ARTICLE);

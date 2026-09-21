@@ -21,6 +21,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneVenteRepositor
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ReglementRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.VenteRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.FactureService;
+import com.jumpy.tech.gestionstock.gestiondestock.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -57,6 +58,7 @@ public class FactureServiceImpl implements FactureService {
     private final EntrepriseRepository entrepriseRepository;
     private final ReglementRepository reglementRepository;
     private final Cloisonnement cloisonnement;
+    private final NotificationService notifications;
 
     public FactureServiceImpl(FactureRepository factureRepository,
                               LigneFactureRepository ligneFactureRepository,
@@ -64,7 +66,9 @@ public class FactureServiceImpl implements FactureService {
                               LigneVenteRepository ligneVenteRepository,
                               EntrepriseRepository entrepriseRepository,
                               ReglementRepository reglementRepository,
-                              Cloisonnement cloisonnement) {
+                              Cloisonnement cloisonnement,
+                              NotificationService notifications) {
+        this.notifications = notifications;
         this.entrepriseRepository = entrepriseRepository;
         this.reglementRepository = reglementRepository;
         this.cloisonnement = cloisonnement;
@@ -133,8 +137,37 @@ public class FactureServiceImpl implements FactureService {
 
         log.info("Facture {} emise pour la vente {} : {} TTC",
                 enregistree.getNumero(), idVente, enregistree.getTotalTtc());
+        annoncerAuClient(enregistree, entreprise);
         return FactureDto.avecLignes(factureRepository.save(enregistree), lignes)
                 .avecReglement(BigDecimal.ZERO);
+    }
+
+    /**
+     * Met le courriel de la facture dans la file.
+     *
+     * Dans la transaction de l'emission : la facture et l'annonce de la facture tombent ensemble,
+     * ou pas du tout. Ce n'est qu'une ligne a ecrire — la livraison, elle, viendra plus tard et
+     * ailleurs, pour qu'un serveur SMTP tombe ne fasse jamais echouer une facturation.
+     *
+     * Un client sans adresse ne recoit rien, et ce n'est pas une anomalie : le ticket de caisse
+     * reste le cas ordinaire.
+     */
+    private void annoncerAuClient(Facture facture, Entreprise entreprise) {
+        Client client = facture.getClient();
+        if (client == null || !StringUtils.hasText(client.getMail())) {
+            return;
+        }
+        String maison = entreprise == null || entreprise.getNom() == null
+                ? "Votre fournisseur" : entreprise.getNom();
+
+        notifications.mettreEnFile(
+                client.getMail(),
+                "Votre facture " + facture.getNumero(),
+                "Bonjour " + facture.getNomClient() + ",\n\n"
+                        + "Votre facture " + facture.getNumero() + " s'élève à "
+                        + facture.getTotalTtc() + " TTC.\n\n"
+                        + "Cordialement,\n" + maison,
+                facture.getIdEntreprise());
     }
 
     /**

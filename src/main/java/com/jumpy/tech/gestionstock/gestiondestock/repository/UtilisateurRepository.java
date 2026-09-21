@@ -23,4 +23,25 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur,Long> {
 
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = "roles")
     java.util.List<Utilisateur> findAllBy();
+
+    /**
+     * Les comptes ouverts d'une entreprise qui portent l'un de ces roles.
+     *
+     * `distinct` parce qu'un compte portant deux des roles demandes serait sinon rendu deux fois,
+     * et recevrait deux fois la meme alerte.
+     *
+     * Les comptes fermes sont exclus : notifier quelqu'un qui ne peut plus se connecter ne sert
+     * qu'a gonfler une table que personne ne lira.
+     */
+    @org.springframework.data.jpa.repository.Query("""
+            select distinct u from Utilisateur u join u.roles r
+            where u.actif = true
+              and r.roleName in :roles
+              and (u.entreprise.id = :idEntreprise
+                   or (:idEntreprise is null and u.entreprise is null))
+            """)
+    java.util.List<Utilisateur> findDestinatairesActifs(
+            @org.springframework.data.repository.query.Param("idEntreprise") Long idEntreprise,
+            @org.springframework.data.repository.query.Param("roles")
+            java.util.List<com.jumpy.tech.gestionstock.gestiondestock.entities.ERole> roles);
 }

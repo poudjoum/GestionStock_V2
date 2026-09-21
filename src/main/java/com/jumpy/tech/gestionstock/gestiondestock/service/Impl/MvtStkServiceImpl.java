@@ -3,15 +3,18 @@ package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.MvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeMvtStk;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeNotification;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.MvtStkRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
+import com.jumpy.tech.gestionstock.gestiondestock.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,15 +28,21 @@ import java.util.stream.Collectors;
 @Slf4j
 public class MvtStkServiceImpl implements MvtStkService {
 
+    /** Qui doit savoir qu'un article s'epuise : ceux qui commandent et ceux qui rangent. */
+    private static final List<ERole> ROLES_ALERTES_STOCK =
+            List.of(ERole.ROLE_ADMIN, ERole.ROLE_MANAGER, ERole.ROLE_MAGASINIER);
+
     private final MvtStkRepository mvtStkRepository;
     private final ArticleRepository articleRepository;
     private final Cloisonnement cloisonnement;
+    private final NotificationService notifications;
 
     public MvtStkServiceImpl(MvtStkRepository mvtStkRepository, ArticleRepository articleRepository,
-                             Cloisonnement cloisonnement) {
+                             Cloisonnement cloisonnement, NotificationService notifications) {
         this.mvtStkRepository = mvtStkRepository;
         this.articleRepository = articleRepository;
         this.cloisonnement = cloisonnement;
+        this.notifications = notifications;
     }
 
     @Override
@@ -117,16 +126,55 @@ public class MvtStkServiceImpl implements MvtStkService {
         MvtStk enregistre = mvtStkRepository.save(mvtStk);
         log.info("Mouvement {} de {} sur l'article {}", sens, quantite, article.getId());
 
-        if (!opposerLeStock) {
-            BigDecimal restant = stockReel(article.getId());
-            if (restant.signum() < 0) {
-                // Pas une erreur : la marchandise est partie. C'est le signal qu'un inventaire
-                // est a faire sur cet article, et il se lit sur /stock/alertes.
-                log.warn("Stock negatif sur l'article {} apres une sortie constatee : {}",
-                        article.getCodeArticle(), restant);
-            }
+        if (sens == TypeMvtStk.SORTIE) {
+            alerterSiLeStockBaisseTrop(article);
         }
         return MvtStkDto.fromEntity(enregistre);
+    }
+
+    /**
+     * Previent le magasin quand un article s'epuise.
+     *
+     * Seulement sur une sortie : une entree ne fait jamais baisser le stock, et verifier apres
+     * chaque reception couterait une requete pour rien.
+     *
+     * La rupture se decouvrait au comptoir, devant le client. Trois situations, trois messages,
+     * parce qu'elles n'appellent pas le meme geste — un negatif se compte sur l'etagere, une
+     * rupture et un sous-seuil se commandent au fournisseur.
+     */
+    private void alerterSiLeStockBaisseTrop(Article article) {
+        BigDecimal restant = stockReel(article.getId());
+        BigDecimal seuil = article.getSeuilAlerte();
+
+        String titre;
+        String corps;
+        if (restant.signum() < 0) {
+            // Pas une erreur a masquer : la marchandise est partie. C'est le signal qu'un
+            // inventaire est a faire, et il se lit aussi sur /stock/alertes.
+            log.warn("Stock negatif sur l'article {} : {}", article.getCodeArticle(), restant);
+            titre = "Stock négatif : " + article.getDesignation();
+            corps = "Il est sorti plus de « " + article.getDesignation() + " » (" + article.getCodeArticle()
+                    + ") que le magasin n'en avait reçu : " + restant + " en stock. "
+                    + "Un comptage sur l'étagère est nécessaire.";
+        } else if (restant.signum() == 0) {
+            titre = "Rupture : " + article.getDesignation();
+            corps = "« " + article.getDesignation() + " » (" + article.getCodeArticle()
+                    + ") est épuisé.";
+        } else if (seuil != null && restant.compareTo(seuil) <= 0) {
+            titre = "Sous le seuil : " + article.getDesignation();
+            corps = "Il reste " + restant + " « " + article.getDesignation() + " » ("
+                    + article.getCodeArticle() + "), pour un seuil d'alerte de " + seuil + ".";
+        } else {
+            return;
+        }
+
+        notifications.prevenirLesRoles(
+                article.getIdEntreprise(), ROLES_ALERTES_STOCK, TypeNotification.STOCK_ALERTE,
+                titre, corps, "/stock/alertes",
+                // La cle porte l'article : tant que l'alerte n'est pas lue, les ventes suivantes
+                // n'en ecrivent pas d'autre. Sans elle, une journee de comptoir enterrerait la
+                // boite aux lettres sous le meme message.
+                "stock:" + article.getId());
     }
 
     /**

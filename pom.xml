@@ -46,6 +46,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- L'envoi des courriels. Sans configuration SMTP, la file reste en attente : rien
+             n'echoue, rien ne part, et tout repart le jour ou les variables arrivent. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.flickr4java</groupId>
             <artifactId>flickr4java</artifactId>

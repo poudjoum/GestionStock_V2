@@ -210,6 +210,11 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.DELETE, API + "/ventes/*/lignes/**")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER)
 
+                        // Ses propres notifications : chacun lit et marque les siennes. Sans
+                        // cette ligne, la regle PATCH generique reserverait la lecture d'une
+                        // cloche a trois roles sur six.
+                        .requestMatchers(HttpMethod.PATCH, API + "/notifications/**").authenticated()
+
                         // Renoncer a un reliquat n'est pas un constat de magasin mais une
                         // decision : on cesse d'attendre un fournisseur, ou de devoir a un
                         // client. Le magasinier enregistre ce qui arrive — la regle POST
