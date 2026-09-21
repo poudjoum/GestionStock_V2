@@ -107,12 +107,15 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
-    public Page<ArticleDto> findAll(Pageable pageable) {
+    public Page<ArticleDto> findAll(String q, Long idCategory, Pageable pageable) {
         // `map` sur la Page conserve le total et le numero de page : reconstruire une Page a la
         // main a partir du contenu ferait perdre ce que le client utilise pour naviguer.
-        return (cloisonnement.filtre()
-                ? articleRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
-                : articleRepository.findAll(pageable))
+        return articleRepository.rechercher(
+                        cloisonnement.filtre(),
+                        cloisonnement.filtre() ? cloisonnement.entrepriseCourante() : null,
+                        RechercheUtils.normaliser(q),
+                        idCategory,
+                        pageable)
                 .map(ArticleDto::fromEntity);
     }
 

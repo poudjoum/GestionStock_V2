@@ -22,9 +22,14 @@ public interface ClientApi {
     @GetMapping(value = APP_ROOT+"/clients/all",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<List<ClientDto>> findAll();
 
-    /** Liste paginee : `?page=0&size=20&sort=noms,asc`. */
+    /**
+     * Liste paginee et filtrable : `?q=0690&page=0&size=20&sort=nom,asc`.
+     *
+     * `q` porte sur le nom, les prenoms, le courriel et le numero de telephone — c'est ce dernier
+     * qu'on demande a un client qu'on ne retrouve pas dans la liste.
+     */
     @GetMapping(value = APP_ROOT+"/clients",produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<Page<ClientDto>> findAll(Pageable pageable);
+    ResponseEntity<Page<ClientDto>> findAll(@RequestParam(required = false) String q, Pageable pageable);
     @DeleteMapping(value = APP_ROOT+"/clients/delete/{idClient}")
     ResponseEntity delete(@PathVariable Long idClient);
 }

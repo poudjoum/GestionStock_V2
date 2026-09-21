@@ -34,8 +34,8 @@ public class ClientController implements ClientApi {
     }
 
     @Override
-    public ResponseEntity<Page<ClientDto>> findAll(Pageable pageable) {
-        return ResponseEntity.ok(clientService.findAll(pageable));
+    public ResponseEntity<Page<ClientDto>> findAll(String q, Pageable pageable) {
+        return ResponseEntity.ok(clientService.findAll(q, pageable));
     }
 
     @Override

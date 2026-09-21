@@ -18,7 +18,13 @@ public interface ArticleService {
      * bloc : passable sur les trente articles d'aujourd'hui, intenable sur les dix mille de
      * demain. Les deux coexistent, le temps que les appelants basculent.
      */
-    Page<ArticleDto> findAll(Pageable pageable);
+    /**
+     * Liste paginee, filtrable par texte libre et par categorie.
+     *
+     * `q` porte sur le code et la designation ; les deux filtres sont facultatifs. Sans eux la
+     * liste est entiere — une seule route plutot qu'une pour lister et une pour chercher.
+     */
+    Page<ArticleDto> findAll(String q, Long idCategory, Pageable pageable);
 
     void delete(Long id);
 }

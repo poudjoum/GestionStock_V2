@@ -1,7 +1,9 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.JwtUtils;
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.ServiceDeRafraichissement;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.payload.request.LoginRequest;
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.payload.request.RafraichissementRequest;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.payload.request.SignupRequest;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.payload.response.JwtResponse;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.payload.response.MessageResponse;
@@ -29,7 +31,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@CrossOrigin(origins = "*",maxAge = 3600)
+// Le @CrossOrigin(origins="*") qui se trouvait ici n'ouvrait que la connexion : le front obtenait
+// son jeton, puis le navigateur lui refusait toutes les autres routes. La politique CORS vit
+// desormais dans SecurityConfiguration, pour l'API entiere et sur des origines nommees.
 @RestController
 @RequestMapping("/api/auth")
 public class AuthControler {
@@ -41,8 +45,9 @@ public class AuthControler {
      PasswordEncoder encoder;
      JwtUtils jwtUtils;
      Cloisonnement cloisonnement;
+     ServiceDeRafraichissement rafraichissement;
 
-     public AuthControler(UtilisateurRepository userRepository, JwtUtils jwtUtils,PasswordEncoder encoder,RoleRepository roleRepository,AuthenticationManager authenticationManager,EntrepriseRepository entrepriseRepository,Cloisonnement cloisonnement){
+     public AuthControler(UtilisateurRepository userRepository, JwtUtils jwtUtils,PasswordEncoder encoder,RoleRepository roleRepository,AuthenticationManager authenticationManager,EntrepriseRepository entrepriseRepository,Cloisonnement cloisonnement,ServiceDeRafraichissement rafraichissement){
          this.userRepository=userRepository;
          this.jwtUtils=jwtUtils;
          this.encoder=encoder;
@@ -50,6 +55,7 @@ public class AuthControler {
          this.authenticationManager=authenticationManager;
          this.entrepriseRepository=entrepriseRepository;
          this.cloisonnement=cloisonnement;
+         this.rafraichissement=rafraichissement;
      }
 
      @PostMapping("/signin")
@@ -61,16 +67,51 @@ public class AuthControler {
          String jwt = jwtUtils.generateJwtToken(authentication);
 
          UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-         List<String> roles = userDetails.getAuthorities().stream()
-                 .map(GrantedAuthority::getAuthority)
-                 .collect(Collectors.toList());
 
-         return ResponseEntity.ok(new JwtResponse(jwt,
-                 userDetails.getId(),
-                 userDetails.getUsername(),
-                 userDetails.getEmail(),
-                 roles));
+         return ResponseEntity.ok(reponse(jwt,
+                 rafraichissement.creer(userDetails.getId()),
+                 userDetails));
      }
+
+    /**
+     * Echange un jeton de rafraichissement contre un jeton d'acces neuf.
+     *
+     * Le jeton rendu est lui-meme nouveau : chaque echange remplace le precedent. Un ancien qui
+     * revient est le signe qu'il a ete copie, et ferme alors tout le compte.
+     *
+     * Aucune authentification n'est demandee ici — c'est justement parce que le jeton d'acces a
+     * expire qu'on appelle cette route.
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<?> rafraichir(@Valid @RequestBody RafraichissementRequest requete) {
+        ServiceDeRafraichissement.Rafraichi rafraichi = rafraichissement.echanger(requete.getRefreshToken());
+        String jwt = jwtUtils.genererJetonPour(rafraichi.details());
+        return ResponseEntity.ok(reponse(jwt, rafraichi.jeton(), rafraichi.details()));
+    }
+
+    /**
+     * Deconnexion : le jeton presente cesse de valoir.
+     *
+     * Les autres appareils du meme compte restent connectes — se deconnecter de son telephone ne
+     * doit pas fermer la caisse restee ouverte au comptoir.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<?> deconnexion(@Valid @RequestBody RafraichissementRequest requete) {
+        rafraichissement.revoquer(requete.getRefreshToken());
+        return ResponseEntity.ok(new MessageResponse("Déconnecté"));
+    }
+
+    private JwtResponse reponse(String jwt, String jetonRafraichissement, UserDetailsImpl userDetails) {
+        List<String> roles = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+        return new JwtResponse(jwt,
+                jetonRafraichissement,
+                userDetails.getId(),
+                userDetails.getUsername(),
+                userDetails.getEmail(),
+                roles);
+    }
     /**
      * Cree un compte.
      *

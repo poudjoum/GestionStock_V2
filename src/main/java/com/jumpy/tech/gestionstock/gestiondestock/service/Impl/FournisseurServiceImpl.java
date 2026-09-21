@@ -92,10 +92,12 @@ public class FournisseurServiceImpl implements FournisseurService {
     }
 
     @Override
-    public Page<FournisseurDto> findAll(Pageable pageable) {
-        return (cloisonnement.filtre()
-                ? fournisseurRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
-                : fournisseurRepository.findAll(pageable))
+    public Page<FournisseurDto> findAll(String q, Pageable pageable) {
+        return fournisseurRepository.rechercher(
+                        cloisonnement.filtre(),
+                        cloisonnement.filtre() ? cloisonnement.entrepriseCourante() : null,
+                        RechercheUtils.normaliser(q),
+                        pageable)
                 .map(FournisseurDto::fromEntity);
     }
 

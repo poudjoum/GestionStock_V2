@@ -4,6 +4,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.AuthTokenF
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.EntryPointJwt;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.JwtUtils;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.service.UserDetailsServiceImpl;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,6 +19,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 import static com.jumpy.tech.gestionstock.gestiondestock.utils.Constants.APP_ROOT;
 
@@ -39,11 +45,44 @@ public class SecurityConfiguration {
     private final EntryPointJwt unauthorizedHandler;
     private final JwtUtils jwtUtils;
 
+    /**
+     * Les origines autorisees a appeler l'API depuis un navigateur.
+     *
+     * Sans elles, un front servi sur un autre port se connectait — la route de connexion portait
+     * un `@CrossOrigin(origins="*")` isole — puis se faisait refuser toutes les autres requetes
+     * par le navigateur, sans que rien cote serveur ne le signale.
+     */
+    private final List<String> corsOrigines;
+
     public SecurityConfiguration(UserDetailsServiceImpl userDetailsService, EntryPointJwt unauthorizedHandler,
-                                 JwtUtils jwtUtils) {
+                                 JwtUtils jwtUtils,
+                                 @Value("${app.corsOrigines}") List<String> corsOrigines) {
         this.userDetailsService = userDetailsService;
         this.unauthorizedHandler = unauthorizedHandler;
         this.jwtUtils = jwtUtils;
+        this.corsOrigines = corsOrigines;
+    }
+
+    /**
+     * La politique CORS, posee une fois pour toute l'API.
+     *
+     * Les identifiants ne sont pas autorises : l'API ne s'appuie sur aucun cookie, le jeton
+     * voyage dans l'en-tete `Authorization`. L'autoriser pour rien obligerait a nommer chaque
+     * origine sans jamais pouvoir se replier sur l'etoile, et ouvrirait la porte au vol de session
+     * par une page tierce le jour ou un cookie apparaitrait.
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(corsOrigines);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // Le front lit la pagination dans le corps, pas dans les en-tetes : rien a exposer.
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean
@@ -85,6 +124,9 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
+                // Monte le filtre CORS devant l'autorisation : une requete preliminaire OPTIONS
+                // ne porte pas de jeton, et sans cela elle serait refusee avant d'etre traitee.
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 // Aucune session : le jeton porte l'identite a chaque requete.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -108,9 +150,13 @@ public class SecurityConfiguration {
                         // compte encore aucune entreprise.
                         .requestMatchers(HttpMethod.POST, API + "/entreprises/inscription").permitAll()
 
-                        // Chacun change son propre mot de passe : le seul point de /users ouvert
-                        // a tout compte. La regle vient avant celle des comptes, qui sinon le
-                        // reserverait a l'administration.
+                        // Chacun lit son propre compte et change son propre mot de passe : les
+                        // seuls points de /users ouverts a tout compte. Ces regles viennent avant
+                        // celle des comptes, qui sinon les reserverait a l'administration.
+                        //
+                        // On ne demande pas a quelqu'un s'il a le droit de savoir qui il est : le
+                        // front en a besoin a chaque rechargement de page pour rebatir son menu.
+                        .requestMatchers(HttpMethod.GET, API + "/users/moi").authenticated()
                         .requestMatchers(HttpMethod.PATCH, API + "/users/moi/motdepasse").authenticated()
 
                         // Rattacher un compte a une entreprise, c'est donner a quelqu'un les

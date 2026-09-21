@@ -12,6 +12,7 @@ public interface ClientService {
     ClientDto save(ClientDto dto);
     ClientDto findById(Long Id);
     List<ClientDto> findAll();
-    Page<ClientDto> findAll(Pageable pageable);
+    /** Liste paginee, filtrable : `q` porte sur le nom, les prenoms, le courriel et le numero. */
+    Page<ClientDto> findAll(String q, Pageable pageable);
     void delete(Long id);
 }

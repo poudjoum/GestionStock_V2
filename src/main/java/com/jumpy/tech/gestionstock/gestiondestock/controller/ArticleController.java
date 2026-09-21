@@ -41,8 +41,8 @@ public class ArticleController implements ArticleControllerApi {
     }
 
     @Override
-    public ResponseEntity<Page<ArticleDto>> findAll(Pageable pageable) {
-        return ResponseEntity.ok(articleService.findAll(pageable));
+    public ResponseEntity<Page<ArticleDto>> findAll(String q, Long idCategory, Pageable pageable) {
+        return ResponseEntity.ok(articleService.findAll(q, idCategory, pageable));
     }
 
     @Override

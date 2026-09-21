@@ -40,8 +40,8 @@ public class FournisseurController implements FournisseurControllerApi {
     }
 
     @Override
-    public ResponseEntity<Page<FournisseurDto>> findAll(Pageable pageable) {
-        return ResponseEntity.ok(fournisseurService.findAll(pageable));
+    public ResponseEntity<Page<FournisseurDto>> findAll(String q, Pageable pageable) {
+        return ResponseEntity.ok(fournisseurService.findAll(q, pageable));
     }
 
     @Override

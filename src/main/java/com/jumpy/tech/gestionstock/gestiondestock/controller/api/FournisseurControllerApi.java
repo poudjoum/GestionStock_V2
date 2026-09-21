@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -35,9 +36,13 @@ public interface FournisseurControllerApi {
     @GetMapping(value = APP_ROOT+"/fournisseur/all",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<List<FournisseurDto>> findAll();
 
-    /** Liste paginee : `?page=0&size=20&sort=nom,asc`. */
+    /**
+     * Liste paginee et filtrable : `?q=ciment&page=0&size=20&sort=nom,asc`.
+     *
+     * `q` porte sur le nom, le prenom, le courriel et le numero de telephone.
+     */
     @GetMapping(value = APP_ROOT+"/fournisseur",produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<Page<FournisseurDto>> findAll(Pageable pageable);
+    ResponseEntity<Page<FournisseurDto>> findAll(@RequestParam(required = false) String q, Pageable pageable);
 
     @DeleteMapping(value = APP_ROOT+"/fournisseur/delete/{idFour}")
     ResponseEntity<FournisseurDto> delete(@PathVariable Long idFour);

@@ -30,11 +30,22 @@ public class JwtUtils {
     @Value("${app.jwtSecret}")
     private String jwrSecret;
 
+    // `long` et non `int` : une duree exprimee en millisecondes depasse la capacite d'un int des
+    // qu'elle atteint 25 jours, et le depassement donnerait des jetons deja expires.
     @Value("${app.jwtExpirationMS}")
-    private int jwtExpirationMs;
+    private long jwtExpirationMs;
 
     public String generateJwtToken(Authentication authentication) {
-        UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+        return genererJetonPour((UserDetailsImpl) authentication.getPrincipal());
+    }
+
+    /**
+     * Signe un jeton pour un compte, sans passer par une authentification.
+     *
+     * Le rafraichissement en a besoin : il n'y a la aucune authentification a presenter, c'est
+     * justement parce que le jeton d'acces a expire qu'on en redemande un.
+     */
+    public String genererJetonPour(UserDetailsImpl userPrincipal) {
         Date maintenant = new Date();
         return Jwts.builder()
                 .subject(userPrincipal.getUsername())

@@ -89,6 +89,8 @@ demarrage :
   fois.
 - `V16__cloture_des_reliquats.sql` — l'etat `CLOTUREE` et le motif qui l'accompagne, pour solder
   une commande dont le reste n'arrivera jamais.
+- `V17__jetons_de_rafraichissement.sql` — le jeton qui permet d'en obtenir un autre. Il porte le
+  motif de sa revocation, parce que c'est lui qui decide de ce qui se passe si ce jeton revient.
 
 `spring.jpa.hibernate.ddl-auto` vaut `validate` : une entite modifiee sans migration correspondante
 fait echouer le demarrage, au lieu de laisser la base diverger jusqu'a la premiere requete comme le
@@ -567,7 +569,7 @@ personne ne peut alors l'autoriser.
 ./mvnw test
 ```
 
-161 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
+190 tests. Les tests d'integration montent leur propre PostgreSQL par Testcontainers et **exigent un
 demon Docker actif** ; sans lui, l'echec porte sur l'environnement et non sur le code. Ils n'ont en
 revanche plus besoin d'une base installee sur la machine.
 
@@ -582,10 +584,60 @@ ses contextes en cache — la classe suivante se connectait alors a une base dis
 curl -X POST http://localhost:9092/api/auth/signup -H 'Content-Type: application/json' \
   -d '{"username":"gerant","email":"gerant@exemple.test","password":"MotDePasse123!","role":["admin"]}'
 
-# Connexion : renvoie le jeton
+# Connexion : renvoie le jeton d'acces et le jeton de rafraichissement
 curl -X POST http://localhost:9092/api/auth/signin -H 'Content-Type: application/json' \
   -d '{"username":"gerant","password":"MotDePasse123!"}'
+
+# Qui suis-je : le compte porte par ce jeton, ses roles, son entreprise
+curl http://localhost:9092/gestiondestock/v1/users/moi -H "Authorization: Bearer $JETON"
 ```
+
+## Authentification
+
+```
+POST /api/auth/signin     identifiant + mot de passe → jeton d'acces + jeton de rafraichissement
+POST /api/auth/refresh    { "refreshToken": "..." } → un nouveau couple
+POST /api/auth/logout     { "refreshToken": "..." } → ce jeton cesse de valoir
+GET  /gestiondestock/v1/users/moi
+```
+
+Le jeton d'acces vaut **une heure** (`JWT_EXPIRATION_MS`), le jeton de rafraichissement **trente
+jours** (`JWT_REFRESH_EXPIRATION_MS`).
+
+Pourquoi deux jetons plutot qu'un seul de 24 h, comme avant : **un JWT ne se revoque pas**. Signe,
+il vaut jusqu'a son expiration, et fermer un compte ne le rappelle pas — un employe renvoye
+gardait ses acces jusqu'au lendemain. Le jeton de rafraichissement, lui, vit en base. C'est lui
+qui se revoque, et c'est ce qui permet de rendre le jeton d'acces court sans obliger un caissier a
+se reconnecter chaque heure.
+
+Ce qui en decoule :
+
+- **Chaque echange remplace le jeton.** Le precedent est revoque, pas supprime.
+- **Un jeton remplace qui revient ferme tout le compte.** Il ne devait jamais revenir : le client
+  qui l'a echange en a recu un autre. S'il revient, une copie circule.
+- **Un jeton deconnecte qui revient ne ferme rien d'autre.** C'est un onglet reste ouvert ou une
+  requete differee, pas un vol. Confondre les deux couperait la caisse du comptoir parce que
+  quelqu'un s'est deconnecte de son telephone. C'est pourquoi la revocation garde son motif.
+- **Se deconnecter ne ferme que son appareil.** Les autres sessions du compte continuent.
+- **Fermer un acces, reinitialiser ou changer un mot de passe ferme toutes les sessions.**
+
+`GET /users/moi` manquait, et c'est le front qui le payait : au rechargement d'une page, il a un
+jeton mais aucun moyen de redemander a qui il appartient. Il devait croire son stockage local, et
+gardait donc le menu d'un role retire jusqu'a l'expiration du jeton.
+
+## CORS
+
+L'API n'etait joignable depuis un navigateur que sur sa route de connexion — un
+`@CrossOrigin(origins="*")` isole sur `AuthControler`. Le front obtenait son jeton, puis le
+navigateur lui refusait tout le reste, sans que rien cote serveur ne le signale.
+
+```
+CORS_ORIGINES=http://localhost:4200,https://gestion.exemple.test
+```
+
+Des origines nommees, jamais `*` : l'etoile ouvrait l'API a n'importe quelle page du web. Les
+identifiants ne sont pas autorises — l'API ne s'appuie sur aucun cookie, le jeton voyage dans
+l'en-tete `Authorization`.
 
 ## Deploiement
 
@@ -631,6 +683,33 @@ Les recherches par code, nom ou courriel ont leur propre segment (`/articles/cod
 `/fournisseur/nom/{nom}`, `/users/email/{email}`, `/ventes/code/{code}`) : elles partageaient le
 motif de la recherche par identifiant, `/articles/{id}` et `/articles/{code}` etant le meme chemin
 pour Spring, et n'etaient donc pas joignables.
+
+### Filtrer
+
+Les listes etaient paginees mais pas filtrables : `/articles?page=3` rendait la page 3 de tout le
+catalogue. Un caissier qui tape « cim » pour trouver « Sac de ciment » n'avait rien, et sur un
+telephone c'est la difference entre utilisable et inutilisable.
+
+```
+GET /gestiondestock/v1/articles?q=cim&idCategory=3
+GET /gestiondestock/v1/clients?q=690112233
+GET /gestiondestock/v1/fournisseur?q=cimenterie
+```
+
+| Liste | Ce que `q` cherche |
+|---|---|
+| `/articles` | code, designation — plus `idCategory` en filtre separe |
+| `/clients` | nom, prenoms, courriel, numero de telephone |
+| `/fournisseur` | nom, prenom, courriel, numero de telephone |
+
+La casse et les espaces de bord ne comptent pas : le clavier d'un telephone met une majuscule au
+premier mot et un espace apres chaque mot. `q` absent ou vide ne filtre rien — une seule route
+sert a lister et a chercher.
+
+Detail d'implementation qui merite d'etre su : `q` vaut la chaine vide, jamais `null`, quand il ne
+filtre pas. Un parametre nul arrive en base sans type, et PostgreSQL, voyant `lower($1)`, doit
+choisir entre `lower(text)` et `lower(bytea)` — il prend le second, et la requete echoue sur
+« function lower(bytea) does not exist ».
 
 ## Limites connues
 

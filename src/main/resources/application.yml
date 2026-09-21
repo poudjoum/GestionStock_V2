@@ -51,6 +51,19 @@ app:
   # heure suffirait a faire basculer les encaissements du soir sur le lendemain.
   fuseauHoraire: ${FUSEAU_HORAIRE:Africa/Douala}
   jwtSecret: ${JWT_SECRET}
-  # En millisecondes : 86400000 = 24 h. La valeur precedente, 3600, etait lue en millisecondes et
-  # donnait des jetons valables 3,6 secondes.
-  jwtExpirationMS: ${JWT_EXPIRATION_MS:86400000}
+  # En millisecondes : 3600000 = 1 h. La valeur precedente, 3600, etait lue en millisecondes et
+  # donnait des jetons valables 3,6 secondes ; elle est passee ensuite a 24 h, faute de pouvoir
+  # renouveler un jeton autrement qu'en se reconnectant.
+  #
+  # Une heure depuis que le jeton de rafraichissement existe : un JWT ne se revoque pas, et c'est
+  # sa duree qui decide combien de temps un compte ferme continue d'ouvrir les portes.
+  jwtExpirationMS: ${JWT_EXPIRATION_MS:3600000}
+  # 30 jours. Le jeton de rafraichissement, lui, vit en base : il se revoque, et c'est ce qui
+  # permet de rendre le jeton d'acces court sans obliger un caissier a se reconnecter chaque heure.
+  jwtRefreshExpirationMS: ${JWT_REFRESH_EXPIRATION_MS:2592000000}
+  # Les origines autorisees a appeler l'API depuis un navigateur, separees par des virgules.
+  #
+  # Jamais « * » : l'etoile etait posee sur la seule route de connexion, ce qui laissait le front
+  # se connecter puis se faire refuser tout le reste. Nommer les origines coute une variable
+  # d'environnement et evite d'ouvrir l'API a n'importe quelle page du web.
+  corsOrigines: ${CORS_ORIGINES:http://localhost:4200,http://127.0.0.1:4200}

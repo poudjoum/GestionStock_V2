@@ -24,7 +24,19 @@ public interface UserControllerApi {
     // @RequestBody manquait : le corps n'etait pas lie et le service recevait un utilisateur vide.
     ResponseEntity<UserDto> save(@RequestBody UserDto dto);
 
+    /**
+     * Qui suis-je : le compte connecte, ses roles et son entreprise.
+     *
+     * Declaree avant `/users/{idUser}`, qui sinon prendrait « moi » pour un identifiant.
+     *
+     * Elle manquait, et c'est le front qui le payait : au rechargement d'une page, il a un jeton
+     * mais aucun moyen de redemander a qui il appartient. Il devait croire son stockage local, et
+     * gardait donc le menu d'un role retire jusqu'a l'expiration du jeton.
+     */
     @Tag(name="Get",description = "Get Methods of Gestion de Stock APIs")
+    @GetMapping(value = APP_ROOT+"/users/moi",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<UserDto> moi();
+
     @GetMapping(value = APP_ROOT+"/users/{idUser}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<UserDto> findById(@PathVariable Long idUser);
 

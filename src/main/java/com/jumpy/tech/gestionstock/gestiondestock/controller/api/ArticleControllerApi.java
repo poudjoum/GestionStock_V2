@@ -29,9 +29,16 @@ public interface ArticleControllerApi {
     @GetMapping(value = APP_ROOT+"/articles/all",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<List<ArticleDto>> findAll();
 
-    /** Liste paginee : `?page=0&size=20&sort=codeArticle,asc`. */
+    /**
+     * Liste paginee et filtrable : `?q=cim&idCategory=3&page=0&size=20&sort=codeArticle,asc`.
+     *
+     * `q` porte sur le code et la designation, sans tenir compte de la casse. Les deux filtres
+     * sont facultatifs — sans eux, la liste est entiere.
+     */
     @GetMapping(value = APP_ROOT+"/articles",produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<Page<ArticleDto>> findAll(Pageable pageable);
+    ResponseEntity<Page<ArticleDto>> findAll(@RequestParam(required = false) String q,
+                                             @RequestParam(required = false) Long idCategory,
+                                             Pageable pageable);
 
     @DeleteMapping(value = APP_ROOT+"/article/delete/{idArticle}")
    ResponseEntity delete(@PathVariable("idArticle") Long id);

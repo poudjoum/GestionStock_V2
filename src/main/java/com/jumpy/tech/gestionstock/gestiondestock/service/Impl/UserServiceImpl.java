@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.ServiceDeRafraichissement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.UserDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Entreprise;
@@ -35,15 +36,17 @@ public class UserServiceImpl implements UserService {
     private final EntrepriseRepository entrepriseRepository;
     private final PasswordEncoder encodeur;
     private final Cloisonnement cloisonnement;
+    private final ServiceDeRafraichissement rafraichissement;
 
     public UserServiceImpl(UtilisateurRepository userRepository, RoleRepository roleRepository,
                            EntrepriseRepository entrepriseRepository, PasswordEncoder encodeur,
-                           Cloisonnement cloisonnement) {
+                           Cloisonnement cloisonnement, ServiceDeRafraichissement rafraichissement) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.entrepriseRepository = entrepriseRepository;
         this.encodeur = encodeur;
         this.cloisonnement = cloisonnement;
+        this.rafraichissement = rafraichissement;
     }
 
     @Override
@@ -105,6 +108,18 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
+     * Le compte connecte.
+     *
+     * Aucun controle de cloisonnement : on ne demande pas a quelqu'un s'il a le droit de savoir
+     * qui il est. C'est d'ailleurs la seule route de `/users` ouverte a tout compte connecte.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public UserDto moi() {
+        return UserDto.fromEntity(compteConnecte());
+    }
+
+    /**
      * `readOnly` n'est pas decoratif : `open-in-view` est desactive, et les roles d'un compte sont
      * charges a la demande. Hors transaction, leur lecture par le DTO partait en
      * LazyInitializationException.
@@ -155,6 +170,11 @@ public class UserServiceImpl implements UserService {
                     ErrorCodes.UTILISATEUR_NOT_VALID);
         }
         utilisateur.setActif(actif);
+        // Fermer l'acces sans fermer les jetons ne fermerait que la porte d'entree : le jeton de
+        // rafraichissement deja delivre continuerait a fabriquer des jetons d'acces.
+        if (!actif) {
+            rafraichissement.revoquerTout(id);
+        }
         return UserDto.fromEntity(userRepository.save(utilisateur));
     }
 
@@ -179,6 +199,9 @@ public class UserServiceImpl implements UserService {
     public UserDto reinitialiserMotDePasse(Long id, String nouveauMotDePasse) {
         Utilisateur utilisateur = utilisateur(id);
         utilisateur.setMotdepasse(encodeur.encode(motDePasseValide(nouveauMotDePasse)));
+        // Un mot de passe qu'on reinitialise est un mot de passe qu'on soupconne : les sessions
+        // ouvertes ailleurs tombent avec lui.
+        rafraichissement.revoquerTout(id);
         log.info("Mot de passe reinitialise pour le compte {}", id);
         return UserDto.fromEntity(userRepository.save(utilisateur));
     }
@@ -186,7 +209,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDto changerSonMotDePasse(String ancien, String nouveau) {
-        Utilisateur utilisateur = moi();
+        Utilisateur utilisateur = compteConnecte();
         // L'ancien est exige : sans lui, un poste laisse ouvert une minute suffirait a verrouiller
         // le compte de son titulaire.
         if (!StringUtils.hasLength(ancien) || !encodeur.matches(ancien, utilisateur.getMotdepasse())) {
@@ -194,6 +217,9 @@ public class UserServiceImpl implements UserService {
                     ErrorCodes.UTILISATEUR_NOT_VALID);
         }
         utilisateur.setMotdepasse(encodeur.encode(motDePasseValide(nouveau)));
+        // Changer son mot de passe ferme ses autres sessions : c'est le geste de quelqu'un qui
+        // soupconne que son acces a fuite.
+        rafraichissement.revoquerTout(utilisateur.getId());
         return UserDto.fromEntity(userRepository.save(utilisateur));
     }
 
@@ -241,7 +267,7 @@ public class UserServiceImpl implements UserService {
         return motDePasse;
     }
 
-    private Utilisateur moi() {
+    private Utilisateur compteConnecte() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
             throw new InvalidEntityException("Aucun compte connecté", ErrorCodes.UTILISATEUR_NOT_VALID);

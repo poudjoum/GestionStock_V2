@@ -20,6 +20,15 @@ public interface UserService {
 
     UserDto findUserByEmail(String email);
 
+    /**
+     * Le compte connecte, ses roles et son entreprise.
+     *
+     * Il manquait, et c'est le front qui le paie : au rechargement d'une page, il a un jeton mais
+     * aucun moyen de redemander a qui il appartient. Il devrait croire son stockage local — donc
+     * garder le menu d'un role retire jusqu'a l'expiration du jeton.
+     */
+    UserDto moi();
+
     List<UserDto> findAll();
 
     /**

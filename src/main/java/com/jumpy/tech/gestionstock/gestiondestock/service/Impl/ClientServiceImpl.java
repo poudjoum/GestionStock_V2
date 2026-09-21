@@ -75,10 +75,12 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
-    public Page<ClientDto> findAll(Pageable pageable) {
-        return (cloisonnement.filtre()
-                ? clientRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
-                : clientRepository.findAll(pageable))
+    public Page<ClientDto> findAll(String q, Pageable pageable) {
+        return clientRepository.rechercher(
+                        cloisonnement.filtre(),
+                        cloisonnement.filtre() ? cloisonnement.entrepriseCourante() : null,
+                        RechercheUtils.normaliser(q),
+                        pageable)
                 .map(ClientDto::fromEntity);
     }
 

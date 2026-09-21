@@ -25,6 +25,11 @@ public class UserController implements UserControllerApi {
     }
 
     @Override
+    public ResponseEntity<UserDto> moi() {
+        return ResponseEntity.ok(userService.moi());
+    }
+
+    @Override
     public ResponseEntity<UserDto> findById(Long idUser) {
         return ResponseEntity.status(HttpStatus.OK).body(userService.findById(idUser));
     }
