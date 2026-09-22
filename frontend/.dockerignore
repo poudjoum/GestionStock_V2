@@ -1,0 +1,6 @@
+# Ce qui n'a rien a faire dans le contexte de construction : node_modules pese des centaines de
+# megaoctets et serait de toute facon reinstalle par `npm ci`, et dist/ serait reconstruit.
+node_modules
+dist
+.angular
+.vscode

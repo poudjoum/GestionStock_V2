@@ -32,6 +32,8 @@ services:
       options: { max-size: "10m", max-file: "3" }
 
   app:
+    build:
+      context: .
     image: gestionstock:latest
     container_name: gestionstock-app
     restart: unless-stopped
@@ -67,6 +69,25 @@ services:
       # developpement. La passer a 127.0.0.1 la referme sur le serveur seul, sans rien changer
       # d'autre.
       - "${APP_BIND:-0.0.0.0}:9092:9092"
+    networks: [gestionstock]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  # Le front, servi par nginx, qui relaie aussi l'API sous la meme origine.
+  #
+  # Une seule origine pour le navigateur : la question du CORS ne se pose donc plus depuis
+  # l'application deployee, et l'on peut l'ouvrir depuis un telephone du reseau sans avoir
+  # declare son adresse nulle part.
+  web:
+    build:
+      context: ./frontend
+    image: gestionstock-web:latest
+    container_name: gestionstock-web
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "${WEB_BIND:-0.0.0.0}:${WEB_PORT:-9093}:80"
     networks: [gestionstock]
     logging:
       driver: json-file
