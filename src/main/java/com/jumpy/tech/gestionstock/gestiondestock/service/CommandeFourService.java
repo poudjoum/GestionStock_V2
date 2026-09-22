@@ -72,7 +72,18 @@ public interface CommandeFourService {
      */
     LigneCmndeFournisseurDto ajouterLigne(Long idCommande, LigneCmndeFournisseurDto ligne);
 
-    LigneCmndeFournisseurDto modifierQuantite(Long idCommande, Long idLigne, BigDecimal quantite);
+    /**
+     * Corrige la quantite, le prix d'achat, ou les deux. Un parametre nul ne change rien.
+     *
+     * Le prix est celui qui alimentera le cout moyen de l'article a la livraison : le laisser
+     * definitif des la creation de la ligne obligeait a retirer la ligne pour corriger un tarif.
+     */
+    LigneCmndeFournisseurDto modifierLigne(Long idCommande, Long idLigne, BigDecimal quantite,
+                                           BigDecimal prixUnitaire);
+
+    default LigneCmndeFournisseurDto modifierQuantite(Long idCommande, Long idLigne, BigDecimal quantite) {
+        return modifierLigne(idCommande, idLigne, quantite, null);
+    }
 
     void retirerLigne(Long idCommande, Long idLigne);
 

@@ -66,8 +66,11 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
   },
   {
-    chemin: '/receptions',
-    libelle: 'Réceptions',
+    chemin: '/achats',
+    // « Achats » et non « Réceptions » : l'entree couvre les deux temps d'une commande
+    // fournisseur — la passer, puis recevoir ce qui arrive. Nommer l'ecran d'apres son second
+    // temps laissait croire qu'on ne pouvait pas commander.
+    libelle: 'Achats',
     icone: 'local_shipping',
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
     principal: true,

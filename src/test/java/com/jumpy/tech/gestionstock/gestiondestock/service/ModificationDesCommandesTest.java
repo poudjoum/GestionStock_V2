@@ -108,6 +108,39 @@ class ModificationDesCommandesTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void le_prix_d_achat_d_une_ligne_se_corrige() {
+        Long idLigne = commandeFourService.lignes(commande.getId()).get(0).getId();
+
+        // Le tarif du fournisseur arrive souvent apres la saisie de la commande. Sans cette
+        // correction, il fallait retirer la ligne et la recreer — et le prix d'achat decide du
+        // cout moyen de l'article, donc de la valeur du magasin.
+        LigneCmndeFournisseurDto corrigee =
+                commandeFourService.modifierLigne(commande.getId(), idLigne, null, new BigDecimal("1250"));
+
+        assertThat(corrigee.getPrixUnitaire()).isEqualByComparingTo("1250");
+        assertThat(corrigee.getQuantite()).isEqualByComparingTo("10");
+    }
+
+    @Test
+    void une_modification_qui_ne_demande_rien_est_refusee() {
+        Long idLigne = commandeFourService.lignes(commande.getId()).get(0).getId();
+
+        assertThatThrownBy(() -> commandeFourService.modifierLigne(commande.getId(), idLigne, null, null))
+                .isInstanceOf(InvalidEntityException.class)
+                .hasMessageContaining("ce qu'il faut changer");
+    }
+
+    @Test
+    void un_prix_d_achat_negatif_est_refuse() {
+        Long idLigne = commandeFourService.lignes(commande.getId()).get(0).getId();
+
+        assertThatThrownBy(() ->
+                commandeFourService.modifierLigne(commande.getId(), idLigne, null, new BigDecimal("-1")))
+                .isInstanceOf(InvalidEntityException.class)
+                .hasMessageContaining("négatif");
+    }
+
+    @Test
     void une_ligne_se_retire() {
         Long idLigne = commandeFourService.lignes(commande.getId()).get(0).getId();
 

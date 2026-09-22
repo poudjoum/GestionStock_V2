@@ -1,0 +1,118 @@
+@let liste = commandes();
+@let enPreparation = brouillons();
+
+<div class="mx-auto max-w-4xl">
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <mat-button-toggle-group [value]="vue()" hideSingleSelectionIndicator>
+      <mat-button-toggle value="brouillons" (click)="changerVue('brouillons')">
+        <mat-icon class="!h-4 !w-4 !text-base">edit_note</mat-icon>
+        En préparation
+      </mat-button-toggle>
+      <mat-button-toggle value="attendues" (click)="changerVue('attendues')">
+        <mat-icon class="!h-4 !w-4 !text-base">local_shipping</mat-icon>
+        À recevoir
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-form-field appearance="outline" class="min-w-0 flex-1" subscriptSizing="dynamic">
+      <mat-label>Chercher une commande</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        inputmode="search"
+        autocapitalize="none"
+        [ngModel]="recherche()"
+        (ngModelChange)="chercher($event)"
+        placeholder="référence ou fournisseur"
+      />
+      @if (recherche()) {
+        <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+
+    <button mat-flat-button class="!h-12" (click)="nouvelle()">
+      <mat-icon>add</mat-icon>
+      Nouvelle commande
+    </button>
+  </div>
+
+  @if (chargement()) {
+    <div class="flex flex-col gap-2">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="squelette h-16"></div>
+      }
+    </div>
+  } @else if (erreur(); as message) {
+    <p class="rounded px-3 py-2 text-sm" role="alert"
+       style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+      {{ message }}
+    </p>
+  } @else if (liste.length === 0) {
+    <div class="py-20 text-center opacity-60">
+      <mat-icon class="!h-12 !w-12 !text-5xl">
+        {{ enPreparation ? 'edit_note' : 'local_shipping' }}
+      </mat-icon>
+      @if (recherche()) {
+        <p class="mt-2 text-sm">Aucune commande ne correspond à « {{ recherche() }} ».</p>
+      } @else if (enPreparation) {
+        <p class="mt-2 text-sm">
+          Aucun brouillon en cours.<br />
+          Une commande se prépare ici avant d’être passée au fournisseur.
+        </p>
+        <button mat-flat-button class="mt-4" (click)="nouvelle()">
+          <mat-icon>add</mat-icon>
+          Passer une commande
+        </button>
+      } @else {
+        <p class="mt-2 text-sm">
+          Aucune commande n’attend de marchandise.<br />
+          Tout ce qui a été commandé est arrivé.
+        </p>
+      }
+    </div>
+  } @else {
+    <ul class="flex list-none flex-col gap-2 p-0">
+      @for (c of liste; track c.id) {
+        <li>
+          <button
+            type="button"
+            class="carte carte-cliquable flex w-full items-center gap-3 p-3 text-left"
+            style="color: var(--mat-sys-on-surface)"
+            (click)="ouvrir(c)"
+          >
+            <span
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+              style="background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container)"
+            >
+              <mat-icon class="!h-5 !w-5 !text-xl">
+                {{ enPreparation ? 'edit_note' : 'local_shipping' }}
+              </mat-icon>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-medium">{{ c.code }}</span>
+              <span class="block truncate text-xs opacity-60">{{ c.fournisseur?.nom }}</span>
+            </span>
+
+            @if (reliquat(c)) {
+              <!-- La couleur seule ne dit rien a qui ne la distingue pas : le mot est la aussi. -->
+              <span class="pastille shrink-0"
+                    style="background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container)">
+                Reliquat
+              </span>
+            }
+            <mat-icon class="shrink-0 opacity-40">chevron_right</mat-icon>
+          </button>
+        </li>
+      }
+    </ul>
+
+    <p class="mt-3 text-center text-xs opacity-50">
+      {{ liste.length }} commande{{ liste.length > 1 ? 's' : '' }}
+      @if (total() > liste.length) {
+        sur {{ total() }} — affinez la recherche
+      }
+    </p>
+  }
+</div>

@@ -76,8 +76,9 @@ public class CommandeFourController implements CommandFourApi {
     }
 
     @Override
-    public ResponseEntity<LigneCmndeFournisseurDto> modifierQuantite(Long idCommandFour, Long idLigne, BigDecimal quantite) {
-        return ResponseEntity.ok(cmndeFourServ.modifierQuantite(idCommandFour, idLigne, quantite));
+    public ResponseEntity<LigneCmndeFournisseurDto> modifierLigne(Long idCommandFour, Long idLigne,
+                                                                  BigDecimal quantite, BigDecimal prixUnitaire) {
+        return ResponseEntity.ok(cmndeFourServ.modifierLigne(idCommandFour, idLigne, quantite, prixUnitaire));
     }
 
     @Override

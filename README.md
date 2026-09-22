@@ -274,12 +274,19 @@ Tant que la commande n'est pas figee, ses lignes se corrigent :
 GET    /gestiondestock/v1/commandes-fournisseurs/{id}/lignes
 POST   /gestiondestock/v1/commandes-fournisseurs/{id}/lignes
 PATCH  /gestiondestock/v1/commandes-fournisseurs/{id}/lignes/{idLigne}?quantite=25
+PATCH  /gestiondestock/v1/commandes-fournisseurs/{id}/lignes/{idLigne}?prixUnitaire=4500
 DELETE /gestiondestock/v1/commandes-fournisseurs/{id}/lignes/{idLigne}
 ```
 
 Ces operations n'ecrivent aucun mouvement de stock et n'ont rien a rattraper : la marchandise
 n'entre qu'a la livraison, qui relit les lignes telles qu'elles sont a ce moment-la. Les memes
 routes existent sous `/commandes-clients`.
+
+Le `PATCH` prend `quantite`, `prixUnitaire`, ou les deux ; les deux absents, il refuse plutot que
+de ne rien faire. Le prix n'est pas un detail : c'est le prix d'achat, et c'est lui qui alimente
+le cout moyen de l'article, donc la valeur du magasin. Il ne se corrigeait pas — un tarif annonce
+apres la saisie obligeait a retirer la ligne et a la recreer. Zero est accepte, parce qu'une ligne
+se saisit parfois avant que le fournisseur n'ait annonce son prix ; negatif, non.
 
 ### Livraison partielle
 
@@ -796,10 +803,8 @@ cherche un article precis et veut savoir combien il en reste ; lui servir le tab
 valorisation du comptable sur cinq pouces ne l'aiderait pas. Le statut se lit d'un coup d'oeil, et
 un stock negatif s'affiche en rouge — c'est lui qui reclame un comptage.
 
-**Receptions** (`/receptions`). Deux temps : choisir la commande qu'on a en main, puis saisir ce
-qui est reellement arrive. Ce qu'on saisit est la quantite de **cette arrivee**, jamais le cumul —
-demander un cumul obligerait a faire une soustraction de tete devant un camion. « Tout recu »
-remplit chaque ligne avec ce qui reste attendu.
+**Achats** (`/achats`). Voir plus bas : c'est le seul ecran du terrain qui a deux moments, et il
+merite sa section.
 
 La frappe des recherches est temporisee de 300 ms : un caractere par requete ferait huit
 allers-retours pour « ciment », ce qui se voit sur une connexion de telephone.
@@ -807,6 +812,61 @@ allers-retours pour « ciment », ce qui se voit sur une connexion de telephone.
 Les messages d'erreur de l'API sont montres tels quels. « La quantite recue depasse ce qui reste
 attendu : 4 attendus, 6 recus » dit ce qu'il faut faire ; le remplacer par « une erreur est
 survenue » effacerait la seule information utile a celui qui est devant l'ecran.
+
+### Les achats
+
+**Achats** (`/achats`). L'ecran s'appelait « Receptions » et ne savait que la moitie du travail :
+il recevait une commande, il n'en passait pas. Approvisionner le magasin depuis l'application
+etait donc impossible — la seule facon de creer une commande fournisseur etait d'appeler l'API a
+la main. C'etait le dernier trou du parcours.
+
+Une bascule, deux moments de la meme chose :
+
+- **En preparation** : les brouillons, qu'on compose et qu'on corrige.
+- **A recevoir** : les commandes passees, dont on attend la marchandise.
+
+Ce qui est livre, annule ou cloture n'y figure pas : c'est de l'historique, et il n'y a rien a y
+faire. La vue par defaut est « a recevoir », parce qu'on decharge un camion tous les jours et
+qu'on passe une commande de temps en temps ; elle vit dans l'URL, pour que revenir d'une commande
+retrouve l'onglet qu'on avait ouvert.
+
+**Composer une commande** (`/achats/nouvelle`, puis `/achats/{id}`). Le fournisseur d'abord —
+une commande se passe chez quelqu'un — puis les articles, cherches au code ou a la designation.
+La reference est pre-remplie (`BC-20260922-0714`) : la faire saisir reviendrait a demander
+d'inventer un numero unique avant d'avoir commence.
+
+**Le prix saisi est le prix d'achat, et c'est le point a ne pas manquer.** Il alimente le cout
+moyen de l'article, donc la valeur du magasin au bilan. Le pre-remplir avec le prix de vente du
+catalogue — ce qui serait commode — gonflerait silencieusement la valorisation, et personne ne
+s'en apercevrait avant l'inventaire. Le champ reste donc vide, son libelle dit ce qu'il attend, et
+une ligne sans prix empeche de passer la commande.
+
+Deux facons d'enregistrer, selon le moment :
+
+- Une commande **neuve** se compose en local et part d'un seul envoi, lignes comprises. Tant
+  qu'elle n'est pas enregistree, la fermer ne laisse rien derriere — ni commande vide, ni
+  reference reservee pour rien.
+- Un **brouillon deja enregistre** se corrige ligne par ligne, comme l'API le permet. Chaque
+  correction part quand on quitte le champ, jamais a chaque frappe : le prix « 4 » n'a pas a etre
+  enregistre en chemin vers « 4500 ».
+
+Passer la commande (`PATCH /{id}/etat/VALIDEE`) la fige : ses lignes ne bougent plus, et elle
+passe dans « a recevoir ». Ouvrir `/achats/{id}` sur une commande deja passee renvoie a sa
+reception plutot que de montrer un formulaire que l'API refusera.
+
+**Recevoir** (`/achats/{id}/reception`). Ce qu'on saisit est la quantite de **cette arrivee**,
+jamais le cumul — demander un cumul obligerait a faire une soustraction de tete devant un camion.
+« Tout recu » remplit chaque ligne avec ce qui reste attendu. Une reception partielle relit la
+commande aussitot, pour que le reste affiche soit celui d'apres la livraison.
+
+**Cloturer un reliquat** se fait la, sous un repli, et demande son motif : sans motif, on ne saura
+plus dans six mois pourquoi ces articles n'ont jamais ete recus. Le lot qui avait ouvert la
+cloture cote API n'avait pas d'ecran ; il en a un.
+
+Le prix d'une ligne ne se corrigeait pas non plus cote API — `PATCH /{id}/lignes/{idLigne}`
+n'acceptait que `quantite`. Il accepte desormais `quantite`, `prixUnitaire`, ou les deux ; une
+requete qui ne demande aucun changement est refusee. Un tarif annonce apres la saisie de la
+commande obligeait sinon a retirer la ligne et a la recreer.
 
 ### Le catalogue
 

@@ -46,11 +46,32 @@ export const routes: Routes = [
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
         loadComponent: () => import('./catalogue/categories').then((m) => m.Categories),
       },
+      // Les achats : passer une commande, puis recevoir ce qui arrive. Le chemin `/receptions`
+      // ne couvrait que le second temps — on ne pouvait pas commander depuis l'application.
       {
-        path: 'receptions',
+        path: 'achats',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
-        loadComponent: () => import('./receptions/reception').then((m) => m.Reception),
+        loadComponent: () => import('./achats/liste-achats').then((m) => m.ListeAchats),
       },
+      {
+        path: 'achats/nouvelle',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () =>
+          import('./achats/commande-fournisseur').then((m) => m.CommandeFournisseur),
+      },
+      {
+        path: 'achats/:id',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () =>
+          import('./achats/commande-fournisseur').then((m) => m.CommandeFournisseur),
+      },
+      {
+        path: 'achats/:id/reception',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./achats/reception').then((m) => m.Reception),
+      },
+      // Un signet sur l'ancien chemin continue de mener au bon endroit.
+      { path: 'receptions', redirectTo: 'achats' },
       {
         path: 'clients',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CAISSIER')],

@@ -1,0 +1,313 @@
+@let f = fournisseur();
+@let liste = lignes();
+@let dejaEnregistree = enregistree();
+
+<div class="mx-auto max-w-6xl">
+  <div class="mb-4 flex items-center gap-2">
+    <button mat-icon-button (click)="retour()" aria-label="Revenir aux achats">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span class="min-w-0 flex-1">
+      <span class="block truncate text-lg font-medium">
+        {{ dejaEnregistree ? code() : 'Nouvelle commande' }}
+      </span>
+      <span class="block truncate text-xs opacity-60">
+        {{ dejaEnregistree ? 'Brouillon — rien n’est encore parti chez le fournisseur' : 'Bon de commande fournisseur' }}
+      </span>
+    </span>
+    @if (dejaEnregistree) {
+      <span class="pastille shrink-0"
+            style="background: var(--mat-sys-surface-container-high); color: var(--mat-sys-on-surface-variant)">
+        En préparation
+      </span>
+    }
+  </div>
+
+  @if (chargement()) {
+    <div class="grid gap-4 lg:grid-cols-[1fr_400px]">
+      <div class="squelette h-64"></div>
+      <div class="squelette h-64"></div>
+    </div>
+  } @else {
+    <div class="grid gap-4 lg:grid-cols-[1fr_400px]">
+      <!-- Volet gauche : chez qui, et quoi -->
+      <section class="min-w-0">
+        <div class="carte p-4">
+          <h2 class="mb-3 text-xs font-medium uppercase tracking-wide opacity-60">Fournisseur</h2>
+
+          @if (f) {
+            <div
+              class="flex items-center gap-3 rounded-lg px-3 py-2"
+              style="background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container)"
+            >
+              <mat-icon class="shrink-0">local_shipping</mat-icon>
+              <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ nomDuFournisseur(f) }}</span>
+              @if (!dejaEnregistree) {
+                <button mat-icon-button (click)="choisirFournisseur(null)" aria-label="Changer de fournisseur">
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+            </div>
+          } @else {
+            <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+              <mat-label>Chercher un fournisseur</mat-label>
+              <mat-icon matPrefix>search</mat-icon>
+              <input
+                matInput
+                inputmode="search"
+                autocapitalize="none"
+                [ngModel]="rechercheFournisseur()"
+                (ngModelChange)="chercherFournisseur($event)"
+                placeholder="nom ou numéro"
+              />
+            </mat-form-field>
+
+            @if (chercheFournisseur()) {
+              <div class="mt-2 flex flex-col gap-1">
+                @for (i of [1, 2, 3]; track i) {
+                  <div class="squelette h-10"></div>
+                }
+              </div>
+            } @else if (fournisseursTrouves().length > 0) {
+              <ul class="mt-2 flex list-none flex-col gap-1 p-0">
+                @for (t of fournisseursTrouves(); track t.id) {
+                  <li>
+                    <button
+                      type="button"
+                      class="carte carte-cliquable flex w-full items-center gap-2 px-3 py-2 text-left"
+                      style="color: var(--mat-sys-on-surface)"
+                      (click)="choisirFournisseur(t)"
+                    >
+                      <span class="min-w-0 flex-1 truncate text-sm">{{ nomDuFournisseur(t) }}</span>
+                      <span class="shrink-0 text-xs opacity-60">{{ t.tel }}</span>
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else if (rechercheFournisseur()) {
+              <p class="mt-3 text-sm opacity-60">
+                Aucun fournisseur ne correspond à « {{ rechercheFournisseur() }} ».
+                <a routerLink="/fournisseurs" class="underline">Créer la fiche</a>
+              </p>
+            } @else {
+              <p class="mt-1 text-sm opacity-60">
+                Une commande se passe chez quelqu’un : commencez par là.
+              </p>
+            }
+          }
+
+          @if (!dejaEnregistree) {
+            <mat-form-field appearance="outline" class="mt-4 w-full" subscriptSizing="dynamic">
+              <mat-label>Référence de la commande</mat-label>
+              <input matInput [ngModel]="code()" (ngModelChange)="code.set($event)" />
+              <mat-hint>Elle figurera sur le bon de livraison que vous recevrez</mat-hint>
+            </mat-form-field>
+          }
+        </div>
+
+        <!-- Les articles : on ne peut en chercher qu'une fois le fournisseur choisi. -->
+        <div class="carte mt-4 p-4" [class.opacity-50]="!f" [class.pointer-events-none]="!f">
+          <h2 class="mb-3 text-xs font-medium uppercase tracking-wide opacity-60">
+            Ajouter des articles
+          </h2>
+
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+            <mat-label>Chercher un article</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input
+              matInput
+              inputmode="search"
+              autocapitalize="none"
+              autocorrect="off"
+              [ngModel]="rechercheArticle()"
+              (ngModelChange)="chercherArticle($event)"
+              placeholder="code ou désignation"
+              [disabled]="!f"
+            />
+          </mat-form-field>
+
+          @if (chercheArticle()) {
+            <div class="mt-3 grid gap-2 sm:grid-cols-2">
+              @for (i of [1, 2, 3, 4]; track i) {
+                <div class="squelette h-16"></div>
+              }
+            </div>
+          } @else if (articlesTrouves().length > 0) {
+            <div class="mt-3 grid gap-2 sm:grid-cols-2">
+              @for (article of articlesTrouves(); track article.id) {
+                <button
+                  type="button"
+                  class="carte carte-cliquable flex items-center gap-3 p-3 text-left"
+                  style="color: var(--mat-sys-on-surface)"
+                  (click)="ajouter(article)"
+                >
+                  <mat-icon class="shrink-0 opacity-60">add_circle_outline</mat-icon>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-medium">{{ article.designation }}</span>
+                    <span class="block truncate text-xs opacity-60">{{ article.codeArticle }}</span>
+                  </span>
+                </button>
+              }
+            </div>
+          } @else if (rechercheArticle()) {
+            <div class="py-8 text-center opacity-50">
+              <mat-icon class="!h-10 !w-10 !text-4xl">search_off</mat-icon>
+              <p class="mt-1 text-sm">Aucun article ne correspond à « {{ rechercheArticle() }} ».</p>
+            </div>
+          } @else {
+            <p class="mt-1 text-sm opacity-60">
+              Cherchez un article pour l’ajouter au bon de commande.
+            </p>
+          }
+        </div>
+      </section>
+
+      <!-- Volet droit : le bon de commande -->
+      <section class="min-w-0">
+        <div class="carte flex flex-col lg:sticky lg:top-0">
+          <header
+            class="flex items-center gap-2 border-b px-4 py-3"
+            style="border-color: var(--mat-sys-outline-variant)"
+          >
+            <mat-icon class="!h-5 !w-5 !text-xl">assignment</mat-icon>
+            <span class="flex-1 text-sm font-medium">Bon de commande</span>
+          </header>
+
+          @if (liste.length === 0) {
+            <div class="px-4 py-12 text-center opacity-50">
+              <mat-icon class="!h-10 !w-10 !text-4xl">assignment_add</mat-icon>
+              <p class="mt-1 text-sm">Aucun article pour l’instant.</p>
+            </div>
+          } @else {
+            <ul class="flex list-none flex-col gap-0 p-0">
+              @for (ligne of liste; track ligne.article.id; let i = $index) {
+                <li
+                  class="border-b px-3 py-2 last:border-b-0"
+                  style="border-color: var(--mat-sys-outline-variant)"
+                >
+                  <div class="flex items-start gap-2">
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate text-sm font-medium">
+                        {{ ligne.article.designation }}
+                      </span>
+                      <span class="block truncate text-xs opacity-60">
+                        {{ ligne.article.codeArticle }}
+                      </span>
+                    </span>
+                    <span class="nombre shrink-0 text-sm font-medium">
+                      {{ ligne.quantite * ligne.prixAchat | number: '1.0-0' }} F
+                    </span>
+                    <button mat-icon-button (click)="retirer(i)" aria-label="Retirer cet article">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+
+                  <div class="mt-1 flex gap-2">
+                    <mat-form-field appearance="outline" class="w-24 shrink-0" subscriptSizing="dynamic">
+                      <mat-label>Quantité</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        inputmode="decimal"
+                        min="1"
+                        [ngModel]="ligne.quantite"
+                        (ngModelChange)="changerQuantite(i, $event)"
+                        (blur)="ligneQuittee(i)"
+                      />
+                    </mat-form-field>
+
+                    <!--
+                      Prix d'ACHAT, et le libelle le dit. C'est lui qui alimente le cout moyen de
+                      l'article, donc la valeur du magasin : le pre-remplir avec le prix de vente
+                      fausserait la valorisation sans que personne s'en apercoive.
+                    -->
+                    <mat-form-field appearance="outline" class="min-w-0 flex-1" subscriptSizing="dynamic">
+                      <mat-label>Prix d’achat unitaire</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        inputmode="decimal"
+                        min="0"
+                        [ngModel]="ligne.prixAchat || null"
+                        (ngModelChange)="changerPrix(i, $event)"
+                        (blur)="ligneQuittee(i)"
+                        placeholder="0"
+                      />
+                      <span matTextSuffix>F</span>
+                    </mat-form-field>
+                  </div>
+
+                  @if (ligne.prixAchat <= 0) {
+                    <p class="mt-1 text-xs" style="color: var(--mat-sys-tertiary)">
+                      Prix d’achat à renseigner.
+                    </p>
+                  }
+                </li>
+              }
+            </ul>
+          }
+
+          @if (erreur(); as message) {
+            <p class="mx-3 mb-2 mt-2 rounded px-3 py-2 text-sm" role="alert"
+               style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+              {{ message }}
+            </p>
+          }
+
+          <!-- Le total et l'action : sous le pouce, jamais au bas d'une longue liste. -->
+          <footer
+            class="sticky bottom-0 border-t p-3"
+            style="border-color: var(--mat-sys-outline-variant); background: var(--mat-sys-surface-container)"
+          >
+            <div class="mb-2 flex items-baseline gap-2">
+              <span class="flex-1 text-xs uppercase tracking-wide opacity-60">
+                {{ articles() }} article{{ articles() > 1 ? 's' : '' }}
+              </span>
+              <span class="nombre text-2xl font-medium">{{ total() | number: '1.0-0' }} F</span>
+            </div>
+
+            @if (!dejaEnregistree) {
+              <button
+                mat-flat-button
+                class="!h-12 w-full"
+                [disabled]="!complet() || envoiEnCours()"
+                (click)="enregistrer()"
+              >
+                <mat-icon>save</mat-icon>
+                {{ envoiEnCours() ? 'Enregistrement…' : 'Enregistrer le brouillon' }}
+              </button>
+              @if (!complet()) {
+                <p class="mt-2 text-center text-xs opacity-60">
+                  Il faut un fournisseur, une référence et au moins un article.
+                </p>
+              }
+            } @else {
+              <button
+                mat-flat-button
+                class="!h-12 w-full"
+                [disabled]="!complet() || sansPrix() > 0 || envoiEnCours()"
+                (click)="valider()"
+              >
+                <mat-icon>send</mat-icon>
+                {{ envoiEnCours() ? 'Envoi…' : 'Passer la commande' }}
+              </button>
+              @if (sansPrix() > 0) {
+                <p class="mt-2 text-center text-xs opacity-70">
+                  {{ sansPrix() }} ligne{{ sansPrix() > 1 ? 's sont' : ' est' }} sans prix d’achat :
+                  la valeur du stock en dépend.
+                </p>
+              } @else {
+                <p class="mt-2 text-center text-xs opacity-60">
+                  Une fois passée, ses lignes ne bougent plus.
+                </p>
+              }
+              <button mat-button class="mt-1 w-full" [disabled]="envoiEnCours()" (click)="annuler()">
+                Abandonner cette commande
+              </button>
+            }
+          </footer>
+        </div>
+      </section>
+    </div>
+  }
+</div>

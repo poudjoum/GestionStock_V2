@@ -97,10 +97,22 @@ public interface CommandFourApi {
     ResponseEntity<LigneCmndeFournisseurDto> ajouterLigne(@PathVariable Long idCommandFour,
                                                           @RequestBody LigneCmndeFournisseurDto ligne);
 
+    /**
+     * Corrige une ligne : `?quantite=12`, `?prixUnitaire=4500`, ou les deux.
+     *
+     * Le prix ne se corrigeait pas. Il n'est pourtant pas un detail : c'est le prix d'achat, et
+     * c'est lui qui alimente le cout moyen de l'article, donc la valeur du magasin. Une commande
+     * saisie avant que le fournisseur n'annonce son tarif ne pouvait plus etre rectifiee autrement
+     * qu'en retirant la ligne et en la recreant.
+     *
+     * Les deux parametres sont facultatifs, mais pas ensemble : une requete qui ne demande aucun
+     * changement est une erreur d'appel, pas une modification vide.
+     */
     @PatchMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/lignes/{idLigne}",produces = MediaType.APPLICATION_JSON_VALUE)
-    ResponseEntity<LigneCmndeFournisseurDto> modifierQuantite(@PathVariable Long idCommandFour,
-                                                              @PathVariable Long idLigne,
-                                                              @RequestParam BigDecimal quantite);
+    ResponseEntity<LigneCmndeFournisseurDto> modifierLigne(@PathVariable Long idCommandFour,
+                                                           @PathVariable Long idLigne,
+                                                           @RequestParam(required = false) BigDecimal quantite,
+                                                           @RequestParam(required = false) BigDecimal prixUnitaire);
 
     @DeleteMapping(value = APP_ROOT+"/commandes-fournisseurs/{idCommandFour}/lignes/{idLigne}")
     ResponseEntity<Void> retirerLigne(@PathVariable Long idCommandFour, @PathVariable Long idLigne);

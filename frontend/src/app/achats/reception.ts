@@ -2,17 +2,13 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import {
-  CommandeFourDto,
-  LigneCmndeFournisseurDto,
-  Receptions,
-} from './receptions.service';
+import { Achats, CommandeFourDto, LigneCmndeFournisseurDto } from './achats.service';
 import { messageDErreur } from '../noyau/erreurs';
 
 /** Une ligne de commande, avec ce que le magasinier est en train de saisir. */
@@ -24,11 +20,16 @@ interface LigneSaisie {
 /**
  * La reception de marchandise, telle qu'on la fait au quai.
  *
- * Deux temps : choisir la commande qu'on a en main, puis saisir ce qui est reellement arrive.
- *
  * Ce qu'on saisit est la quantite de **cette arrivee**, jamais le cumul : c'est ce qui a ete
  * compte au dechargement, et demander un cumul obligerait a faire une soustraction de tete devant
  * un camion.
+ *
+ * La commande arrive par son adresse — `/achats/12/reception` — et non par une liste interne :
+ * c'est la liste des achats qui choisit, et revenir en arriere y retourne plutot que de remonter
+ * d'un etage dans un ecran qui en contenait deux.
+ *
+ * Quand le reliquat ne viendra jamais, on le clot ici, avec son motif. Rien n'entre alors en
+ * stock : clore, c'est constater une absence.
  */
 @Component({
   selector: 'app-reception',
@@ -39,63 +40,46 @@ interface LigneSaisie {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
-    MatProgressBarModule,
   ],
   templateUrl: './reception.html',
 })
 export class Reception implements OnInit {
-  private readonly service = inject(Receptions);
+  private readonly service = inject(Achats);
+  private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly snack = inject(MatSnackBar);
 
-  protected readonly recherche = signal('');
-  protected readonly commandes = signal<CommandeFourDto[]>([]);
-  protected readonly choisie = signal<CommandeFourDto | null>(null);
+  protected readonly commande = signal<CommandeFourDto | null>(null);
   protected readonly saisies = signal<LigneSaisie[]>([]);
   protected readonly chargement = signal(true);
   protected readonly envoiEnCours = signal(false);
   protected readonly erreur = signal<string | null>(null);
 
+  protected readonly cloture = signal(false);
+  protected readonly motif = signal('');
+
   /** Rien a envoyer tant qu'aucune quantite n'est saisie : le bouton reste inerte. */
-  protected readonly aQuelqueChose = computed(() =>
-    this.saisies().some((s) => (s.recue ?? 0) > 0),
+  protected readonly aQuelqueChose = computed(() => this.saisies().some((s) => (s.recue ?? 0) > 0));
+  protected readonly attendu = computed(() =>
+    this.saisies().reduce((somme, s) => somme + reste(s.ligne), 0),
   );
+  /** Seule une commande deja entamee a un reliquat a clore. */
+  protected readonly cloturable = computed(() => this.commande()?.etat === 'PARTIELLEMENT_LIVREE');
 
   ngOnInit(): void {
-    this.charger();
+    this.charger(Number(this.route.snapshot.paramMap.get('id')));
   }
 
-  protected chercher(q: string): void {
-    this.recherche.set(q);
-    this.charger();
-  }
-
-  protected ouvrir(commande: CommandeFourDto): void {
-    this.choisie.set(commande);
-    this.chargement.set(true);
-    this.erreur.set(null);
-    this.service.lignes(commande.id!).subscribe({
-      next: (lignes) => {
-        this.saisies.set(lignes.map((ligne) => ({ ligne, recue: null })));
-        this.chargement.set(false);
-      },
-      error: () => {
-        this.chargement.set(false);
-        this.erreur.set('Les lignes de la commande n’ont pas pu être chargées.');
-      },
-    });
-  }
-
-  protected revenir(): void {
-    this.choisie.set(null);
-    this.saisies.set([]);
-    this.erreur.set(null);
-    this.charger();
+  protected retour(): void {
+    void this.router.navigate(['/achats'], { queryParams: { vue: 'attendues' } });
   }
 
   protected saisir(index: number, valeur: string): void {
     const nombre = valeur === '' ? null : Number(valeur);
     this.saisies.update((liste) =>
-      liste.map((s, i) => (i === index ? { ...s, recue: Number.isFinite(nombre!) ? nombre : null } : s)),
+      liste.map((s, i) =>
+        i === index ? { ...s, recue: Number.isFinite(nombre!) ? nombre : null } : s,
+      ),
     );
   }
 
@@ -116,7 +100,7 @@ export class Reception implements OnInit {
   }
 
   protected envoyer(): void {
-    const commande = this.choisie();
+    const commande = this.commande();
     if (!commande || this.envoiEnCours() || !this.aQuelqueChose()) {
       return;
     }
@@ -136,11 +120,16 @@ export class Reception implements OnInit {
         this.envoiEnCours.set(false);
         const solde = apres.etat === 'LIVREE';
         this.snack.open(
-          solde ? 'Commande soldée : tout est arrivé.' : 'Réception enregistrée, il reste du.',
+          solde ? 'Commande soldée : tout est arrivé.' : 'Réception enregistrée, il reste dû.',
           'Fermer',
           { duration: 4000 },
         );
-        this.revenir();
+        if (solde) {
+          this.retour();
+        } else {
+          // Il reste du : on relit, pour que le reste affiche soit celui d'apres la livraison.
+          this.charger(commande.id!);
+        }
       },
       error: (echec: unknown) => {
         this.envoiEnCours.set(false);
@@ -148,28 +137,59 @@ export class Reception implements OnInit {
         if (echec instanceof HttpErrorResponse && echec.status === 400) {
           // Les lignes ont pu bouger entre l'ouverture et l'envoi : on les relit pour que
           // l'ecran cesse d'afficher un reste qui n'est plus vrai.
-          this.ouvrir(this.choisie()!);
+          this.charger(commande.id!);
         }
       },
     });
   }
 
-  private charger(): void {
+  protected cloturer(): void {
+    const commande = this.commande();
+    if (!commande || this.envoiEnCours() || !this.motif().trim()) {
+      return;
+    }
+    this.envoiEnCours.set(true);
+    this.erreur.set(null);
+    this.service.cloturer(commande.id!, this.motif().trim()).subscribe({
+      next: () => {
+        this.envoiEnCours.set(false);
+        this.snack.open('Reliquat clôturé : on ne l’attend plus.', 'Fermer', { duration: 4000 });
+        this.retour();
+      },
+      error: (echec: unknown) => {
+        this.envoiEnCours.set(false);
+        this.erreur.set(messageDErreur(echec, 'Le reliquat n’a pas pu être clôturé.'));
+      },
+    });
+  }
+
+  private charger(id: number): void {
     this.chargement.set(true);
     this.erreur.set(null);
-    this.service.aRecevoir(this.recherche()).subscribe({
-      next: (page) => {
-        this.commandes.set(page.content ?? []);
+    this.cloture.set(false);
+    this.motif.set('');
+
+    this.service.detail(id).subscribe({
+      next: (commande) => this.commande.set(commande),
+      error: (echec: unknown) => {
+        this.chargement.set(false);
+        this.erreur.set(messageDErreur(echec, 'La commande n’a pas pu être chargée.'));
+      },
+    });
+
+    this.service.lignes(id).subscribe({
+      next: (lignes) => {
+        this.saisies.set(lignes.map((ligne) => ({ ligne, recue: null })));
         this.chargement.set(false);
       },
       error: () => {
         this.chargement.set(false);
-        this.erreur.set('Les commandes n’ont pas pu être chargées.');
+        this.erreur.set('Les lignes de la commande n’ont pas pu être chargées.');
       },
     });
   }
 }
 
 function reste(ligne: LigneCmndeFournisseurDto): number {
-  return ligne.resteALivrer ?? 0;
+  return Number(ligne.resteALivrer ?? 0);
 }

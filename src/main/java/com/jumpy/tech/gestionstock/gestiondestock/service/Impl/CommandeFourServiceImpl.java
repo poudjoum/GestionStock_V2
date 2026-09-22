@@ -101,6 +101,11 @@ public class CommandeFourServiceImpl implements CommandeFourService {
             dto.getLigneCmndeFournisseur().forEach(ligCmdFour -> {
                 LigneCmndeFournisseur ligneCmndeFour = LigneCmndeFournisseurDto.toEntity(ligCmdFour);
                 ligneCmndeFour.setCommandeFournisseur(saveCmndFour);
+                // Les lignes ajoutees apres coup portent l'entreprise de leur commande ; celles
+                // creees avec elle ne la portaient pas. Rien ne les lit sans passer par la
+                // commande, qui est cloisonnee — mais deux chemins qui n'ecrivent pas la meme
+                // chose finissent toujours par diverger le jour ou l'un des deux est lu seul.
+                ligneCmndeFour.setIdEntreprise(saveCmndFour.getIdEntreprise());
                 ligneCmndeFourRepository.save(ligneCmndeFour);
             });
         }
@@ -294,10 +299,20 @@ public class CommandeFourServiceImpl implements CommandeFourService {
 
     @Override
     @Transactional
-    public LigneCmndeFournisseurDto modifierQuantite(Long idCommande, Long idLigne, BigDecimal quantite) {
+    public LigneCmndeFournisseurDto modifierLigne(Long idCommande, Long idLigne, BigDecimal quantite,
+                                                  BigDecimal prixUnitaire) {
+        if (quantite == null && prixUnitaire == null) {
+            throw new InvalidEntityException("Indiquez ce qu'il faut changer : la quantité, le prix, ou les deux",
+                    ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID);
+        }
         commandeModifiable(idCommande);
         LigneCmndeFournisseur ligne = ligne(idCommande, idLigne);
-        ligne.setQuantite(quantiteValide(quantite));
+        if (quantite != null) {
+            ligne.setQuantite(quantiteValide(quantite));
+        }
+        if (prixUnitaire != null) {
+            ligne.setPrixUnitaire(prixValide(prixUnitaire));
+        }
         return LigneCmndeFournisseurDto.fromEntity(ligneCmndeFourRepository.save(ligne));
     }
 
@@ -360,6 +375,20 @@ public class CommandeFourServiceImpl implements CommandeFourService {
                     ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID);
         }
         return quantite;
+    }
+
+    /**
+     * Un prix d'achat negatif ne veut rien dire ; zero est accepte, parce qu'une ligne se saisit
+     * parfois avant que le fournisseur n'ait annonce son tarif — c'est precisement ce que la
+     * correction du prix sert a rattraper.
+     */
+    private BigDecimal prixValide(BigDecimal prix) {
+        if (prix.signum() < 0) {
+            throw new InvalidEntityException(
+                    "Le prix d'achat d'une ligne de commande ne peut pas être négatif",
+                    ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID);
+        }
+        return prix;
     }
 
     private Article article(Long idArticle) {
