@@ -832,6 +832,24 @@ recherche infructueuse propose de creer l'article cherche.
 Une seule entree de menu pour les deux ecrans : on cree cinq categories une fois pour toutes, la
 ou l'on ajoute des articles toute l'annee.
 
+### Le repertoire
+
+**Clients** (`/clients`) et **fournisseurs** (`/fournisseurs`), sur un seul ecran.
+
+Ils ont exactement la meme forme — un nom, un prenom, un courriel, un numero, tous les quatre
+exiges par l'API — et deux ecrans identiques finiraient par diverger, l'un ayant un champ que
+l'autre n'a pas sans que personne sache pourquoi.
+
+Mais deux metiers, et c'est ce qui decide de la bascule : le caissier enregistre un client qui se
+presente au comptoir, le magasinier un fournisseur qui livre. L'API leur ouvre des droits
+differents, et l'ecran ne montre donc que l'onglet qu'on peut reellement utiliser — en montrer un
+qui rendra 403 serait une promesse qu'on ne tient pas. Deux adresses malgre tout, pour qu'un lien
+ou un signet mene a l'onglet attendu.
+
+L'API nomme les memes champs differemment (`prenoms`/`numTel` chez le client, `prenom`/`tel` chez
+le fournisseur) et le chemin est au pluriel pour l'un, au singulier pour l'autre. La traduction
+vit dans le service, en un seul endroit, plutot que d'infecter le formulaire.
+
 ### Les trois ecrans de bureau
 
 Ceux du comptable et de l'administrateur : des tableaux, des filtres, et le detail dans un volet
