@@ -1,5 +1,8 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 import { gardeConnecte, gardeDeconnecte, gardeRoles } from './noyau/gardes';
+import { accueilPour } from './noyau/roles';
+import { Session } from './noyau/session';
 
 export const routes: Routes = [
   {
@@ -53,9 +56,17 @@ export const routes: Routes = [
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')],
         loadComponent: () => import('./comptes/comptes').then((m) => m.Comptes),
       },
-      // La racine mene a l'accueil du role : la redirection se fait a la connexion, et cette
-      // entree ne sert qu'a ceux qui arrivent par un signet.
-      { path: '', pathMatch: 'full', redirectTo: 'notifications' },
+      // La racine mene a l'accueil du role, et non a une page fixe.
+      //
+      // Elle sert a ceux qui arrivent par un signet ou en tapant l'adresse : un administrateur
+      // tombait alors sur ses notifications plutot que sur son tableau de bord, et un caissier
+      // sur un ecran qui ne le concerne pas. La redirection se resout au moment ou l'on passe,
+      // avec les roles qu'on a ce jour-la.
+      {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: () => accueilPour(inject(Session).roles()),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
