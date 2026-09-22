@@ -951,20 +951,35 @@ Docker, PostgreSQL, volume et port lui sont propres (`docker-compose.prod.yml`).
 Le serveur n'a ni JDK ni Maven — le Dockerfile en deux temps les apporte le temps de la
 construction, et l'image finale n'embarque qu'un JRE.
 
-```bash
-# Depuis le poste de developpement : envoi de l'arbre commite
-git archive --format=tar HEAD | ssh jumpy@<serveur> \
-  'rm -rf ~/apps/gestionstock/source.new && mkdir -p ~/apps/gestionstock/source.new \
-   && tar -x -C ~/apps/gestionstock/source.new \
-   && cd ~/apps/gestionstock && rm -rf source.old && mv source source.old && mv source.new source'
+`~/apps/gestionstock/source` est un **clone du depot**, et le deploiement se reduit a un `git
+pull`. Il l'a longtemps ete d'une copie envoyee par `git archive` : le serveur ne savait alors pas
+quelle version il portait, et la seule facon de le dire etait de comparer les fichiers un a un.
 
-# Sur le serveur : construction et demarrage
-ssh jumpy@<serveur> 'cd ~/apps/gestionstock/source && docker build -t gestionstock:latest .'
-ssh jumpy@<serveur> 'cd ~/apps/gestionstock && docker compose -p gestionstock -f docker-compose.prod.yml up -d'
+```bash
+ssh jumpy@<serveur> 'cd ~/apps/gestionstock/source && git pull --ff-only'
+ssh jumpy@<serveur> 'cd ~/apps/gestionstock && docker build -t gestionstock:latest ./source'
+ssh jumpy@<serveur> 'cd ~/apps/gestionstock \
+  && docker compose -p gestionstock --env-file .env -f source/docker-compose.prod.yml up -d'
 ```
 
-Le `.env` de production vit dans `~/apps/gestionstock/.env`, en `chmod 600`, et ses secrets sont
-generes sur le serveur (`openssl rand`) : ils n'ont jamais a transiter par un poste de travail.
+Premiere installation :
+
+```bash
+ssh jumpy@<serveur> 'mkdir -p ~/apps/gestionstock && cd ~/apps/gestionstock \
+  && git clone https://github.com/poudjoum/GestionStock_V2.git source'
+# puis creer ~/apps/gestionstock/.env a partir de source/.env.example
+```
+
+Le compose vient du depot, et non d'une copie posee a cote : deux fichiers a garder synchronises a
+la main finissent toujours par diverger — celui du serveur avait effectivement pris du retard sur
+trois variables.
+
+Le `.env`, lui, reste hors du depot : il vit dans `~/apps/gestionstock/.env`, en `chmod 600`, et
+ses secrets sont generes sur le serveur (`openssl rand`) — ils n'ont jamais a transiter par un
+poste de travail. D'ou le `--env-file`, le fichier n'etant plus a cote du compose.
+
+Le depot etant public, le serveur clone sans identifiants : ni cle de deploiement, ni jeton a
+renouveler.
 
 Sonde : `curl http://<serveur>:9092/gestiondestock/v1/articles/all` — un **401** signifie que
 l'application tourne et que la securite fait son office.
@@ -1037,6 +1052,8 @@ A savoir avant de reprendre le developpement :
   modules et retire les API depreciees de toute la ligne 3.x : c'est une migration en soi, a mener
   une fois celle-ci eprouvee. springdoc devra alors passer en 3.x, sa ligne 2.x etant alignee sur
   Boot 3.
+- Le dossier deploye porte encore `source.copie-avant-git`, la copie d'avant la conversion en
+  depot. A supprimer une fois qu'on s'est assure que rien ne manque.
 - Un avertissement au demarrage : `InitializeUserDetailsBeanManagerConfigurer` signale que le
   `DaoAuthenticationProvider` declare rend inutile la configuration automatique. C'est notre cas
   et c'est voulu — reste a le taire, ce qui tient en une ligne de configuration.
