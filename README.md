@@ -808,6 +808,30 @@ Les messages d'erreur de l'API sont montres tels quels. « La quantite recue dep
 attendu : 4 attendus, 6 recus » dit ce qu'il faut faire ; le remplacer par « une erreur est
 survenue » effacerait la seule information utile a celui qui est devant l'ecran.
 
+### Le catalogue
+
+**Articles** (`/articles`) et **categories** (`/categories`). C'est le point de depart : sans
+article, il n'y a rien a vendre, rien a recevoir, rien a compter.
+
+Deux partis pris, tires de la facon dont on remplit un catalogue — assis, par lots, rarement un
+seul article :
+
+- **La recherche precede le bouton de creation.** Le code d'un article est unique, et le risque
+  quand on saisit vingt references d'affilee n'est pas la faute de frappe mais le doublon.
+- **Le volet reste ouvert apres l'enregistrement d'un nouvel article.** Il se vide et garde la
+  categorie, puisqu'on saisit en general plusieurs articles du meme rayon ; le refermer a chaque
+  fois couterait vingt clics pour vingt articles.
+
+Le prix TTC se calcule sous les yeux a mesure qu'on saisit le prix HT et le taux : c'est celui
+qu'on annonce au client, et le refaire de tete a chaque reference est une erreur qui attend.
+
+Les etats vides disent quoi faire plutot que de constater : un catalogue vide sans categorie
+renvoie vers les categories en expliquant qu'un article ne peut pas exister sans elle, et une
+recherche infructueuse propose de creer l'article cherche.
+
+Une seule entree de menu pour les deux ecrans : on cree cinq categories une fois pour toutes, la
+ou l'on ajoute des articles toute l'annee.
+
 ### Les trois ecrans de bureau
 
 Ceux du comptable et de l'administrateur : des tableaux, des filtres, et le detail dans un volet
