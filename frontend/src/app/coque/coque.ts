@@ -90,6 +90,8 @@ function titrePour(url: string): string {
     return entree.libelle;
   }
   if (chemin === '/notifications') return 'Notifications';
+  // Les categories n'ont pas d'entree de menu : on y arrive depuis le catalogue.
+  if (chemin === '/categories') return 'Catégories';
   if (chemin === '/accueil' || chemin === '/') return 'Accueil';
   return 'Gestion de stock';
 }

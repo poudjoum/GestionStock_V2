@@ -58,6 +58,14 @@ export const MENU: EntreeDeMenu[] = [
     principal: true,
   },
   {
+    chemin: '/articles',
+    libelle: 'Catalogue',
+    icone: 'category',
+    // Une seule entree pour les deux ecrans : on gere les categories depuis le catalogue, parce
+    // qu'on en cree cinq une fois pour toutes la ou l'on ajoute des articles toute l'annee.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
+  },
+  {
     chemin: '/receptions',
     libelle: 'Réceptions',
     icone: 'local_shipping',

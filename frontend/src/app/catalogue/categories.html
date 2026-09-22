@@ -1,0 +1,153 @@
+@let ouvert = volet();
+@let s = saisie();
+@let liste = lignes();
+
+<div class="mx-auto grid max-w-5xl gap-4" [class]="ouvert ? 'lg:grid-cols-[1fr_360px]' : ''">
+  <section class="min-w-0">
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <a mat-icon-button routerLink="/articles" aria-label="Revenir au catalogue">
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+
+      <mat-form-field appearance="outline" class="min-w-0 flex-1" subscriptSizing="dynamic">
+        <mat-label>Chercher une catégorie</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          [ngModel]="recherche()"
+          (ngModelChange)="recherche.set($event)"
+          placeholder="code ou libellé"
+        />
+      </mat-form-field>
+
+      <button mat-flat-button class="!h-12" (click)="nouvelle()">
+        <mat-icon>add</mat-icon>
+        Nouvelle catégorie
+      </button>
+    </div>
+
+    @if (chargement()) {
+      <div class="flex flex-col gap-2">
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="squelette h-14"></div>
+        }
+      </div>
+    } @else if (erreur(); as message) {
+      <p class="rounded px-3 py-2 text-sm" role="alert"
+         style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+        {{ message }}
+      </p>
+    } @else if (liste.length === 0) {
+      <div class="py-20 text-center opacity-60">
+        <mat-icon class="!h-12 !w-12 !text-5xl">sell</mat-icon>
+        @if (recherche()) {
+          <p class="mt-2 text-sm">Aucune catégorie ne correspond à « {{ recherche() }} ».</p>
+        } @else {
+          <p class="mt-2 text-sm">
+            Aucune catégorie.<br />
+            Les catégories rangent les articles — un article ne peut pas exister sans elle.
+          </p>
+          <button mat-flat-button class="mt-4" (click)="nouvelle()">
+            <mat-icon>add</mat-icon>
+            Créer la première catégorie
+          </button>
+        }
+      </div>
+    } @else {
+      <ul class="flex list-none flex-col gap-2 p-0">
+        @for (categorie of liste; track categorie.id) {
+          <li>
+            <button
+              type="button"
+              class="carte carte-cliquable flex w-full items-center gap-3 p-3 text-left"
+              style="color: var(--mat-sys-on-surface)"
+              [style.border-color]="s.id === categorie.id ? 'var(--mat-sys-primary)' : 'var(--mat-sys-outline-variant)'"
+              (click)="modifier(categorie)"
+            >
+              <span
+                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                style="background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container)"
+              >
+                <mat-icon class="!h-5 !w-5 !text-xl">sell</mat-icon>
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-medium">{{ categorie.designation }}</span>
+                <span class="block truncate text-xs opacity-60">{{ categorie.codeCategorie }}</span>
+              </span>
+              <mat-icon class="shrink-0 opacity-40">edit</mat-icon>
+            </button>
+          </li>
+        }
+      </ul>
+
+      <p class="mt-3 text-center text-xs opacity-50">
+        {{ liste.length }} catégorie{{ liste.length > 1 ? 's' : '' }}
+      </p>
+    }
+  </section>
+
+  @if (ouvert) {
+    <aside class="min-w-0">
+      <div class="carte lg:sticky lg:top-0">
+        <header
+          class="flex items-center gap-2 border-b px-4 py-3"
+          style="border-color: var(--mat-sys-outline-variant)"
+        >
+          <span class="flex-1 font-medium">
+            {{ modification() ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}
+          </span>
+          <button mat-icon-button (click)="fermer()" aria-label="Fermer">
+            <mat-icon>close</mat-icon>
+          </button>
+        </header>
+
+        <div class="px-4 py-3">
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+            <mat-label>Code</mat-label>
+            <input
+              matInput
+              autocapitalize="characters"
+              autocorrect="off"
+              [ngModel]="s.codeCategorie"
+              (ngModelChange)="champ('codeCategorie', $event)"
+              placeholder="CIMENT"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="mt-4 w-full" subscriptSizing="dynamic">
+            <mat-label>Libellé</mat-label>
+            <input
+              matInput
+              [ngModel]="s.designation"
+              (ngModelChange)="champ('designation', $event)"
+              placeholder="Ciments et liants"
+            />
+            <mat-hint>Ce que l’on lit dans les listes</mat-hint>
+          </mat-form-field>
+
+          @if (erreurVolet(); as message) {
+            <p class="mt-4 rounded px-3 py-2 text-sm" role="alert"
+               style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
+              {{ message }}
+            </p>
+          }
+
+          <button
+            mat-flat-button
+            class="mt-4 !h-12 w-full"
+            [disabled]="!complet() || envoiEnCours()"
+            (click)="enregistrer()"
+          >
+            {{ envoiEnCours() ? 'Enregistrement…' : modification() ? 'Enregistrer' : 'Créer la catégorie' }}
+          </button>
+
+          @if (modification() && peutSupprimer()) {
+            <button mat-button class="mt-2 w-full" (click)="supprimer()">
+              Supprimer cette catégorie
+            </button>
+          }
+        </div>
+      </div>
+    </aside>
+  }
+</div>

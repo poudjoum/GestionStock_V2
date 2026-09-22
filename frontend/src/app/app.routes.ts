@@ -37,6 +37,16 @@ export const routes: Routes = [
         loadComponent: () => import('./stock/etat-du-stock').then((m) => m.EtatDuStock),
       },
       {
+        path: 'articles',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./catalogue/articles').then((m) => m.Articles),
+      },
+      {
+        path: 'categories',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./catalogue/categories').then((m) => m.Categories),
+      },
+      {
         path: 'receptions',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
         loadComponent: () => import('./receptions/reception').then((m) => m.Reception),
