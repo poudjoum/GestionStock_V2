@@ -981,6 +981,30 @@ poste de travail. D'ou le `--env-file`, le fichier n'etant plus a cote du compos
 Le depot etant public, le serveur clone sans identifiants : ni cle de deploiement, ni jeton a
 renouveler.
 
+### Le front deploye
+
+Il est servi par nginx sur le port **9093**, a cote de l'API :
+
+```
+http://<serveur>:9093
+```
+
+Le meme nginx relaie `/api` et `/gestiondestock` vers le conteneur de l'API. Le navigateur ne voit
+donc qu'une seule origine, et l'application s'ouvre depuis n'importe quel appareil du reseau — un
+telephone, un poste du bureau — sans qu'aucune adresse soit a declarer cote serveur.
+
+Deux details qui se paient cher :
+
+- **`proxy_set_header Origin "";`** Chrome envoie un en-tete `Origin` sur toute requete POST, y
+  compris de meme origine. Spring n'en sait rien : son filtre CORS voit une origine, la compare a
+  `CORS_ORIGINES`, ne l'y trouve pas, et repond **403**. Le navigateur echouait la ou `curl`
+  passait. Effacer l'en-tete dit au backend la verite du point de vue de nginx.
+- **`try_files $uri $uri/ /index.html`** Les routes d'Angular n'existent pas sur le disque :
+  ouvrir directement `/factures`, ou simplement rafraichir la page dessus, donnerait un 404.
+
+`CORS_ORIGINES` ne sert donc plus qu'au developpement, quand le front tourne sur `localhost:4200`
+et parle a l'API du serveur.
+
 Sonde : `curl http://<serveur>:9092/gestiondestock/v1/articles/all` — un **401** signifie que
 l'application tourne et que la securite fait son office.
 
