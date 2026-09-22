@@ -52,6 +52,16 @@ export const routes: Routes = [
         loadComponent: () => import('./receptions/reception').then((m) => m.Reception),
       },
       {
+        path: 'clients',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CAISSIER')],
+        loadComponent: () => import('./repertoire/repertoire').then((m) => m.RepertoireEcran),
+      },
+      {
+        path: 'fournisseurs',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./repertoire/repertoire').then((m) => m.RepertoireEcran),
+      },
+      {
         path: 'factures',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],
         loadComponent: () => import('./factures/liste-factures').then((m) => m.ListeFactures),

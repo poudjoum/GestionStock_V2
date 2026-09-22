@@ -73,6 +73,14 @@ export const MENU: EntreeDeMenu[] = [
     principal: true,
   },
   {
+    chemin: '/clients',
+    libelle: 'Répertoire',
+    icone: 'contacts',
+    // Une seule entree pour les clients et les fournisseurs : meme ecran, et la bascule
+    // n'apparait qu'a qui peut reellement voir les deux.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CAISSIER', 'ROLE_MAGASINIER'],
+  },
+  {
     chemin: '/factures',
     libelle: 'Factures',
     icone: 'receipt_long',

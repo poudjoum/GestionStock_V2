@@ -92,6 +92,7 @@ function titrePour(url: string): string {
   if (chemin === '/notifications') return 'Notifications';
   // Les categories n'ont pas d'entree de menu : on y arrive depuis le catalogue.
   if (chemin === '/categories') return 'Catégories';
+  if (chemin === '/fournisseurs') return 'Répertoire';
   if (chemin === '/accueil' || chemin === '/') return 'Accueil';
   return 'Gestion de stock';
 }
