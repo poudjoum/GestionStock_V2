@@ -4,7 +4,6 @@ import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.EtatDuStockDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneInventaireDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
-import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.StatutStock;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
@@ -183,10 +182,14 @@ public class StockServiceImpl implements StockService {
      *
      * Moyen et non « dernier prix connu » : le dernier achat peut etre une petite quantite a un
      * prix exceptionnel, et valoriser tout le stock a ce prix-la donnerait un chiffre faux.
+     *
+     * Le calcul suit ce qui est entre en magasin, livraison par livraison, et non les seules
+     * commandes soldees : une reception partielle fait bien monter le stock, elle doit donc faire
+     * monter sa valeur avec.
      */
     private Map<Long, BigDecimal> coutsMoyens(List<Long> idsArticles) {
         Map<Long, BigDecimal> couts = new HashMap<>();
-        for (Object[] ligne : ligneCmndeFourRepository.coutsAchetes(idsArticles, EtatCommande.LIVREE)) {
+        for (Object[] ligne : ligneCmndeFourRepository.coutsAchetes(idsArticles)) {
             BigDecimal montant = (BigDecimal) ligne[1];
             BigDecimal quantite = (BigDecimal) ligne[2];
             if (quantite != null && quantite.signum() > 0) {

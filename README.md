@@ -539,17 +539,24 @@ qui dort en rayon. Le stock se lisait article par article — personne ne pouvai
 l'ensemble, ni quels articles s'epuisaient.
 
 **Deux valorisations, parce qu'elles ne repondent pas a la meme question.** `valeurAuCout` est ce
-que la marchandise a coute, deduit des commandes fournisseur **livrees** ; `valeurAuPrixDeVente`
-est ce qu'elle rapporterait si elle se vendait. Confondre les deux fait passer une marge pour un
-avoir.
+que la marchandise a coute, deduit des **receptions** de commandes fournisseur ;
+`valeurAuPrixDeVente` est ce qu'elle rapporterait si elle se vendait. Confondre les deux fait
+passer une marge pour un avoir.
 
 - Le cout est **moyen**, pas celui du dernier achat : un dernier achat portant sur une petite
   quantite a un prix exceptionnel valoriserait tout le stock a ce prix-la.
 - Un article jamais achete par une commande — approvisionne a la main — n'a **pas de cout connu**,
   et sa valeur au cout reste vide. `nombreSansCoutConnu` le dit : sans ce compte, une valorisation
   partielle passerait pour complete.
-- Une commande non livree ne donne aucun cout : la marchandise n'est pas arrivee, son prix n'a
-  encore rien coute.
+- Une commande dont rien n'est arrive ne donne aucun cout : la marchandise n'est pas la, son prix
+  n'a encore rien coute.
+- **Ce qui compte est ce qui est entre, pas ce qui a ete commande.** Le calcul ne regardait que
+  les commandes soldees (`etat = LIVREE`), et suivait `quantite`. Une livraison partielle faisait
+  donc entrer douze sacs en magasin sans leur donner de valeur — et la clôture de son reliquat les
+  y laissait a zero pour toujours. Le magasin portait de la marchandise valorisee a rien, et
+  l'ecart ne se voyait nulle part. Il suit desormais `quantiteLivree`, sans regarder l'etat : une
+  ligne dont rien n'est arrive s'exclut d'elle-meme, puisque sa quantite livree vaut zero. Trouve
+  en faisant le parcours complet dans l'application, pas en relisant le code.
 
 **Seuil d'alerte** (`seuilAlerte` sur l'article, facultatif). Chaque ligne porte un statut :
 

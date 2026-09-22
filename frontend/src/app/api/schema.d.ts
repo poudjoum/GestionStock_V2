@@ -625,7 +625,7 @@ export interface paths {
         delete: operations["retirerLigne_1"];
         options?: never;
         head?: never;
-        patch: operations["modifierQuantite_1"];
+        patch: operations["modifierLigne"];
         trace?: never;
     };
     "/gestiondestock/v1/commandes-fournisseurs/{idCommandFour}/etat/{etat}": {
@@ -657,7 +657,7 @@ export interface paths {
         delete: operations["retirerLigne_2"];
         options?: never;
         head?: never;
-        patch: operations["modifierQuantite_2"];
+        patch: operations["modifierQuantite_1"];
         trace?: never;
     };
     "/gestiondestock/v1/commandes-clients/{idCommandClient}/etat/{etat}": {
@@ -3115,10 +3115,11 @@ export interface operations {
             };
         };
     };
-    modifierQuantite_1: {
+    modifierLigne: {
         parameters: {
-            query: {
-                quantite: number;
+            query?: {
+                quantite?: number;
+                prixUnitaire?: number;
             };
             header?: never;
             path: {
@@ -3184,7 +3185,7 @@ export interface operations {
             };
         };
     };
-    modifierQuantite_2: {
+    modifierQuantite_1: {
         parameters: {
             query: {
                 quantite: number;

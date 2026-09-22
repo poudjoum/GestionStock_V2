@@ -10,6 +10,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.EtatDuStockDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FournisseurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneInventaireDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
@@ -158,6 +159,67 @@ class EtatDuStockTest extends AbstractIntegrationTest {
         assertThat(etat.getNombreSansCoutConnu()).isEqualTo(1);
         assertThat(etat.getValeurAuCout()).isEqualByComparingTo("0.00");
         assertThat(etat.getValeurAuPrixDeVente()).isEqualByComparingTo("15000.00");
+    }
+
+    @Test
+    void une_livraison_partielle_valorise_ce_qui_est_arrive() {
+        Long idArticle = article("6000", null);
+        FournisseurDto fournisseur = fournisseurService.save(FournisseurDto.builder()
+                .nom("Fournisseur " + UUID.randomUUID()).prenom("X")
+                .mail(UUID.randomUUID() + "@exemple.test").tel("690000000").build());
+        CommandeFourDto commande = commandeFourService.save(CommandeFourDto.builder()
+                .code("CF-" + UUID.randomUUID())
+                .fournisseur(fournisseur)
+                .ligneCmndeFournisseur(List.of(LigneCmndeFournisseurDto.builder()
+                        .article(ArticleDto.builder().Id(idArticle).build())
+                        .quantite(new BigDecimal("20"))
+                        .prixUnitaire(new BigDecimal("4650"))
+                        .build()))
+                .build());
+        commandeFourService.mettreAJourEtat(commande.getId(), EtatCommande.VALIDEE);
+        Long idLigne = commandeFourService.lignes(commande.getId()).get(0).getId();
+        LigneReceptionDto douze = new LigneReceptionDto();
+        douze.setIdLigne(idLigne);
+        douze.setQuantite(new BigDecimal("12"));
+        commandeFourService.recevoir(commande.getId(), List.of(douze));
+
+        LigneInventaireDto ligne = stockService.inventaire(null, PageRequest.of(0, 10)).getContent().get(0);
+
+        // Douze sacs sont en magasin : ils valent ce qu'ils ont coute, pas rien. Le calcul ne
+        // regardait que les commandes soldees, et le magasin comptait alors de la marchandise
+        // valorisee a zero — l'ecart ne se voyait nulle part.
+        assertThat(ligne.getQuantite()).isEqualByComparingTo("12");
+        assertThat(ligne.getCoutMoyenAchat()).isEqualByComparingTo("4650.00");
+        assertThat(ligne.getValeurAuCout()).isEqualByComparingTo("55800.00");
+    }
+
+    @Test
+    void un_reliquat_cloture_ne_valorise_que_ce_qui_a_ete_recu() {
+        Long idArticle = article("6000", null);
+        FournisseurDto fournisseur = fournisseurService.save(FournisseurDto.builder()
+                .nom("Fournisseur " + UUID.randomUUID()).prenom("X")
+                .mail(UUID.randomUUID() + "@exemple.test").tel("690000000").build());
+        CommandeFourDto commande = commandeFourService.save(CommandeFourDto.builder()
+                .code("CF-" + UUID.randomUUID())
+                .fournisseur(fournisseur)
+                .ligneCmndeFournisseur(List.of(LigneCmndeFournisseurDto.builder()
+                        .article(ArticleDto.builder().Id(idArticle).build())
+                        .quantite(new BigDecimal("20"))
+                        .prixUnitaire(new BigDecimal("4650"))
+                        .build()))
+                .build());
+        commandeFourService.mettreAJourEtat(commande.getId(), EtatCommande.VALIDEE);
+        Long idLigne = commandeFourService.lignes(commande.getId()).get(0).getId();
+        LigneReceptionDto douze = new LigneReceptionDto();
+        douze.setIdLigne(idLigne);
+        douze.setQuantite(new BigDecimal("12"));
+        commandeFourService.recevoir(commande.getId(), List.of(douze));
+        commandeFourService.cloturer(commande.getId(), "fournisseur en rupture");
+
+        LigneInventaireDto ligne = stockService.inventaire(null, PageRequest.of(0, 10)).getContent().get(0);
+
+        // Clore, c'est cesser d'attendre les huit manquants — pas oublier les douze recus.
+        assertThat(ligne.getValeurAuCout()).isEqualByComparingTo("55800.00");
     }
 
     @Test
