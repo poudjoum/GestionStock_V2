@@ -122,6 +122,25 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         return EntrepriseDto.fromEntity(savedEntreprise);
     }
 
+    /**
+     * L'entreprise du compte connecte, deduite de son jeton.
+     *
+     * Un compte sans entreprise — le super-administrateur, ou un compte anterieur au
+     * cloisonnement — n'en a pas a rendre, et c'est un 404 : il n'y a rien a montrer, pas un
+     * droit qui manque. Le front imprime alors ses documents sans en-tete plutot que de refuser
+     * d'imprimer.
+     */
+    @Override
+    public EntrepriseDto mienne() {
+        Long id = cloisonnement.entrepriseCourante();
+        if (id == null) {
+            throw new EntityNotFoundException(
+                    "Ce compte n'est rattaché à aucune entreprise",
+                    ErrorCodes.ENTREPRISE_NOT_FOUND);
+        }
+        return findById(id);
+    }
+
     @Override
     public EntrepriseDto findById(Long id) {
         if(id==null){

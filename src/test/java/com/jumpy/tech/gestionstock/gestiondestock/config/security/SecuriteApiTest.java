@@ -93,6 +93,23 @@ class SecuriteApiTest extends AbstractIntegrationTest {
     }
 
     @Test
+    @WithMockUser(roles = "CAISSIER")
+    void le_caissier_ne_voit_pas_les_autres_entreprises() throws Exception {
+        mockMvc.perform(get(API + "/entreprises/all"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAISSIER")
+    void le_caissier_lit_l_entreprise_pour_laquelle_il_travaille() throws Exception {
+        // Il imprime des tickets a son en-tete toute la journee et etait pourtant le seul a ne
+        // pas pouvoir la lire. 404 et non 403 : ce compte de test n'est rattache a aucune
+        // entreprise, et c'est bien la route qui a ete atteinte.
+        mockMvc.perform(get(API + "/entreprises/mienne"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     @WithMockUser(roles = "MANAGER")
     void le_manager_ne_cree_pas_de_compte() throws Exception {
         // La route reste permitAll au niveau du filtre : c'est le controleur qui arbitre, pour

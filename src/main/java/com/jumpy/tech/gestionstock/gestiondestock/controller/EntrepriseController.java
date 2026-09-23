@@ -29,6 +29,11 @@ public class EntrepriseController implements EntrepriseControllerApi {
     }
 
     @Override
+    public ResponseEntity<EntrepriseDto> mienne() {
+        return ResponseEntity.ok(entrepriseService.mienne());
+    }
+
+    @Override
     public ResponseEntity<EntrepriseDto> findById(Long idEntreprise) {
         return ResponseEntity.status(HttpStatus.OK).body(entrepriseService.findById(idEntreprise));
     }

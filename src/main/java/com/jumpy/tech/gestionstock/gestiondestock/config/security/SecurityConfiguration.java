@@ -159,6 +159,14 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, API + "/users/moi").authenticated()
                         .requestMatchers(HttpMethod.PATCH, API + "/users/moi/motdepasse").authenticated()
 
+                        // Et chacun lit l'entreprise pour laquelle il travaille. C'est le meme
+                        // principe : la maison dont on porte le tablier n'est pas un secret.
+                        //
+                        // Sans cette ligne, /entreprises/** plus bas la reservait a
+                        // l'administration — et le caissier, qui imprime des tickets a l'en-tete
+                        // du magasin toute la journee, etait le seul a ne pas pouvoir la lire.
+                        .requestMatchers(HttpMethod.GET, API + "/entreprises/mienne").authenticated()
+
                         // Rattacher un compte a une entreprise, c'est donner a quelqu'un les
                         // donnees d'un tiers : l'editeur seul.
                         .requestMatchers(HttpMethod.PATCH, API + "/users/*/entreprise/**")

@@ -196,6 +196,30 @@ class CloisonnementParEntrepriseTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void chacun_lit_l_entreprise_pour_laquelle_il_travaille() {
+        connecteChez(idEntrepriseA, ERole.ROLE_CAISSIER);
+
+        // Le caissier imprime des tickets a l'en-tete du magasin : il lui faut le nom, l'adresse
+        // et le registre de commerce de sa maison. Il n'a pas a pouvoir nommer une entreprise
+        // pour cela — c'est son jeton qui la designe.
+        assertThat(entrepriseService.mienne().getId()).isEqualTo(idEntrepriseA);
+
+        connecteChez(idEntrepriseB, ERole.ROLE_CAISSIER);
+        assertThat(entrepriseService.mienne().getId()).isEqualTo(idEntrepriseB);
+    }
+
+    @Test
+    void un_compte_sans_entreprise_n_en_a_aucune_a_rendre() {
+        connecteChez(null, ERole.ROLE_SUPER_ADMIN);
+
+        // Rien a montrer, et non un droit qui manque : le super-administrateur ne travaille pour
+        // aucune maison en particulier.
+        assertThatThrownBy(() -> entrepriseService.mienne())
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("n'est rattaché à aucune entreprise");
+    }
+
+    @Test
     void le_super_administrateur_voit_toutes_les_entreprises() {
         connecteChez(idEntrepriseA, ERole.ROLE_ADMIN);
         creerArticle("Article de A");

@@ -18,6 +18,14 @@ public interface EntrepriseService {
      */
     EntrepriseDto inscrire(InscriptionEntrepriseDto inscription);
 
+    /**
+     * L'entreprise du compte connecte.
+     *
+     * Elle se deduit du jeton et jamais d'un identifiant recu : demander « donne-moi l'entreprise
+     * numero 3 » serait rouvrir la porte que le cloisonnement ferme.
+     */
+    EntrepriseDto mienne();
+
     EntrepriseDto findById(Long Id);
     List<EntrepriseDto> findAll();
     void delete(Long id);

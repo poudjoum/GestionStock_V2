@@ -25,6 +25,17 @@ public interface EntrepriseControllerApi {
     @PostMapping(value = APP_ROOT+"/entreprises/inscription",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<EntrepriseDto> inscrire(@RequestBody InscriptionEntrepriseDto inscription);
 
+    /**
+     * L'entreprise pour laquelle travaille le compte connecte.
+     *
+     * Pendant du `/users/moi` : elle ne se demande pas par identifiant, elle se deduit du jeton.
+     * C'est ce qu'il faut pour l'en-tete d'un ticket de caisse ou d'une facture — le nom de la
+     * maison, son adresse, son registre de commerce — et le caissier qui les imprime n'a aucune
+     * raison de pouvoir lire les autres entreprises pour autant.
+     */
+    @GetMapping(value = APP_ROOT+"/entreprises/mienne",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<EntrepriseDto> mienne();
+
     @GetMapping(value = APP_ROOT+"/entreprise/{idEntreprise}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<EntrepriseDto> findById(@PathVariable Long idEntreprise);
     @GetMapping(value = APP_ROOT+"/entreprises/all",produces = MediaType.APPLICATION_JSON_VALUE)
