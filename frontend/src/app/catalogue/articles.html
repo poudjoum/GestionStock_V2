@@ -46,6 +46,17 @@
         <mat-icon>sell</mat-icon>
         Catégories
       </a>
+
+      <!--
+        Saisir six cents articles un par un est le mur contre lequel bute un commerce qui
+        s'installe : le chemin vers l'import doit partir d'ici, la ou il s'en apercoit.
+      -->
+      @if (peutImporter()) {
+        <a mat-stroked-button class="!h-12" routerLink="/articles/import">
+          <mat-icon>upload_file</mat-icon>
+          Importer
+        </a>
+      }
     </div>
 
     @if (chargement()) {
@@ -68,21 +79,36 @@
             <mat-icon>add</mat-icon>
             Créer cet article
           </button>
-        } @else if (categories().length === 0) {
-          <p class="mt-2 text-sm">
-            Le catalogue est vide, et il n’y a pas encore de catégorie.<br />
-            Un article doit appartenir à une catégorie : commencez par là.
-          </p>
-          <a mat-flat-button class="mt-4" routerLink="/categories">
-            <mat-icon>sell</mat-icon>
-            Créer une catégorie
-          </a>
         } @else {
-          <p class="mt-2 text-sm">Le catalogue est vide.</p>
-          <button mat-flat-button class="mt-4" (click)="nouveau()">
-            <mat-icon>add</mat-icon>
-            Ajouter le premier article
-          </button>
+          <!--
+            C'est ici qu'atterrit un commerce qui vient de s'abonner, et c'est le moment ou il
+            decide si l'application lui fera gagner du temps. Lui proposer d'abord de saisir un
+            article — ou pire, une categorie — c'est lui montrer le mur : six cents references a
+            la main. L'import passe donc devant, et la saisie a l'unite reste offerte a cote pour
+            les quelques articles qu'on ajoute ensuite.
+          -->
+          <p class="mt-2 text-sm">
+            Le catalogue est vide.<br />
+            Si vous avez déjà une liste de vos articles, chargez-la : c'est l'affaire d'une minute.
+          </p>
+          <div class="mt-4 flex flex-wrap items-center justify-center gap-3">
+            @if (peutImporter()) {
+              <a mat-flat-button routerLink="/articles/import">
+                <mat-icon>upload_file</mat-icon>
+                Importer depuis un fichier
+              </a>
+            }
+            <button mat-stroked-button (click)="nouveau()">
+              <mat-icon>add</mat-icon>
+              Ajouter un article
+            </button>
+          </div>
+          @if (categories().length === 0) {
+            <p class="mt-4 text-xs opacity-70">
+              Les catégories se créent toutes seules à l'import ; vous pouvez aussi les
+              <a class="underline" routerLink="/categories">gérer à la main</a>.
+            </p>
+          }
         }
       </div>
     } @else {

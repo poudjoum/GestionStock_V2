@@ -231,6 +231,12 @@ public class SecurityConfiguration {
                                 API + "/commandes-clients/*/cloture")
                             .hasAnyRole(ADMIN, MANAGER)
 
+                        // Importer un catalogue reecrit les prix de tout le magasin en un appel.
+                        // La regle POST generique juste en dessous l'ouvrirait au magasinier :
+                        // il tient la marchandise, pas la politique de prix.
+                        .requestMatchers(HttpMethod.POST, API + "/articles/import")
+                            .hasAnyRole(ADMIN, MANAGER)
+
                         // Faire avancer une commande — la declarer livree, donc faire entrer la
                         // marchandise en stock — est un geste de magasin, pas une consultation.
                         // Sans cette ligne, PATCH tombait dans le authenticated() final et tout

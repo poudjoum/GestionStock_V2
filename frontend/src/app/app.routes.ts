@@ -46,6 +46,13 @@ export const routes: Routes = [
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
         loadComponent: () => import('./catalogue/categories').then((m) => m.Categories),
       },
+      {
+        // Sans le magasinier, contrairement aux deux ecrans ci-dessus : un import reecrit les
+        // prix de tout le magasin en un geste. Il tient la marchandise, pas la politique de prix.
+        path: 'articles/import',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],
+        loadComponent: () => import('./catalogue/import-articles').then((m) => m.ImportArticles),
+      },
       // Les achats : passer une commande, puis recevoir ce qui arrive. Le chemin `/receptions`
       // ne couvrait que le second temps — on ne pouvait pas commander depuis l'application.
       {

@@ -1,0 +1,169 @@
+@let r = rapport();
+@let nom = fichier()?.name;
+
+<!--
+  Trois temps, dans l'ordre ou on les fait : prendre le modele, deposer le fichier rempli, lire ce
+  qui va entrer et confirmer. Le troisieme n'apparait qu'une fois le fichier analyse — offrir un
+  bouton « Importer » avant d'avoir rien montre serait exactement ce que cet ecran evite.
+-->
+<div class="mx-auto grid max-w-5xl gap-6">
+  <header>
+    <h1 class="text-2xl font-medium">Importer des articles</h1>
+    <p class="mt-1 max-w-2xl text-sm opacity-70">
+      Remplissez le modèle avec vos articles, déposez-le ici, et vérifiez ce qui va entrer avant de
+      valider. Un article déjà présent est reconnu par son code : le réimporter le met à jour au
+      lieu de le créer deux fois.
+    </p>
+  </header>
+
+  @if (erreur(); as message) {
+    <div
+      class="flex items-start gap-3 rounded-lg border border-red-300 bg-red-50 p-4 text-sm dark:border-red-900 dark:bg-red-950"
+      role="alert"
+    >
+      <mat-icon class="text-red-700 dark:text-red-400">error_outline</mat-icon>
+      <p class="flex-1">{{ message }}</p>
+    </div>
+  }
+
+  <!-- 1. Le modele -->
+  <section class="rounded-lg border p-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="min-w-0">
+        <h2 class="font-medium">1. Le modèle</h2>
+        <p class="mt-1 text-sm opacity-70">
+          Les colonnes sont imposées : code, désignation, prix HT, taux de TVA, seuil d'alerte,
+          catégorie. Le code est celui que lira la douchette — c'est le code-barres s'il y en a un.
+        </p>
+      </div>
+      <button mat-stroked-button class="!h-11 shrink-0" (click)="telechargerLeModele()">
+        <mat-icon>download</mat-icon>
+        Télécharger le modèle
+      </button>
+    </div>
+  </section>
+
+  <!-- 2. Le fichier rempli -->
+  <section class="rounded-lg border p-4">
+    <h2 class="font-medium">2. Votre fichier</h2>
+
+    <label
+      class="mt-3 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors"
+      [class]="survole() ? 'border-primary bg-primary/5' : 'opacity-80 hover:opacity-100'"
+      (dragover)="surSurvol($event)"
+      (dragleave)="surSortie()"
+      (drop)="surDepot($event)"
+    >
+      <mat-icon class="!h-10 !w-10 !text-4xl opacity-60">upload_file</mat-icon>
+      @if (nom) {
+        <span class="font-medium break-all">{{ nom }}</span>
+        <span class="text-sm opacity-70">Choisissez un autre fichier pour recommencer</span>
+      } @else {
+        <span class="font-medium">Déposez le classeur ici</span>
+        <span class="text-sm opacity-70">ou cliquez pour le choisir — fichier .xlsx</span>
+      }
+      <input
+        type="file"
+        class="hidden"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        (change)="choisir($event)"
+      />
+    </label>
+
+    @if (analyse()) {
+      <div class="mt-4">
+        <mat-progress-bar mode="indeterminate" />
+        <p class="mt-2 text-sm opacity-70">Lecture du fichier…</p>
+      </div>
+    }
+  </section>
+
+  <!-- 3. Ce qui va entrer -->
+  @if (r) {
+    <section class="rounded-lg border p-4">
+      <h2 class="font-medium">3. Ce qui va entrer</h2>
+
+      <!--
+        Trois nombres, gros : c'est la seule question qu'on se pose devant cet ecran. Les refus
+        portent la couleur, parce que ce sont eux qui demandent une action.
+      -->
+      <div class="mt-3 grid gap-px overflow-hidden rounded-lg bg-black/10 sm:grid-cols-3 dark:bg-white/10">
+        <div class="bg-[var(--mat-sys-surface)] p-4">
+          <p class="text-xs font-medium tracking-wide uppercase opacity-60">À créer</p>
+          <p class="mt-1 text-3xl font-medium tabular-nums">{{ r.creees | number }}</p>
+        </div>
+        <div class="bg-[var(--mat-sys-surface)] p-4">
+          <p class="text-xs font-medium tracking-wide uppercase opacity-60">À mettre à jour</p>
+          <p class="mt-1 text-3xl font-medium tabular-nums">{{ r.modifiees | number }}</p>
+        </div>
+        <div class="bg-[var(--mat-sys-surface)] p-4">
+          <p class="text-xs font-medium tracking-wide uppercase opacity-60">Refusées</p>
+          <p
+            class="mt-1 text-3xl font-medium tabular-nums"
+            [class]="refusees().length ? 'text-red-700 dark:text-red-400' : 'opacity-50'"
+          >
+            {{ refusees().length | number }}
+          </p>
+        </div>
+      </div>
+
+      @if (refusees().length) {
+        <p class="mt-4 text-sm">
+          Ces lignes ne seront pas importées. Le numéro est celui de votre tableur : corrigez-les
+          et redéposez le fichier — les articles déjà entrés seront simplement mis à jour.
+        </p>
+        <div class="mt-2 max-h-80 overflow-auto rounded-lg border">
+          <table class="w-full text-sm">
+            <thead class="sticky top-0 bg-[var(--mat-sys-surface-container)]">
+              <tr class="text-left">
+                <th scope="col" class="px-3 py-2 font-medium">Ligne</th>
+                <th scope="col" class="px-3 py-2 font-medium">Code</th>
+                <th scope="col" class="px-3 py-2 font-medium">Raison</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (refus of refusees(); track refus.ligne) {
+                <tr class="border-t">
+                  <td class="px-3 py-2 tabular-nums">{{ refus.ligne }}</td>
+                  <td class="px-3 py-2 font-mono break-all">{{ refus.code ?? '—' }}</td>
+                  <td class="px-3 py-2">{{ refus.raison }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (rienAEcrire()) {
+        <p class="mt-4 text-sm opacity-70">
+          Aucune ligne de ce fichier ne peut être importée.
+        </p>
+      }
+
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        @if (r.simulation) {
+          <button
+            mat-flat-button
+            class="!h-12"
+            [disabled]="envoi() || rienAEcrire()"
+            (click)="importer()"
+          >
+            <mat-icon>check</mat-icon>
+            {{ envoi() ? 'Import en cours…' : 'Importer ' + aEcrire() + ' article(s)' }}
+          </button>
+          <button mat-button class="!h-12" [disabled]="envoi()" (click)="recommencer()">
+            Annuler
+          </button>
+        } @else {
+          <!-- Deja ecrit : on ne propose pas de recommencer le meme fichier, on propose la suite. -->
+          <p class="flex items-center gap-2 text-sm">
+            <mat-icon class="text-green-700 dark:text-green-400">task_alt</mat-icon>
+            Import effectué.
+          </p>
+          <a mat-stroked-button class="!h-12" routerLink="/articles">Voir le catalogue</a>
+          <button mat-button class="!h-12" (click)="recommencer()">Importer un autre fichier</button>
+        }
+      </div>
+    </section>
+  }
+</div>

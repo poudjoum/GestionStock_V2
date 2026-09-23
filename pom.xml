@@ -57,6 +57,20 @@
             <artifactId>flickr4java</artifactId>
             <version>3.0.9</version>
         </dependency>
+        <!--
+            Lecture et ecriture des classeurs .xlsx, pour l'import du catalogue.
+
+            Un .xlsx n'est qu'une archive de XML, et ce projet ecrit volontiers ses propres
+            outils. Mais ce fichier-la vient de l'exterieur : d'un commercant, enregistre par un
+            tableur inconnu — Excel, LibreOffice, Google Sheets — avec ses cellules vides, ses
+            nombres formates et ses dates. C'est l'etape la plus sensible de l'arrivee d'un
+            abonne, et le mauvais endroit pour economiser une dependance.
+        -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.4.1</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

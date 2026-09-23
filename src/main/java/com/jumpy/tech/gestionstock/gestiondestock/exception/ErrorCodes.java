@@ -31,7 +31,12 @@ public enum ErrorCodes {
     VENTE_NOT_FOUND(13000),
     VENTE_NOT_VALID(13100),
     ROLES_NOT_FOUND(14000),
-    ROLES_NOT_VALIDE(14500)
+    ROLES_NOT_VALIDE(14500),
+
+    // Le fichier d'import lui-meme est inexploitable : absent, vide, illisible, ou ses colonnes
+    // ne sont pas celles du modele. Distinct des lignes refusees, qui sont un resultat normal
+    // rendu dans le rapport et non une erreur.
+    IMPORT_NOT_VALID(15000)
 
     ;
 

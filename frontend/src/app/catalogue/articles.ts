@@ -90,6 +90,11 @@ export class Articles implements OnInit {
   protected readonly peutSupprimer = computed(() =>
     this.session.roles().some((r) => ['ROLE_ADMIN', 'ROLE_MANAGER'].includes(r)),
   );
+  /**
+   * Memes roles que la suppression, et pour la meme raison : un import reecrit les prix de tout
+   * le magasin. Le magasinier tient la marchandise, pas la politique de prix.
+   */
+  protected readonly peutImporter = this.peutSupprimer;
 
   /** Le prix TTC se calcule sous les yeux : c'est celui qu'on annonce au client. */
   protected readonly prixTtc = computed(() => {
