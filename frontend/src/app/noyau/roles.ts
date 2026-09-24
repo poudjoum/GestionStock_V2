@@ -66,6 +66,14 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
   },
   {
+    chemin: '/inventaire',
+    libelle: 'Inventaire',
+    icone: 'fact_check',
+    // Le magasinier compte, le gerant valide : les deux voient l'ecran, et c'est le serveur qui
+    // refuse la validation a qui n'y a pas droit.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
+  },
+  {
     chemin: '/achats',
     // « Achats » et non « Réceptions » : l'entree couvre les deux temps d'une commande
     // fournisseur — la passer, puis recevoir ce qui arrive. Nommer l'ecran d'apres son second

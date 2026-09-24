@@ -53,6 +53,13 @@ export const routes: Routes = [
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],
         loadComponent: () => import('./catalogue/import-articles').then((m) => m.ImportArticles),
       },
+      {
+        // L'inventaire : compter le magasin et rattraper les ecarts. Le comptable en est
+        // ecarte — il lit les valorisations, il ne compte pas les rayons.
+        path: 'inventaire',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./inventaire/inventaire').then((m) => m.InventaireEcran),
+      },
       // Les achats : passer une commande, puis recevoir ce qui arrive. Le chemin `/receptions`
       // ne couvrait que le second temps — on ne pouvait pas commander depuis l'application.
       {
