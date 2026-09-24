@@ -1,0 +1,13 @@
+# Les scripts destines au serveur gardent des fins de ligne Unix, quelle que soit la machine qui
+# les a ecrits.
+#
+# Un script shell qui arrive sous Linux avec des retours chariot Windows echoue sur
+# « \r: command not found » — un message qui ne designe aucune ligne du fichier et fait chercher
+# longtemps. Le poste de developpement etant sous Windows, la conversion se decide ici plutot
+# qu'au cas par cas dans la configuration de chacun.
+*.sh text eol=lf
+mvnw text eol=lf
+
+# Les unites systemd sont lues par systemd, pas par un editeur Windows.
+*.service text eol=lf
+*.timer text eol=lf

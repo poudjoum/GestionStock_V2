@@ -1090,6 +1090,45 @@ poste de travail. D'ou le `--env-file`, le fichier n'etant plus a cote du compos
 Le depot etant public, le serveur clone sans identifiants : ni cle de deploiement, ni jeton a
 renouveler.
 
+### Deploiement au push
+
+Les trois commandes ci-dessus n'ont plus a etre tapees : le serveur suit `master` et se deploie
+des que les tests de la version poussee sont verts.
+
+**Les tests tournent chez GitHub** (`.github/workflows/tests.yml`) : backend sur PostgreSQL
+jetable, puis construction du front — un lot qui ne touche que l'Angular passerait sinon derriere
+des tests de backend parfaitement verts. **Le serveur, lui, ne fait que lire cette conclusion.**
+
+Il ne recoit rien : c'est lui qui va voir, chaque minute, par un timer systemd
+(`deploy/deploiement-continu.sh`). Aucun port ouvert, aucun runner enregistre, aucun jeton
+detenu. Ce choix n'est pas une commodite — un runner auto-heberge sur un **depot public** ferait
+executer sur la machine de production le code de n'importe quelle pull request venue de
+l'exterieur.
+
+Trois etats a chaque reveil : `master` n'a pas bouge, rien ne se passe ; il a bouge mais ses
+tests tournent ou ont echoue, rien ne se passe et le journal le dit une fois ; ses tests sont
+verts, le serveur tire, construit et relance, puis verifie que l'API repond.
+
+Mise en place, une seule fois :
+
+```bash
+ssh jumpy@<serveur> 'sudo apt install -y jq'
+ssh jumpy@<serveur> 'cd ~/apps/gestionstock/source && git pull --ff-only'
+ssh jumpy@<serveur> 'sudo cp ~/apps/gestionstock/source/deploy/gestionstock-deploiement.* \
+    /etc/systemd/system/ && sudo systemctl daemon-reload \
+    && sudo systemctl enable --now gestionstock-deploiement.timer'
+```
+
+Ce que fait le serveur se lit dans son journal :
+
+```bash
+ssh jumpy@<serveur> 'journalctl -u gestionstock-deploiement -n 50'
+```
+
+Pour livrer sans attendre GitHub — une panne de leur cote, un correctif qui presse :
+`~/apps/gestionstock/source/deploy/deploiement-continu.sh --maintenant`. A n'employer que la : ce
+drapeau deploie sans regarder les tests.
+
 ### Le front deploye
 
 Il est servi par nginx sur le port **9093**, a cote de l'API :

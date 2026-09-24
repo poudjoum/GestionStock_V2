@@ -1,0 +1,23 @@
+# Un deploiement, quand le timer le reveille.
+#
+#     sudo cp deploy/gestionstock-deploiement.* /etc/systemd/system/
+#     sudo systemctl daemon-reload
+#     sudo systemctl enable --now gestionstock-deploiement.timer
+#
+# Le journal se lit avec « journalctl -u gestionstock-deploiement -f ».
+
+[Unit]
+Description=Deploie GestionStock quand master passe au vert
+# Docker doit etre la : sans lui, le script echouerait a la construction plutot qu'a l'attente.
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=jumpy
+WorkingDirectory=/home/jumpy/apps/gestionstock/source
+ExecStart=/home/jumpy/apps/gestionstock/source/deploy/deploiement-continu.sh
+
+# La construction d'une image peut prendre plusieurs minutes sur cette machine ; au-dela, quelque
+# chose est bloque et il vaut mieux rendre la main que rester pendu jusqu'au prochain reveil.
+TimeoutStartSec=20min

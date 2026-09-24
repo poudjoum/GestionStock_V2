@@ -1,0 +1,19 @@
+# Reveille le deploiement chaque minute.
+#
+# Une minute et pas dix : le script ne fait qu'un « git fetch » quand rien n'a bouge, ce qui ne
+# coute rien, et l'appel a GitHub n'a lieu que lorsque la branche a change. Ce qu'on achete avec
+# cette frequence, c'est qu'un correctif pousse a 9 h 03 soit en ligne a 9 h 04 plutot qu'a 9 h 13.
+
+[Unit]
+Description=Regarde chaque minute si master a bouge
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+# Le reveil manque pendant que la machine etait eteinte est rattrape au demarrage, plutot
+# qu'attendu une minute de plus.
+Persistent=true
+Unit=gestionstock-deploiement.service
+
+[Install]
+WantedBy=timers.target
