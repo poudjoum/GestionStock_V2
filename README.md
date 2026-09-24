@@ -1109,15 +1109,22 @@ Trois etats a chaque reveil : `master` n'a pas bouge, rien ne se passe ; il a bo
 tests tournent ou ont echoue, rien ne se passe et le journal le dit une fois ; ses tests sont
 verts, le serveur tire, construit et relance, puis verifie que l'API repond.
 
-Mise en place, une seule fois :
+Mise en place, une seule fois, sur le serveur. Une commande par ligne, sans continuation `\` : la
+barre ne prolonge la ligne que si elle en est le dernier caractere, or un espace se glisse derriere
+elle au copier-coller. Bash n'y voit alors plus une fin de ligne mais un argument, et la commande
+se casse en morceaux dont aucun ne fait ce qu'on croit.
 
 ```bash
-ssh jumpy@<serveur> 'sudo apt install -y jq'
-ssh jumpy@<serveur> 'cd ~/apps/gestionstock/source && git pull --ff-only'
-ssh jumpy@<serveur> 'sudo cp ~/apps/gestionstock/source/deploy/gestionstock-deploiement.* \
-    /etc/systemd/system/ && sudo systemctl daemon-reload \
-    && sudo systemctl enable --now gestionstock-deploiement.timer'
+sudo apt install -y jq
+cd ~/apps/gestionstock/source && git pull --ff-only
+sudo cp ~/apps/gestionstock/source/deploy/gestionstock-deploiement.service /etc/systemd/system/
+sudo cp ~/apps/gestionstock/source/deploy/gestionstock-deploiement.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now gestionstock-deploiement.timer
 ```
+
+Le timer est en place quand `systemctl list-timers gestionstock-deploiement.timer` le montre avec
+sa prochaine echeance.
 
 Ce que fait le serveur se lit dans son journal :
 
