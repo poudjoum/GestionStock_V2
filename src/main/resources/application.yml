@@ -90,3 +90,16 @@ app:
     # Entre deux passages de l'expediteur, en millisecondes. Une minute : un courriel n'est pas
     # une alarme, et interroger la file plus souvent ne ferait que du bruit en base.
     intervalleMs: ${NOTIFICATIONS_INTERVALLE_MS:60000}
+
+#
+# L'amorcage du super-administrateur.
+#
+# Les trois variables vides, rien ne se passe : c'est le cas d'une installation deja amorcee.
+# Renseignees, le compte est cree au demarrage s'il n'existe pas — et jamais modifie s'il existe.
+# Elles vivent dans le `.env`, avec le mot de passe de la base et le secret JWT.
+#
+amorcage:
+  super-admin:
+    username: ${SUPER_ADMIN_USERNAME:}
+    email: ${SUPER_ADMIN_EMAIL:}
+    motdepasse: ${SUPER_ADMIN_MOTDEPASSE:}

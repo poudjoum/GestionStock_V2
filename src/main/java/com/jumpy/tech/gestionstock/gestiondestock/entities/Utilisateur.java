@@ -63,5 +63,12 @@ public class Utilisateur extends AbstractEntity{
         this.email = email;
         this.motdepasse = motdepasse;
         this.actif = true;
+        // `roles` est initialise ici, et ce n'est pas une redondance avec la declaration du champ.
+        //
+        // `@Builder.Default` retire l'initialisation du champ pour la deplacer dans le builder :
+        // elle ne s'execute donc plus dans aucun constructeur, et `getRoles()` rend `null`.
+        // L'inscription ne s'en apercevait pas — elle appelle `setRoles` juste apres — mais tout
+        // autre appelant recoit une NullPointerException au premier `.add()`.
+        this.roles = new HashSet<>();
     }
 }

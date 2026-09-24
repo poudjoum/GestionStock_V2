@@ -1132,6 +1132,44 @@ sudo systemctl enable --now gestionstock-deploiement.timer
 Le timer est en place quand `systemctl list-timers gestionstock-deploiement.timer` le montre avec
 sa prochaine echeance.
 
+
+### Le super-administrateur
+
+Le rang au-dessus des entreprises : celui qui les cree, et le seul qui voie au-dela de l'une
+d'elles. `ROLE_ADMIN`, lui, administre sa seule entreprise.
+
+Il se creait par la route d'inscription, ouverte tant que la base ne comptait aucun compte. Cela
+marche une fois. Cela ne marche plus sur un serveur deja en service dont personne ne connait plus
+le mot de passe. Trois variables du `.env` y repondent :
+
+```bash
+SUPER_ADMIN_USERNAME=
+SUPER_ADMIN_EMAIL=
+SUPER_ADMIN_MOTDEPASSE=
+```
+
+Vides, rien ne se passe — c'est l'etat d'une installation deja amorcee. Renseignees, le compte est
+cree au demarrage suivant, puis **plus jamais touche**. Changer le mot de passe dans le `.env`
+ensuite ne reinitialise rien : il se change dans l'application, et l'environnement n'a pas a
+defaire en silence ce qu'on y a fait. Un compte qui porte deja cet identifiant sans le rang le
+recoit, en revanche, puisque c'est ce qu'on demandait.
+
+Douze caracteres au minimum, sans quoi le compte n'est pas cree et le journal le dit. Ce compte
+peut tout faire, sur toutes les entreprises, et son identifiant est connu de qui lit le `.env`.
+Rien de ces trois valeurs n'est ecrit dans le journal, mot de passe compris.
+
+Apres avoir renseigne le fichier, il faut relancer le conteneur pour qu'il les lise :
+
+```bash
+docker compose -p gestionstock --env-file ~/apps/gestionstock/.env   -f ~/apps/gestionstock/source/docker-compose.prod.yml up -d app
+```
+
+Puis verifier dans le journal de l'application :
+
+```bash
+docker logs gestionstock-app 2>&1 | grep -i 'super-administrateur'
+```
+
 Ce que fait le serveur se lit dans son journal :
 
 ```bash
