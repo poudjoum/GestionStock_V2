@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
@@ -84,6 +85,24 @@ public class MvtStkServiceImpl implements MvtStkService {
                     ErrorCodes.MVT_STK_NOT_VALID);
         }
         return enregistrer(dto, TypeMvtStk.SORTIE, quand, false);
+    }
+
+    @Override
+    @Transactional
+    public MvtStkDto corrigerAuComptage(Long idArticle, BigDecimal ecart) {
+        if (ecart == null || ecart.signum() == 0) {
+            return null;
+        }
+        MvtStkDto dto = MvtStkDto.builder()
+                .article(ArticleDto.builder().Id(idArticle).build())
+                .quantite(ecart.abs())
+                .motif(MotifMvtStk.INVENTAIRE)
+                .build();
+        // `false` : un rattrapage ne s'oppose pas au stock. Si le logiciel croit avoir trois
+        // unites et qu'on n'en trouve aucune, il faut bien en sortir trois d'un stock qui, sur
+        // l'etagere, n'existe pas.
+        return enregistrer(dto, ecart.signum() > 0 ? TypeMvtStk.ENTREE : TypeMvtStk.SORTIE,
+                Instant.now(), false);
     }
 
     /**

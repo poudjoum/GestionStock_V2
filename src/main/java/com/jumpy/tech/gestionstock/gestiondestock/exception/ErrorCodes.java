@@ -36,7 +36,9 @@ public enum ErrorCodes {
     // Le fichier d'import lui-meme est inexploitable : absent, vide, illisible, ou ses colonnes
     // ne sont pas celles du modele. Distinct des lignes refusees, qui sont un resultat normal
     // rendu dans le rapport et non une erreur.
-    IMPORT_NOT_VALID(15000)
+    IMPORT_NOT_VALID(15000),
+    INVENTAIRE_NOT_FOUND(16000),
+    INVENTAIRE_NOT_VALID(16100)
 
     ;
 

@@ -23,5 +23,13 @@ public enum MotifMvtStk {
     CORRECTION_VENTE,
 
     /** Entree ou sortie saisie a la main, sans document qui la porte. */
-    SAISIE_MANUELLE
+    SAISIE_MANUELLE,
+
+    /**
+     * Rattrapage d'un ecart constate au comptage.
+     *
+     * C'est le seul motif qui ne vient d'aucun document ni d'aucun geste de comptoir : il dit que
+     * l'etagere ne disait pas la meme chose que le logiciel, et lequel des deux a eu raison.
+     */
+    INVENTAIRE
 }

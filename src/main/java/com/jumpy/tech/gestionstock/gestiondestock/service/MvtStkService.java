@@ -46,4 +46,17 @@ public interface MvtStkService {
      * quelconque antidater une sortie permettrait de fabriquer un stock qui n'a jamais existe.
      */
     MvtStkDto sortieConstatee(MvtStkDto dto, java.time.Instant quand);
+
+    /**
+     * Rattrape l'ecart constate au comptage d'un inventaire.
+     *
+     * Le sens vient du signe de l'ecart : positif, il manquait de la marchandise au logiciel ;
+     * negatif, il en croyait avoir plus qu'il n'y en a. Un ecart nul ne produit rien.
+     *
+     * Ce mouvement ne s'oppose jamais au stock, contrairement a une sortie ordinaire. C'est le
+     * point du comptage : si le logiciel croit avoir trois unites et qu'on n'en trouve aucune, il
+     * faut sortir trois unites d'un stock qui, du point de vue de l'etagere, n'existe pas. Refuser
+     * n'empecherait rien — cela laisserait seulement le logiciel dans son erreur.
+     */
+    MvtStkDto corrigerAuComptage(Long idArticle, java.math.BigDecimal ecart);
 }

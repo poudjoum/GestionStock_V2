@@ -231,6 +231,28 @@ public class SecurityConfiguration {
                                 API + "/commandes-clients/*/cloture")
                             .hasAnyRole(ADMIN, MANAGER)
 
+                        // L'inventaire.
+                        //
+                        // Ouvrir fige le stock de tout le catalogue ; valider le corrige, et
+                        // abandonner efface un travail de comptage. Ces trois gestes engagent le
+                        // magasin entier : la regle POST generique les ouvrirait au magasinier,
+                        // qui compte mais ne decide pas.
+                        .requestMatchers(HttpMethod.POST, API + "/inventaires",
+                                API + "/inventaires/*/validation", API + "/inventaires/*/abandon")
+                            .hasAnyRole(ADMIN, MANAGER)
+
+                        // Se reprendre fait partie du comptage : celui qui note une quantite doit
+                        // pouvoir defaire la sienne. La regle DELETE generique, elle, ecarte le
+                        // magasinier — et c'est lui qui est dans les rayons.
+                        .requestMatchers(HttpMethod.DELETE, API + "/inventaires/*/comptages/**")
+                            .hasAnyRole(ADMIN, MANAGER, MAGASINIER)
+
+                        // Un inventaire montre les quantites de tout le magasin, comme l'etat du
+                        // stock : la regle GET generique l'ouvrirait a tout compte connecte, donc
+                        // au caissier.
+                        .requestMatchers(HttpMethod.GET, API + "/inventaires/**")
+                            .hasAnyRole(ADMIN, MANAGER, MAGASINIER, COMPTABLE)
+
                         // Importer un catalogue reecrit les prix de tout le magasin en un appel.
                         // La regle POST generique juste en dessous l'ouvrirait au magasinier :
                         // il tient la marchandise, pas la politique de prix.
