@@ -143,8 +143,17 @@ journal "${attendue:0:8} deploye."
 # La preuve que c'est bien cette version qui repond, et non celle d'avant que compose aurait
 # laissee en place. Un conteneur en bonne sante ne prouve que la sante de ce qui tournait deja.
 sleep 20
-sante=$(curl -fsS -o /dev/null -w '%{http_code}' \
-    "http://localhost:${PORT_API:-9092}/gestiondestock/v1/articles/all" || echo 000)
+# Sans `-f`, et c'est le point.
+#
+# Avec lui, curl tient un 401 pour un echec et sort en erreur — alors que `-w` a deja ecrit
+# « 401 ». Le `|| echo 000` ajoutait « 000 » derriere, et la sonde lisait « 401000 », qu'aucun cas
+# ne reconnait : un deploiement parfait se terminait sur ATTENTION. Or 401 est la reponse
+# attendue — l'API repond et protege ses donnees.
+#
+# Sans `-f`, curl rend le code et sort a zero ; une connexion refusee ecrit deja « 000 ».
+sante=$(curl -s -o /dev/null -w '%{http_code}' \
+    "http://localhost:${PORT_API:-9092}/gestiondestock/v1/articles/all")
+sante=${sante:-000}
 case "$sante" in
     401 | 200) journal "L'API repond ($sante)." ;;
     *) journal "ATTENTION : l'API repond $sante — a regarder." ;;
