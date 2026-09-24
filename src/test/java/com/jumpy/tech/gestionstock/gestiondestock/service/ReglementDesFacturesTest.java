@@ -202,7 +202,12 @@ class ReglementDesFacturesTest extends AbstractIntegrationTest {
     void la_liste_des_factures_porte_le_reste_a_payer() {
         factureService.regler(facture.getId(), reglementDe("2000", ModeReglement.MOBILE_MONEY));
 
-        FactureDto danslaListe = factureService.findAll(org.springframework.data.domain.PageRequest.of(0, 50))
+        // Trie par identifiant decroissant : la facture qu'on vient d'emettre est la plus recente,
+        // donc en tete. Sans ce tri, le test lisait les cinquante premieres factures d'une base
+        // que toute la campagne alimente, et sa propre facture en sortait des que la campagne
+        // grossissait — il a tenu jusqu'au jour ou une classe de tests de plus a suffi.
+        FactureDto danslaListe = factureService.findAll(org.springframework.data.domain.PageRequest.of(
+                        0, 50, org.springframework.data.domain.Sort.by("id").descending()))
                 .getContent().stream()
                 .filter(f -> f.getId().equals(facture.getId()))
                 .findFirst().orElseThrow();
