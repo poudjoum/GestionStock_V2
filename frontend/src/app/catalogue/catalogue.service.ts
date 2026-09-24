@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environnement } from '../../environnements/environnement';
+import { DELAI } from '../noyau/intercepteur-delai';
 import type { ArticleDto, Page } from '../noyau/api';
 import type { components } from '../api/schema';
 
@@ -48,6 +49,10 @@ export class Catalogue {
     corps.append('fichier', fichier);
     return this.http.post<RapportImport>(`${API}/articles/import`, corps, {
       params: { simulation },
+      // Dix mille lignes se lisent et s'ecrivent en bien plus de vingt secondes : cet appel pose
+      // son propre delai plutot que de faire remonter celui de toute l'application, ce qui
+      // rendrait le comptoir muet aussi longtemps que lui.
+      context: new HttpContext().set(DELAI, 180_000),
     });
   }
 
