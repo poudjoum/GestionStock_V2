@@ -54,4 +54,10 @@ public interface ArticleRepository extends JpaRepository<Article,Long> {
                              @Param("q") String q,
                              @Param("idCategory") Long idCategory,
                              Pageable pageable);
+
+    /** Le nombre d'articles par entreprise, pour le tableau de bord de la plateforme. */
+    @org.springframework.data.jpa.repository.Query(
+            "select a.idEntreprise, count(a) from Article a "
+            + "where a.idEntreprise is not null group by a.idEntreprise")
+    java.util.List<Object[]> articlesParEntreprise();
 }

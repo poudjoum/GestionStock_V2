@@ -167,16 +167,39 @@ public class SecurityConfiguration {
                         // du magasin toute la journee, etait le seul a ne pas pouvoir la lire.
                         .requestMatchers(HttpMethod.GET, API + "/entreprises/mienne").authenticated()
 
+                        // La plateforme : tout ce qui regarde au-dessus des entreprises.
+                        //
+                        // L'editeur seul, et le service le redit de son cote. Deux fois la meme
+                        // regle, parce que ce sont les seules routes du projet qui traversent
+                        // volontairement le cloisonnement : celle qui se perd le jour d'un
+                        // remaniement ne doit pas emporter l'autre.
+                        .requestMatchers(API + "/plateforme/**").hasRole(SUPER_ADMIN)
+
+                        // Corriger l'identite de son propre commerce : son administrateur.
+                        //
+                        // Cette ligne precede celle des entreprises, qui ferme desormais tout le
+                        // reste a l'editeur seul.
+                        .requestMatchers(HttpMethod.PUT, API + "/entreprises/mienne")
+                            .hasRole(ADMIN)
+
                         // Rattacher un compte a une entreprise, c'est donner a quelqu'un les
                         // donnees d'un tiers : l'editeur seul.
                         .requestMatchers(HttpMethod.PATCH, API + "/users/*/entreprise/**")
                             .hasRole(SUPER_ADMIN)
 
-                        // Comptes et entreprises : l'administration. Le super-administrateur ne
-                        // porte pas ROLE_ADMIN — sans le nommer ici, il se verrait fermer les
-                        // entreprises qu'il est justement charge de creer.
-                        .requestMatchers(API + "/users/**", API + "/entreprise/**", API + "/entreprises/**")
-                            .hasAnyRole(ADMIN, SUPER_ADMIN)
+                        // Les comptes : l'administration de son propre commerce. Le service
+                        // cloisonne, un administrateur ne voit donc que les siens.
+                        .requestMatchers(API + "/users/**").hasAnyRole(ADMIN, SUPER_ADMIN)
+
+                        // Les entreprises, en revanche, reviennent a l'editeur seul.
+                        //
+                        // Elles etaient ouvertes a tout ROLE_ADMIN, et `POST /entreprise/create`
+                        // accepte un identifiant dans son corps : l'administrateur d'un commerce
+                        // pouvait donc reecrire l'entreprise du voisin en changeant un nombre. Il
+                        // lui reste `GET` et `PUT /entreprises/mienne`, nommes plus haut, qui ne
+                        // designent jamais que la sienne.
+                        .requestMatchers(API + "/entreprise/**", API + "/entreprises/**")
+                            .hasRole(SUPER_ADMIN)
 
                         // Le caissier vend et enregistre les clients qui se presentent ; il ne
                         // cree ni article ni categorie.

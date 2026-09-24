@@ -41,6 +41,13 @@ public class LivraisonUnitaire {
         try {
             livraison.accept(envoi);
             envoi.reussi(Instant.now());
+            if (envoi.isSensible()) {
+                // Le courriel d'inscription porte un mot de passe provisoire. La ligne reste, avec
+                // sa destination et sa date — c'est ce qui permet de savoir qui a recu quoi — mais
+                // le texte s'en va : sans cela, le mot de passe resterait lisible en base
+                // longtemps apres que le gerant l'a change.
+                envoi.setCorps("(contenu effacé après envoi)");
+            }
             envoiRepository.save(envoi);
             return true;
         } catch (RuntimeException echec) {

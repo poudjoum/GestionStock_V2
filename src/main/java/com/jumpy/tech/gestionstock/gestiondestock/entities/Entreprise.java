@@ -56,6 +56,40 @@ public class Entreprise extends AbstractEntity{
     /** Le taux applique par defaut aux articles qui n'en fixent pas un a eux. */
     @Column(name="taux_tva", nullable = false)
     private BigDecimal tauxTva;
+    /**
+     * L'echeance de l'abonnement annuel. Nulle pour un commerce qui n'en a pas encore.
+     *
+     * Depassee, elle ne ferme rien d'elle-meme : elle fait passer le commerce en « echu » sur le
+     * tableau de bord de l'editeur, a qui revient la decision de suspendre.
+     */
+    @Column(name="abonnement_echeance")
+    private java.time.LocalDate abonnementEcheance;
+    /**
+     * L'acces est ferme. Suspendre plutot que supprimer : un abonnement repris retrouve son
+     * magasin intact — ses ventes, son stock, ses comptes.
+     */
+    @Column(name="suspendue", nullable = false)
+    private boolean suspendue;
+    /** Quand la porte a ete fermee la derniere fois. Survit a la reprise. */
+    @Column(name="suspendue_le")
+    private java.time.Instant suspendueLe;
     @OneToMany(mappedBy="entreprise")
     private List<Utilisateur> users;
+
+    /**
+     * Si les comptes de ce commerce peuvent encore entrer.
+     *
+     * Deux facons de fermer la porte, et une seule regle : la suspension decidee a la main, et
+     * l'echeance depassee, qui ferme d'elle-meme.
+     *
+     * Une echeance nulle laisse passer. C'est deliberé : les entreprises deja en base n'en ont
+     * aucune, et les bloquer toutes a la seconde ou ce code arrive serait une panne generale. Un
+     * commerce n'est soumis a l'abonnement qu'a partir du jour ou on lui en donne un.
+     *
+     * L'echeance vaut jusqu'a la fin de son jour : on ferme le lendemain, pas le matin meme.
+     */
+    public boolean accesOuvert(java.time.LocalDate aujourdhui) {
+        return !suspendue
+                && (abonnementEcheance == null || !abonnementEcheance.isBefore(aujourdhui));
+    }
 }

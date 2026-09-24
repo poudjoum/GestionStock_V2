@@ -250,6 +250,9 @@ public class UserServiceImpl implements UserService {
                     ErrorCodes.UTILISATEUR_NOT_VALID);
         }
         utilisateur.setMotdepasse(encodeur.encode(motDePasseValide(nouveau)));
+        // Le provisoire a servi. C'est ici, et nulle part ailleurs, que le drapeau tombe : le
+        // gerant a choisi un mot de passe que l'editeur ne connait pas.
+        utilisateur.setMotdepasseAChanger(false);
         // Changer son mot de passe ferme ses autres sessions : c'est le geste de quelqu'un qui
         // soupconne que son acces a fuite.
         rafraichissement.revoquerTout(utilisateur.getId());

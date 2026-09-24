@@ -64,6 +64,16 @@ public class Envoi extends AbstractEntity {
     @Column(name = "id_entreprise")
     private Long idEntreprise;
 
+    /**
+     * Le corps porte un secret et doit etre efface une fois le message parti.
+     *
+     * La file garde ce qu'elle a livre, et c'est utile — sauf pour le courriel d'inscription, qui
+     * transporte un mot de passe. La ligne reste, avec sa destination et sa date ; le texte, lui,
+     * s'en va.
+     */
+    @Column(name = "sensible", nullable = false)
+    private boolean sensible;
+
     public void reussi(Instant quand) {
         this.etat = EtatEnvoi.ENVOYE;
         this.envoyeLe = quand;

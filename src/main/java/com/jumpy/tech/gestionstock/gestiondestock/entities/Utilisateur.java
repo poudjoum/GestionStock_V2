@@ -42,6 +42,16 @@ public class Utilisateur extends AbstractEntity{
     @Builder.Default
     @Column(name="actif", nullable = false)
     private boolean actif = true;
+    /**
+     * Le mot de passe est provisoire et doit etre change avant toute autre chose.
+     *
+     * Pose a l'inscription d'un commerce : l'editeur choisit un mot de passe, l'envoie au gerant
+     * par courriel, et ne doit pas le connaitre plus longtemps. C'est ce drapeau qui rend
+     * acceptable de l'avoir transmis en clair.
+     */
+    @Builder.Default
+    @Column(name = "motdepasse_a_changer", nullable = false)
+    private boolean motdepasseAChanger = false;
     @Embedded
     private Adresse adresse;
     private String numTel;

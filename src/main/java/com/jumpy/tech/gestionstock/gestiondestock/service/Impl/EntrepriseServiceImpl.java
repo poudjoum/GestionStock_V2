@@ -5,25 +5,32 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.AdresseDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.EntrepriseDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.InscriptionEntrepriseDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.UserDto;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.CanalEnvoi;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Envoi;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatEnvoi;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Entreprise;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Utilisateur;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.EnvoiRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.RoleRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.UtilisateurRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.EntrepriseService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.EntrepriseValidator;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.UserValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,12 +45,19 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder encodeur;
     private final Cloisonnement cloisonnement;
+    private final EnvoiRepository envoiRepository;
+    /** L'adresse a laquelle le gerant ouvrira l'application. Vide, le courriel n'en parle pas. */
+    private final String adressePublique;
 
     public EntrepriseServiceImpl(EntrepriseRepository entrepriseRepository,
                                  UtilisateurRepository utilisateurRepository,
                                  RoleRepository roleRepository,
                                  PasswordEncoder encodeur,
-                                 Cloisonnement cloisonnement){
+                                 Cloisonnement cloisonnement,
+                                 EnvoiRepository envoiRepository,
+                                 @Value("${app.adressePublique:}") String adressePublique){
+        this.envoiRepository=envoiRepository;
+        this.adressePublique=adressePublique;
         this.entrepriseRepository=entrepriseRepository;
         this.utilisateurRepository=utilisateurRepository;
         this.roleRepository=roleRepository;
@@ -94,17 +108,30 @@ public class EntrepriseServiceImpl implements EntrepriseService {
                     ErrorCodes.UTILISATEUR_NOT_VALID);
         }
 
-        Entreprise entreprise = entrepriseRepository.save(EntrepriseDto.toEntity(inscription.getEntreprise()));
+        Entreprise aInscrire = EntrepriseDto.toEntity(inscription.getEntreprise());
+        // Un an a compter d'aujourd'hui, sauf echeance donnee. C'est la duree de l'abonnement, et
+        // la poser ici evite qu'un commerce inscrit reste sans date — donc, la regle d'acces
+        // laissant passer les echeances nulles, sans abonnement du tout.
+        if (aInscrire.getAbonnementEcheance() == null) {
+            aInscrire.setAbonnementEcheance(LocalDate.now().plusYears(1));
+        }
+        Entreprise entreprise = entrepriseRepository.save(aInscrire);
 
         Utilisateur compte = UserDto.toEntity(administrateur);
         compte.setId(null);
         compte.setEntreprise(entreprise);
         compte.setActif(true);
         compte.setMotdepasse(encodeur.encode(administrateur.getMotdepasse()));
+        // Provisoire : l'editeur l'a choisi et va l'envoyer par courriel. Le gerant en choisira un
+        // autre avant d'entrer, et l'editeur cessera alors de connaitre le mot de passe de son
+        // client — ce qui les protege tous les deux.
+        compte.setMotdepasseAChanger(true);
         compte.setRoles(new HashSet<>(Set.of(roleRepository.findByRoleName(ERole.ROLE_ADMIN)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Le rôle ROLE_ADMIN n'existe pas en base", ErrorCodes.ROLES_NOT_FOUND)))));
         utilisateurRepository.save(compte);
+
+        annoncerAuGerant(entreprise, compte, administrateur.getMotdepasse());
 
         log.info("Entreprise {} inscrite avec l'administrateur {}", entreprise.getId(), compte.getUsername());
         return EntrepriseDto.fromEntity(entreprise);
@@ -215,5 +242,55 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         }
         entrepriseRepository.deleteById(id);
 
+    }
+
+    /**
+     * Met en file le courriel qui porte au gerant de quoi entrer.
+     *
+     * Dans la transaction de l'inscription : le compte et son annonce tombent ensemble, ou pas du
+     * tout. La livraison, elle, viendra plus tard et ailleurs — un serveur SMTP en panne ne doit
+     * pas faire echouer l'inscription d'un client.
+     *
+     * Le message porte un mot de passe en clair : il est marque sensible, et la file effacera son
+     * corps une fois parti. C'est ce que rend acceptable le caractere provisoire de ce mot de
+     * passe, que le gerant devra changer avant toute autre chose.
+     */
+    private void annoncerAuGerant(Entreprise entreprise, Utilisateur compte, String motdepasse) {
+        if (!StringUtils.hasText(compte.getEmail())) {
+            return;
+        }
+        // Un bloc de texte plutot qu'une suite de concatenations : le courriel se relit tel
+        // qu'il sera lu, et c'est le seul endroit du projet ou la mise en page compte pour
+        // quelqu'un qui n'a pas l'application sous les yeux.
+        String corps = """
+                Bonjour,
+
+                Votre espace %s est ouvert sur Gestion de Stock.
+
+                Identifiant : %s
+                Mot de passe provisoire : %s
+
+                Ce mot de passe ne sert qu'une fois : l'application vous demandera d'en choisir
+                un autre dès votre première connexion.
+                """.formatted(entreprise.getNom(), compte.getUsername(), motdepasse);
+        if (StringUtils.hasText(adressePublique)) {
+            corps = corps + System.lineSeparator() + "Adresse : " + adressePublique;
+        }
+        if (entreprise.getAbonnementEcheance() != null) {
+            corps = corps + System.lineSeparator()
+                    + "Votre abonnement court jusqu'au " + entreprise.getAbonnementEcheance() + ".";
+        }
+
+        Envoi envoi = new Envoi();
+        envoi.setCanal(CanalEnvoi.EMAIL);
+        envoi.setDestination(compte.getEmail());
+        envoi.setSujet("Vos accès à Gestion de Stock — " + entreprise.getNom());
+        envoi.setCorps(corps);
+        envoi.setEtat(EtatEnvoi.A_ENVOYER);
+        envoi.setTentatives(0);
+        envoi.setProchaineTentative(Instant.now());
+        envoi.setIdEntreprise(entreprise.getId());
+        envoi.setSensible(true);
+        envoiRepository.save(envoi);
     }
 }

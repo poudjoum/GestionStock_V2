@@ -44,4 +44,15 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur,Long> {
             @org.springframework.data.repository.query.Param("idEntreprise") Long idEntreprise,
             @org.springframework.data.repository.query.Param("roles")
             java.util.List<com.jumpy.tech.gestionstock.gestiondestock.entities.ERole> roles);
+
+    /**
+     * Le nombre de comptes par entreprise, en une requete.
+     *
+     * Le tableau de bord de l'editeur montre une ligne par commerce : les compter un par un
+     * ferait une requete par ligne affichee, et la page grandirait avec sa clientele.
+     */
+    @org.springframework.data.jpa.repository.Query(
+            "select u.entreprise.id, count(u) from Utilisateur u "
+            + "where u.entreprise is not null group by u.entreprise.id")
+    java.util.List<Object[]> comptesParEntreprise();
 }

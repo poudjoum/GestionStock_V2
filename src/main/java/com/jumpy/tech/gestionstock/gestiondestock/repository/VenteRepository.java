@@ -25,4 +25,16 @@ public interface VenteRepository extends JpaRepository<Vente,Long> {
      * reessaie sans savoir si le premier est passe.
      */
     Optional<Vente> findVenteByReferenceClient(String referenceClient);
+
+    /**
+     * Le nombre de ventes et la date de la derniere, par entreprise.
+     *
+     * Les ventes annulees sont exclues du compte : une vente rendue n'est pas une vente. Sa date
+     * compte en revanche comme signe de vie — c'est bien quelqu'un qui a touche l'application ce
+     * jour-la.
+     */
+    @org.springframework.data.jpa.repository.Query(
+            "select v.idEntreprise, count(v), max(v.datevente) from Vente v "
+            + "where v.idEntreprise is not null and v.annulee = false group by v.idEntreprise")
+    java.util.List<Object[]> ventesParEntreprise();
 }

@@ -53,7 +53,20 @@ public class UserDetailsImpl implements UserDetails {
                 utilisateur.getEmail(),
                 utilisateur.getMotdepasse(),
                 utilisateur.getEntreprise() == null ? null : utilisateur.getEntreprise().getId(),
-                utilisateur.isActif(),
+                // Le compte peut etre ouvert et le commerce ferme : suspendu a la main, ou son
+                // abonnement echu. La porte se ferme alors pour tout le monde a la fois.
+                //
+                // La regle est ici plutot que dans le service d'authentification parce que deux
+                // chemins y menent — la connexion et le renouvellement de jeton — et qu'un
+                // abonnement echu qui continuerait de renouveler des jetons ne suspendrait rien.
+                //
+                // `LocalDate.now()` lit le fuseau de la machine, UTC dans le conteneur, la ou le
+                // magasin vit une heure plus tard. Sur une echeance annuelle, la fermeture tombe
+                // donc au plus tard une heure apres minuit : cela ne merite pas de faire traverser
+                // un fuseau a une methode statique.
+                utilisateur.isActif()
+                        && (utilisateur.getEntreprise() == null
+                            || utilisateur.getEntreprise().accesOuvert(java.time.LocalDate.now())),
                 authorities
         );
     }

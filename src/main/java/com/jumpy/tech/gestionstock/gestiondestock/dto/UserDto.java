@@ -23,6 +23,12 @@ public class UserDto {
     private boolean actif;
 
     /**
+     * Le mot de passe est provisoire : l'application doit en demander un autre avant toute autre
+     * chose. Pose a l'inscription d'un commerce, leve au premier changement.
+     */
+    private boolean motdepasseAChanger;
+
+    /**
      * Accepte en entree, jamais rendu en sortie.
      *
      * `fromEntity` recopiait le mot de passe chiffre dans le DTO : la liste des comptes rendait
@@ -55,6 +61,7 @@ public class UserDto {
                 .username(ut.getUsername())
                 .email(ut.getEmail())
                 .actif(ut.isActif())
+                .motdepasseAChanger(ut.isMotdepasseAChanger())
                 .photo(ut.getPhoto())
                 .dateNaissance(ut.getDateNaissance())
                 .entreprise(EntrepriseDto.fromEntity(ut.getEntreprise()))

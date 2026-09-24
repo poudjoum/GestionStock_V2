@@ -69,4 +69,14 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
      */
     @Query(value = "select nextval('facture_numero_seq')", nativeQuery = true)
     Long prochainNumero();
+
+    /**
+     * Ce qui a ete facture par entreprise, annulations deduites.
+     *
+     * C'est le chiffre d'affaires facture, et non encaisse : l'editeur veut savoir si son client
+     * se sert de l'outil, pas tenir sa comptabilite a sa place.
+     */
+    @Query("select f.idEntreprise, coalesce(sum(f.totalTtc), 0) from Facture f "
+            + "where f.idEntreprise is not null and f.annulee = false group by f.idEntreprise")
+    java.util.List<Object[]> chiffreFactureParEntreprise();
 }
