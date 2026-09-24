@@ -88,10 +88,12 @@ public class AmorcageDuSuperAdmin implements ApplicationRunner {
             // Rien n'est demande : c'est le cas ordinaire d'une installation deja amorcee.
             return;
         }
-        if (!StringUtils.hasText(username) || !StringUtils.hasText(email)
-                || !StringUtils.hasText(motdepasse)) {
-            log.warn("Amorçage du super-administrateur incomplet : il faut SUPER_ADMIN_USERNAME, "
-                    + "SUPER_ADMIN_EMAIL et SUPER_ADMIN_MOTDEPASSE. Aucun compte n'est créé.");
+        String manquantes = manquantes();
+        if (!manquantes.isEmpty()) {
+            // Nommer celle qui manque, et non les trois : un message qui enumere tout ce qu'il
+            // faut laisse chercher dans les trois, alors que le serveur sait laquelle est vide.
+            log.warn("Amorçage du super-administrateur incomplet : {} vide(s) dans "
+                    + "l'environnement. Aucun compte n'est créé.", manquantes);
             return;
         }
         if (motdepasse.length() < LONGUEUR_MINIMALE) {
@@ -130,6 +132,21 @@ public class AmorcageDuSuperAdmin implements ApplicationRunner {
 
         // L'identifiant, jamais le mot de passe. Un journal se lit, se copie et s'archive.
         log.info("Super-administrateur « {} » créé par amorçage.", username);
+    }
+
+    /** Les variables attendues qui n'ont rien, nommees comme elles le sont dans le `.env`. */
+    private String manquantes() {
+        StringBuilder vides = new StringBuilder();
+        if (!StringUtils.hasText(username)) {
+            vides.append("SUPER_ADMIN_USERNAME");
+        }
+        if (!StringUtils.hasText(email)) {
+            vides.append(vides.isEmpty() ? "" : ", ").append("SUPER_ADMIN_EMAIL");
+        }
+        if (!StringUtils.hasText(motdepasse)) {
+            vides.append(vides.isEmpty() ? "" : ", ").append("SUPER_ADMIN_MOTDEPASSE");
+        }
+        return vides.toString();
     }
 
     private void promouvoirSiNecessaire(Utilisateur compte) {
