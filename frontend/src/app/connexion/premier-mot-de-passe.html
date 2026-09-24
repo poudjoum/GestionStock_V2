@@ -1,0 +1,91 @@
+<!--
+  Ni menu, ni barre du haut : on n'a rien d'autre à faire ici que choisir un mot de passe. C'est
+  un passage, pas un écran de plus.
+-->
+<div class="flex min-h-dvh items-center justify-center p-4">
+  <div class="w-full max-w-sm">
+    <div class="mb-6 text-center">
+      <mat-icon class="!h-10 !w-10 !text-4xl" style="color: var(--mat-sys-primary)">
+        lock_reset
+      </mat-icon>
+      <h1 class="mb-1 mt-2 text-xl font-medium">Choisissez votre mot de passe</h1>
+      <p class="text-sm opacity-70">
+        Celui que vous avez reçu par courriel ne sert qu’une fois. Il a voyagé en clair, et deux
+        personnes le connaissent — celui que vous choisissez maintenant n’appartiendra qu’à vous.
+      </p>
+      @if (username(); as nom) {
+        <p class="mt-2 text-xs opacity-60">Connecté en tant que {{ nom }}</p>
+      }
+    </div>
+
+    <mat-form-field class="w-full">
+      <mat-label>Mot de passe provisoire</mat-label>
+      <input
+        matInput
+        type="password"
+        autocomplete="current-password"
+        [ngModel]="provisoire()"
+        (ngModelChange)="provisoire.set($event)"
+        name="provisoire"
+      />
+      <mat-hint>Celui du courriel</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field class="w-full">
+      <mat-label>Nouveau mot de passe</mat-label>
+      <input
+        matInput
+        type="password"
+        autocomplete="new-password"
+        [ngModel]="nouveau()"
+        (ngModelChange)="nouveau.set($event)"
+        (keydown.enter)="valider()"
+        name="nouveau"
+      />
+      @if (tropCourt()) {
+        <mat-error>Huit caractères au minimum</mat-error>
+      } @else {
+        <mat-hint>Huit caractères au minimum</mat-hint>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="w-full">
+      <mat-label>Confirmez</mat-label>
+      <input
+        matInput
+        type="password"
+        autocomplete="new-password"
+        [ngModel]="confirmation()"
+        (ngModelChange)="confirmation.set($event)"
+        (keydown.enter)="valider()"
+        name="confirmation"
+      />
+      @if (nonIdentiques()) {
+        <mat-error>Les deux saisies diffèrent</mat-error>
+      }
+    </mat-form-field>
+
+    @if (erreur(); as message) {
+      <p
+        class="mb-3 rounded px-3 py-2 text-sm"
+        role="alert"
+        style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)"
+      >
+        {{ message }}
+      </p>
+    }
+
+    @if (envoi()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+
+    <button
+      mat-flat-button
+      class="!h-12 w-full"
+      [disabled]="envoi() || !complet()"
+      (click)="valider()"
+    >
+      {{ envoi() ? 'Enregistrement…' : 'Continuer' }}
+    </button>
+  </div>
+</div>

@@ -73,7 +73,21 @@ export class Coque implements OnInit {
     // Qui suis-je, redemande au serveur : le stockage local sert a dessiner le menu tout de
     // suite, la reponse du serveur le corrige. Un role retire pendant la nuit disparait donc au
     // premier chargement du matin.
-    this.session.chargerLeCompte().subscribe({ error: () => undefined });
+    this.session.chargerLeCompte().subscribe({
+      next: (compte) => {
+        // Le mot de passe est encore celui que l'editeur a envoye par courriel : deux personnes
+        // le connaissent, et une boite aux lettres le conserve. On ne va nulle part avant d'en
+        // avoir choisi un autre.
+        //
+        // La redirection est ici, et non dans une garde de route : le compte n'est connu qu'apres
+        // cet appel, et une garde qui s'executerait avant lui laisserait passer la premiere
+        // navigation — celle qui suit la connexion, justement.
+        if (compte.motdepasseAChanger) {
+          this.router.navigateByUrl('/premier-mot-de-passe');
+        }
+      },
+      error: () => undefined,
+    });
     this.notifications.rafraichirLeCompte();
   }
 

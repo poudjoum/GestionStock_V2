@@ -1,0 +1,430 @@
+<div class="mx-auto w-full max-w-7xl p-4">
+  <!--
+    Les nombres d'abord, et deux seulement portent une couleur : les échus et ceux qui arrivent à
+    terme. Ce sont les seuls qui appellent un geste ; le reste se constate.
+  -->
+  <div class="mb-4 flex flex-wrap items-start gap-3">
+    <div class="flex flex-1 flex-wrap gap-3">
+      @if (chargement() && !resume()) {
+        @for (i of [1, 2, 3, 4]; track i) {
+          <div class="squelette h-20 w-40"></div>
+        }
+      } @else if (resume(); as r) {
+        <div class="carte min-w-36 flex-1 p-4">
+          <div class="nombre text-3xl font-medium">{{ r.commerces | number: '1.0-0' }}</div>
+          <div class="text-xs uppercase tracking-wide opacity-60">
+            commerce{{ (r.commerces ?? 0) > 1 ? 's' : '' }}
+          </div>
+        </div>
+        <div class="carte min-w-36 flex-1 p-4">
+          <div class="nombre text-3xl font-medium">{{ r.actifs | number: '1.0-0' }}</div>
+          <div class="text-xs uppercase tracking-wide opacity-60">actifs</div>
+        </div>
+        <div
+          class="carte min-w-36 flex-1 p-4"
+          [style.background]="(r.aRelancer ?? 0) > 0 ? 'var(--mat-sys-tertiary-container)' : ''"
+        >
+          <div
+            class="nombre text-3xl font-medium"
+            [style.color]="(r.aRelancer ?? 0) > 0 ? 'var(--mat-sys-on-tertiary-container)' : ''"
+          >
+            {{ r.aRelancer | number: '1.0-0' }}
+          </div>
+          <div class="text-xs uppercase tracking-wide opacity-60">à relancer sous 30 j</div>
+        </div>
+        <div
+          class="carte min-w-36 flex-1 p-4"
+          [style.background]="
+            (r.echus ?? 0) + (r.suspendus ?? 0) > 0 ? 'var(--mat-sys-error-container)' : ''
+          "
+        >
+          <div
+            class="nombre text-3xl font-medium"
+            [style.color]="
+              (r.echus ?? 0) + (r.suspendus ?? 0) > 0 ? 'var(--mat-sys-on-error-container)' : ''
+            "
+          >
+            {{ (r.echus ?? 0) + (r.suspendus ?? 0) | number: '1.0-0' }}
+          </div>
+          <div class="text-xs uppercase tracking-wide opacity-60">fermés</div>
+        </div>
+      }
+    </div>
+
+    <button mat-flat-button class="!h-12" (click)="ouvrirLeFormulaire()">
+      <mat-icon>add_business</mat-icon>
+      Inscrire un commerce
+    </button>
+  </div>
+
+  @if (erreur(); as message) {
+    <p
+      class="mb-3 rounded px-3 py-2 text-sm"
+      role="alert"
+      style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)"
+    >
+      {{ message }}
+    </p>
+  }
+
+  @if (chargement()) {
+    @for (i of [1, 2, 3, 4, 5]; track i) {
+      <div class="squelette mb-2 h-16 w-full"></div>
+    }
+  } @else if (!commerces().length) {
+    <section class="carte p-8 text-center">
+      <mat-icon class="!h-12 !w-12 !text-5xl" style="color: var(--mat-sys-primary)">
+        storefront
+      </mat-icon>
+      <h2 class="mb-1 mt-2 text-xl font-medium">Aucun commerce inscrit</h2>
+      <p class="mx-auto mb-5 max-w-md text-sm opacity-70">
+        Inscrire un commerce crée son espace et le compte de son gérant, et lui envoie ses accès
+        par courriel. Il choisira son mot de passe à la première connexion.
+      </p>
+      <button mat-flat-button class="!h-12" (click)="ouvrirLeFormulaire()">
+        <mat-icon>add_business</mat-icon>
+        Inscrire le premier
+      </button>
+    </section>
+  } @else {
+    <!--
+      Un tableau, et non des cartes : on vient comparer des lignes entre elles — quel abonnement
+      arrive à terme, quel client ne se sert plus de l'outil. Sur téléphone, il défile
+      horizontalement plutôt que de se replier en cartes qu'on ne pourrait plus comparer.
+    -->
+    <div class="carte overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr
+            class="border-b text-xs uppercase tracking-wide opacity-60"
+            style="border-color: var(--mat-sys-outline-variant)"
+          >
+            <th class="px-3 py-2 text-left font-medium">Commerce</th>
+            <th class="px-3 py-2 text-left font-medium">Abonnement</th>
+            <th class="px-3 py-2 text-right font-medium">Comptes</th>
+            <th class="px-3 py-2 text-right font-medium">Articles</th>
+            <th class="px-3 py-2 text-right font-medium">Ventes</th>
+            <th class="px-3 py-2 text-right font-medium">Facturé</th>
+            <th class="px-3 py-2 text-left font-medium">Dernière vente</th>
+            <th class="px-3 py-2"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of commerces(); track c.id) {
+            <tr
+              class="border-b"
+              style="border-color: var(--mat-sys-outline-variant)"
+              [style.opacity]="enCours() === c.id ? '0.5' : '1'"
+            >
+              <td class="px-3 py-2.5">
+                <span class="block font-medium">{{ c.nom }}</span>
+                <span class="block text-xs opacity-60">
+                  {{ c.ville || '—' }}@if (c.tel) { · {{ c.tel }} }
+                </span>
+              </td>
+
+              <td class="px-3 py-2.5">
+                <span
+                  class="pastille"
+                  [style.background]="statuts[c.statut!].fond"
+                  [style.color]="statuts[c.statut!].texte"
+                >
+                  {{ libelleDuStatut(c.statut) }}
+                </span>
+                <span class="block text-xs opacity-60">
+                  {{ echeanceLisible(c) }}
+                  @if (c.abonnementEcheance) {
+                    · {{ c.abonnementEcheance }}
+                  }
+                </span>
+              </td>
+
+              <td class="nombre px-3 py-2.5 text-right">{{ c.comptes | number: '1.0-0' }}</td>
+              <td class="nombre px-3 py-2.5 text-right">{{ c.articles | number: '1.0-0' }}</td>
+              <td class="nombre px-3 py-2.5 text-right">{{ c.ventes | number: '1.0-0' }}</td>
+              <td class="nombre px-3 py-2.5 text-right">
+                {{ c.chiffreFacture | number: '1.0-0' }} F
+              </td>
+              <td class="px-3 py-2.5 text-xs opacity-70">
+                @if (c.derniereVente) {
+                  {{ c.derniereVente | date: 'dd/MM/yyyy' }}
+                } @else {
+                  <!-- Un client qui n'a jamais vendu n'a jamais vraiment commencé. -->
+                  <span class="opacity-60">jamais</span>
+                }
+              </td>
+
+              <td class="whitespace-nowrap px-3 py-2.5 text-right">
+                <button
+                  mat-icon-button
+                  [disabled]="enCours() !== null"
+                  (click)="renouveler(c)"
+                  aria-label="Renouveler d’un an"
+                  matTooltip="Renouveler d’un an"
+                >
+                  <mat-icon class="!h-5 !w-5 !text-xl">event_repeat</mat-icon>
+                </button>
+                @if (c.suspendue) {
+                  <button
+                    mat-icon-button
+                    [disabled]="enCours() !== null"
+                    (click)="reprendre(c)"
+                    aria-label="Rouvrir l’accès"
+                    matTooltip="Rouvrir l’accès"
+                  >
+                    <mat-icon class="!h-5 !w-5 !text-xl">lock_open</mat-icon>
+                  </button>
+                } @else {
+                  <button
+                    mat-icon-button
+                    [disabled]="enCours() !== null"
+                    (click)="suspendre(c)"
+                    aria-label="Suspendre l’accès"
+                    matTooltip="Suspendre l’accès"
+                  >
+                    <mat-icon class="!h-5 !w-5 !text-xl">lock</mat-icon>
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!--
+  L'inscription.
+  Deux blocs, dans l'ordre où on les remplit : la maison, puis la personne qui y entrera.
+-->
+@if (formulaireOuvert()) {
+  <div
+    class="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto p-4"
+    style="background: rgba(0, 0, 0, 0.5)"
+    role="dialog"
+    aria-label="Inscrire un commerce"
+  >
+    <div class="carte my-4 w-full max-w-2xl p-5" style="background: var(--mat-sys-surface)">
+      <div class="mb-4 flex items-center gap-2">
+        <h2 class="flex-1 text-lg font-medium">Inscrire un commerce</h2>
+        <button mat-icon-button (click)="formulaireOuvert.set(false)" aria-label="Fermer">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <h3 class="mb-2 text-xs uppercase tracking-wide opacity-60">Le commerce</h3>
+      <mat-form-field class="w-full">
+        <mat-label>Nom</mat-label>
+        <input
+          matInput
+          [ngModel]="brouillon().entreprise.nom"
+          (ngModelChange)="changerEntreprise('nom', $event)"
+          name="nomEntreprise"
+        />
+      </mat-form-field>
+      <div class="grid gap-x-4 sm:grid-cols-2">
+        <mat-form-field class="w-full">
+          <mat-label>Registre de commerce</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().entreprise.registreCommerce"
+            (ngModelChange)="changerEntreprise('registreCommerce', $event)"
+            name="rccm"
+          />
+        </mat-form-field>
+        <mat-form-field class="w-full">
+          <mat-label>NIU</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().entreprise.niu"
+            (ngModelChange)="changerEntreprise('niu', $event)"
+            name="niu"
+          />
+          <mat-hint>Facultatif</mat-hint>
+        </mat-form-field>
+      </div>
+      <div class="grid gap-x-4 sm:grid-cols-2">
+        <mat-form-field class="w-full">
+          <mat-label>Courriel du commerce</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().entreprise.email"
+            (ngModelChange)="changerEntreprise('email', $event)"
+            name="emailEntreprise"
+            inputmode="email"
+          />
+        </mat-form-field>
+        <mat-form-field class="w-full">
+          <mat-label>Téléphone</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().entreprise.tel"
+            (ngModelChange)="changerEntreprise('tel', $event)"
+            name="telEntreprise"
+            inputmode="tel"
+          />
+        </mat-form-field>
+      </div>
+      <div class="grid gap-x-4 sm:grid-cols-2">
+        <mat-form-field class="w-full">
+          <mat-label>Ville</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().entreprise.adresse?.ville"
+            (ngModelChange)="changerAdresseEntreprise('ville', $event)"
+            name="villeEntreprise"
+          />
+        </mat-form-field>
+        <mat-form-field class="w-full">
+          <mat-label>Pays</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().entreprise.adresse?.pays"
+            (ngModelChange)="changerAdresseEntreprise('pays', $event)"
+            name="paysEntreprise"
+          />
+        </mat-form-field>
+      </div>
+
+      <h3 class="mb-2 mt-4 text-xs uppercase tracking-wide opacity-60">Son gérant</h3>
+      <p class="mb-3 text-sm opacity-70">
+        Il recevra ces accès par courriel, et devra choisir son propre mot de passe à la première
+        connexion — celui que vous saisissez ici ne sert qu’une fois.
+      </p>
+      <div class="grid gap-x-4 sm:grid-cols-2">
+        <mat-form-field class="w-full">
+          <mat-label>Nom</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().administrateur.nom"
+            (ngModelChange)="changerGerant('nom', $event)"
+            name="nomGerant"
+          />
+        </mat-form-field>
+        <mat-form-field class="w-full">
+          <mat-label>Prénoms</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().administrateur.prenoms"
+            (ngModelChange)="changerGerant('prenoms', $event)"
+            name="prenomsGerant"
+          />
+        </mat-form-field>
+      </div>
+      <div class="grid gap-x-4 sm:grid-cols-2">
+        <mat-form-field class="w-full">
+          <mat-label>Identifiant de connexion</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().administrateur.username"
+            (ngModelChange)="changerGerant('username', $event)"
+            name="usernameGerant"
+            autocomplete="off"
+          />
+          <mat-hint>Sans espace, c’est plus simple à taper tous les jours</mat-hint>
+        </mat-form-field>
+        <mat-form-field class="w-full">
+          <mat-label>Mot de passe provisoire</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().administrateur.motdepasse"
+            (ngModelChange)="changerGerant('motdepasse', $event)"
+            name="motdepasseGerant"
+            autocomplete="off"
+          />
+        </mat-form-field>
+      </div>
+      <div class="grid gap-x-4 sm:grid-cols-2">
+        <mat-form-field class="w-full">
+          <mat-label>Courriel</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().administrateur.email"
+            (ngModelChange)="changerGerant('email', $event)"
+            name="emailGerant"
+            inputmode="email"
+          />
+          <mat-hint>C’est là que partent ses accès</mat-hint>
+        </mat-form-field>
+        <mat-form-field class="w-full">
+          <mat-label>Téléphone</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().administrateur.numTel"
+            (ngModelChange)="changerGerant('numTel', $event)"
+            name="telGerant"
+            inputmode="tel"
+          />
+        </mat-form-field>
+      </div>
+      <div class="grid gap-x-4 sm:grid-cols-2">
+        <mat-form-field class="w-full">
+          <mat-label>Date de naissance</mat-label>
+          <input
+            matInput
+            type="date"
+            [ngModel]="brouillon().administrateur.dateNaissance"
+            (ngModelChange)="changerGerant('dateNaissance', $event)"
+            name="naissanceGerant"
+          />
+        </mat-form-field>
+        <mat-form-field class="w-full">
+          <mat-label>Adresse</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().administrateur.adresse?.adresse1"
+            (ngModelChange)="changerAdresseGerant('adresse1', $event)"
+            name="adresseGerant"
+          />
+        </mat-form-field>
+      </div>
+      <div class="grid gap-x-4 sm:grid-cols-2">
+        <mat-form-field class="w-full">
+          <mat-label>Ville</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().administrateur.adresse?.ville"
+            (ngModelChange)="changerAdresseGerant('ville', $event)"
+            name="villeGerant"
+          />
+        </mat-form-field>
+        <mat-form-field class="w-full">
+          <mat-label>Pays</mat-label>
+          <input
+            matInput
+            [ngModel]="brouillon().administrateur.adresse?.pays"
+            (ngModelChange)="changerAdresseGerant('pays', $event)"
+            name="paysGerant"
+          />
+        </mat-form-field>
+      </div>
+
+      @if (erreurInscription(); as message) {
+        <p
+          class="mb-3 rounded px-3 py-2 text-sm"
+          role="alert"
+          style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)"
+        >
+          {{ message }}
+        </p>
+      }
+
+      @if (inscriptionEnCours()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+
+      <div class="mt-2 flex justify-end gap-2">
+        <button mat-button (click)="formulaireOuvert.set(false)">Annuler</button>
+        <button
+          mat-flat-button
+          class="!h-12"
+          [disabled]="inscriptionEnCours() || !inscriptionComplete()"
+          (click)="inscrire()"
+        >
+          {{ inscriptionEnCours() ? 'Inscription…' : 'Inscrire et envoyer les accès' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

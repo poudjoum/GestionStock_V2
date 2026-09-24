@@ -10,7 +10,14 @@ import type { components } from '../api/schema';
 type Schemas = components['schemas'];
 
 export type JwtResponse = Schemas['JwtResponse'];
-export type UserDto = Schemas['UserDto'];
+/**
+ * Le compte connecte.
+ *
+ * `motdepasseAChanger` est ajoute a la main, et c'est provisoire : `npm run api:types` lit la
+ * specification du serveur deploye, qui porte encore la version d'avant le lot de la plateforme.
+ * Le champ descendra de lui-meme a la prochaine regeneration.
+ */
+export type UserDto = Schemas['UserDto'] & { motdepasseAChanger?: boolean };
 export type RoleDto = Schemas['RoleDto'];
 export type ArticleDto = Schemas['ArticleDto'];
 export type ClientDto = Schemas['ClientDto'];

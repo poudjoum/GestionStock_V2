@@ -11,6 +11,14 @@ export const routes: Routes = [
     loadComponent: () => import('./connexion/connexion').then((m) => m.Connexion),
   },
   {
+    // Hors de la coque : on n'a rien d'autre a faire ici que choisir un mot de passe, et un menu
+    // ne ferait que proposer des ecrans ou l'on n'ira pas.
+    path: 'premier-mot-de-passe',
+    canActivate: [gardeConnecte],
+    loadComponent: () =>
+      import('./connexion/premier-mot-de-passe').then((m) => m.PremierMotDePasse),
+  },
+  {
     path: '',
     canActivate: [gardeConnecte],
     loadComponent: () => import('./coque/coque').then((m) => m.Coque),
@@ -110,6 +118,12 @@ export const routes: Routes = [
         path: 'comptes',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')],
         loadComponent: () => import('./comptes/comptes').then((m) => m.Comptes),
+      },
+      {
+        // La plateforme : les commerces heberges. L'editeur seul, et le serveur le redit.
+        path: 'commerces',
+        canActivate: [gardeRoles('ROLE_SUPER_ADMIN')],
+        loadComponent: () => import('./plateforme/commerces').then((m) => m.Commerces),
       },
       {
         // L'identite du magasin : ce que le ticket de caisse imprime en en-tete. Reserve a

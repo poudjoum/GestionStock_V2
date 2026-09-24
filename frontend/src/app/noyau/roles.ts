@@ -35,13 +35,22 @@ export interface EntreeDeMenu {
 
 export const MENU: EntreeDeMenu[] = [
   {
+    chemin: '/commerces',
+    libelle: 'Commerces',
+    icone: 'storefront',
+    // L'editeur seul, et c'est son ecran d'arrivee : il est le premier de la liste, donc celui
+    // que `accueilPour` lui rend. Un super-administrateur n'a pas de magasin a lui.
+    roles: ['ROLE_SUPER_ADMIN'],
+    principal: true,
+  },
+  {
     chemin: '/accueil',
     libelle: 'Accueil',
     icone: 'dashboard',
     // Le caissier et le magasinier en sont ecartes : ce qu'ils y liraient — valeur du magasin,
     // recette du jour — ne les regarde pas, et les conduirait a un clic de plus avant l'ecran ou
     // ils travaillent.
-    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE', 'ROLE_SUPER_ADMIN'],
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
   },
   {
     chemin: '/comptoir',
