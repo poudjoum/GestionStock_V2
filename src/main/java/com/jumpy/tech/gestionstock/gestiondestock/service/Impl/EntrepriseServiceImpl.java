@@ -85,7 +85,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         }
 
         List<String> errors = EntrepriseValidator.validate(inscription.getEntreprise());
-        errors.addAll(UserValidator.validate(inscription.getAdministrateur()));
+        errors.addAll(UserValidator.validerPourInscription(inscription.getAdministrateur()));
         UserDto administrateur = inscription.getAdministrateur();
         if (!StringUtils.hasLength(administrateur.getUsername())) {
             errors.add("Veuillez renseigner l'identifiant de connexion de l'administrateur");

@@ -215,7 +215,7 @@
 
       <h3 class="mb-2 text-xs uppercase tracking-wide opacity-60">Le commerce</h3>
       <mat-form-field class="w-full">
-        <mat-label>Nom</mat-label>
+        <mat-label>Nom du commerce</mat-label>
         <input
           matInput
           [ngModel]="brouillon().entreprise.nom"
@@ -223,49 +223,6 @@
           name="nomEntreprise"
         />
       </mat-form-field>
-      <div class="grid gap-x-4 sm:grid-cols-2">
-        <mat-form-field class="w-full">
-          <mat-label>Registre de commerce</mat-label>
-          <input
-            matInput
-            [ngModel]="brouillon().entreprise.registreCommerce"
-            (ngModelChange)="changerEntreprise('registreCommerce', $event)"
-            name="rccm"
-          />
-        </mat-form-field>
-        <mat-form-field class="w-full">
-          <mat-label>NIU</mat-label>
-          <input
-            matInput
-            [ngModel]="brouillon().entreprise.niu"
-            (ngModelChange)="changerEntreprise('niu', $event)"
-            name="niu"
-          />
-          <mat-hint>Facultatif</mat-hint>
-        </mat-form-field>
-      </div>
-      <div class="grid gap-x-4 sm:grid-cols-2">
-        <mat-form-field class="w-full">
-          <mat-label>Courriel du commerce</mat-label>
-          <input
-            matInput
-            [ngModel]="brouillon().entreprise.email"
-            (ngModelChange)="changerEntreprise('email', $event)"
-            name="emailEntreprise"
-            inputmode="email"
-          />
-        </mat-form-field>
-        <mat-form-field class="w-full">
-          <mat-label>Téléphone</mat-label>
-          <input
-            matInput
-            [ngModel]="brouillon().entreprise.tel"
-            (ngModelChange)="changerEntreprise('tel', $event)"
-            name="telEntreprise"
-            inputmode="tel"
-          />
-        </mat-form-field>
-      </div>
       <div class="grid gap-x-4 sm:grid-cols-2">
         <mat-form-field class="w-full">
           <mat-label>Ville</mat-label>
@@ -277,24 +234,26 @@
           />
         </mat-form-field>
         <mat-form-field class="w-full">
-          <mat-label>Pays</mat-label>
+          <mat-label>Téléphone</mat-label>
           <input
             matInput
-            [ngModel]="brouillon().entreprise.adresse?.pays"
-            (ngModelChange)="changerAdresseEntreprise('pays', $event)"
-            name="paysEntreprise"
+            [ngModel]="brouillon().entreprise.tel"
+            (ngModelChange)="changerEntreprise('tel', $event)"
+            name="telEntreprise"
+            inputmode="tel"
           />
+          <mat-hint>Pour le rappeler</mat-hint>
         </mat-form-field>
       </div>
 
-      <h3 class="mb-2 mt-4 text-xs uppercase tracking-wide opacity-60">Son gérant</h3>
+      <h3 class="mb-2 mt-5 text-xs uppercase tracking-wide opacity-60">Son gérant</h3>
       <p class="mb-3 text-sm opacity-70">
-        Il recevra ces accès par courriel, et devra choisir son propre mot de passe à la première
+        Il recevra ces accès par courriel et choisira son propre mot de passe à la première
         connexion — celui que vous saisissez ici ne sert qu’une fois.
       </p>
       <div class="grid gap-x-4 sm:grid-cols-2">
         <mat-form-field class="w-full">
-          <mat-label>Nom</mat-label>
+          <mat-label>Nom et prénom</mat-label>
           <input
             matInput
             [ngModel]="brouillon().administrateur.nom"
@@ -303,13 +262,15 @@
           />
         </mat-form-field>
         <mat-form-field class="w-full">
-          <mat-label>Prénoms</mat-label>
+          <mat-label>Courriel</mat-label>
           <input
             matInput
-            [ngModel]="brouillon().administrateur.prenoms"
-            (ngModelChange)="changerGerant('prenoms', $event)"
-            name="prenomsGerant"
+            [ngModel]="brouillon().administrateur.email"
+            (ngModelChange)="changerGerant('email', $event)"
+            name="emailGerant"
+            inputmode="email"
           />
+          <mat-hint>C’est là que partent ses accès</mat-hint>
         </mat-form-field>
       </div>
       <div class="grid gap-x-4 sm:grid-cols-2">
@@ -322,7 +283,7 @@
             name="usernameGerant"
             autocomplete="off"
           />
-          <mat-hint>Sans espace, c’est plus simple à taper tous les jours</mat-hint>
+          <mat-hint>Sans espace : il le tapera tous les jours</mat-hint>
         </mat-form-field>
         <mat-form-field class="w-full">
           <mat-label>Mot de passe provisoire</mat-label>
@@ -335,70 +296,17 @@
           />
         </mat-form-field>
       </div>
-      <div class="grid gap-x-4 sm:grid-cols-2">
-        <mat-form-field class="w-full">
-          <mat-label>Courriel</mat-label>
-          <input
-            matInput
-            [ngModel]="brouillon().administrateur.email"
-            (ngModelChange)="changerGerant('email', $event)"
-            name="emailGerant"
-            inputmode="email"
-          />
-          <mat-hint>C’est là que partent ses accès</mat-hint>
-        </mat-form-field>
-        <mat-form-field class="w-full">
-          <mat-label>Téléphone</mat-label>
-          <input
-            matInput
-            [ngModel]="brouillon().administrateur.numTel"
-            (ngModelChange)="changerGerant('numTel', $event)"
-            name="telGerant"
-            inputmode="tel"
-          />
-        </mat-form-field>
-      </div>
-      <div class="grid gap-x-4 sm:grid-cols-2">
-        <mat-form-field class="w-full">
-          <mat-label>Date de naissance</mat-label>
-          <input
-            matInput
-            type="date"
-            [ngModel]="brouillon().administrateur.dateNaissance"
-            (ngModelChange)="changerGerant('dateNaissance', $event)"
-            name="naissanceGerant"
-          />
-        </mat-form-field>
-        <mat-form-field class="w-full">
-          <mat-label>Adresse</mat-label>
-          <input
-            matInput
-            [ngModel]="brouillon().administrateur.adresse?.adresse1"
-            (ngModelChange)="changerAdresseGerant('adresse1', $event)"
-            name="adresseGerant"
-          />
-        </mat-form-field>
-      </div>
-      <div class="grid gap-x-4 sm:grid-cols-2">
-        <mat-form-field class="w-full">
-          <mat-label>Ville</mat-label>
-          <input
-            matInput
-            [ngModel]="brouillon().administrateur.adresse?.ville"
-            (ngModelChange)="changerAdresseGerant('ville', $event)"
-            name="villeGerant"
-          />
-        </mat-form-field>
-        <mat-form-field class="w-full">
-          <mat-label>Pays</mat-label>
-          <input
-            matInput
-            [ngModel]="brouillon().administrateur.adresse?.pays"
-            (ngModelChange)="changerAdresseGerant('pays', $event)"
-            name="paysGerant"
-          />
-        </mat-form-field>
-      </div>
+
+      <!--
+        Ce qui n'est pas demandé ici, et pourquoi : le registre de commerce, le NIU, l'adresse et
+        la TVA sont les mentions qui s'impriment sur les tickets du commerçant. C'est lui qui les
+        connaît, pas l'éditeur — les demander ici obligeait à les inventer ou à rappeler le client
+        avant de pouvoir ouvrir son espace.
+      -->
+      <p class="mb-4 text-xs opacity-60">
+        Le registre de commerce, le NIU et l’adresse complète se renseignent dans « Le magasin »,
+        que le gérant remplit lui-même — ce sont les mentions de ses tickets.
+      </p>
 
       @if (erreurInscription(); as message) {
         <p

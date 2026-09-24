@@ -124,6 +124,35 @@ class PlateformeTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void une_inscription_minimale_suffit() {
+        editeur();
+        String suffixe = UUID.randomUUID().toString().substring(0, 8);
+
+        // Ce que l'editeur sait d'un commercant qu'il vient de demarcher, et rien de plus : le nom
+        // de la maison, un numero pour le rappeler, et de quoi ouvrir un compte a son gerant.
+        // Lui demander la date de naissance du gerant ou le registre de commerce l'obligeait a
+        // les inventer ou a rappeler le client avant de pouvoir creer l'espace.
+        InscriptionEntrepriseDto minimale = new InscriptionEntrepriseDto();
+        minimale.setEntreprise(EntrepriseDto.builder()
+                .nom("Boutique " + suffixe)
+                .tel("690000000")
+                .build());
+        minimale.setAdministrateur(UserDto.builder()
+                .nom("Ngono Marie")
+                .username("marie-" + suffixe)
+                .email("marie-" + suffixe + "@exemple.test")
+                .motdepasse(MOT_DE_PASSE)
+                .build());
+
+        EntrepriseDto inscrite = entrepriseService.inscrire(minimale);
+
+        assertThat(inscrite.getId()).isNotNull();
+        assertThat(ligneDe(inscrite.getId()).statut()).isEqualTo(StatutAbonnement.ACTIF);
+        assertThat(utilisateurRepository.findUtilisateurByUsername("marie-" + suffixe))
+                .get().extracting(Utilisateur::isMotdepasseAChanger).isEqualTo(true);
+    }
+
+    @Test
     void le_mot_de_passe_du_gerant_est_provisoire_et_le_courriel_part() {
         editeur();
         String suffixe = UUID.randomUUID().toString().substring(0, 8);

@@ -39,8 +39,10 @@ const STATUTS: Record<StatutAbonnement, { libelle: string; fond: string; texte: 
 /** Un commerce vide, prêt à être rempli par le formulaire d'inscription. */
 function brouillonVierge(): InscriptionDto {
   return {
+    // La TVA est celle du Cameroun par défaut ; le gérant la corrigera dans « Le magasin » s'il
+    // n'y est pas assujetti.
     entreprise: { assujettieTva: true, tauxTva: 19.25, adresse: { pays: 'Cameroun' } },
-    administrateur: { adresse: { pays: 'Cameroun' } },
+    administrateur: {},
   };
 }
 
@@ -215,37 +217,18 @@ export class Commerces implements OnInit {
     }));
   }
 
-  protected changerAdresseGerant(champ: string, valeur: string): void {
-    this.brouillon.update((b) => ({
-      ...b,
-      administrateur: {
-        ...b.administrateur,
-        adresse: { ...b.administrateur.adresse, [champ]: valeur },
-      },
-    }));
-  }
-
-  /** Tout ce que le serveur exigera, verifié ici pour ne pas faire l'aller-retour pour rien. */
+  /**
+   * Tout ce que le serveur exigera, verifié ici pour ne pas faire l'aller-retour pour rien.
+   *
+   * Six champs, et c'est tout ce qu'il faut : de quoi identifier le commerce, de quoi rappeler
+   * son gérant, et de quoi le laisser entrer. Le reste — registre de commerce, NIU, adresse
+   * complète, TVA — appartient au commerçant et se renseigne dans « Le magasin ».
+   */
   protected readonly inscriptionComplete = computed(() => {
     const b = this.brouillon();
     const e = b.entreprise;
     const g = b.administrateur;
-    return Boolean(
-      e.nom &&
-        e.registreCommerce &&
-        e.email &&
-        e.tel &&
-        g.nom &&
-        g.prenoms &&
-        g.username &&
-        g.email &&
-        g.motdepasse &&
-        g.numTel &&
-        g.dateNaissance &&
-        g.adresse?.adresse1 &&
-        g.adresse?.ville &&
-        g.adresse?.pays,
-    );
+    return Boolean(e.nom && e.tel && g.nom && g.username && g.email && g.motdepasse);
   });
 
   protected inscrire(): void {
@@ -255,16 +238,8 @@ export class Commerces implements OnInit {
     this.inscriptionEnCours.set(true);
     this.erreurInscription.set(null);
     const brouillon = this.brouillon();
-    // L'API attend un instant ; le champ date rend « 1990-05-14 ».
-    const naissance = brouillon.administrateur.dateNaissance;
     this.service
-      .inscrire({
-        ...brouillon,
-        administrateur: {
-          ...brouillon.administrateur,
-          dateNaissance: naissance ? `${naissance}T00:00:00Z` : undefined,
-        },
-      })
+      .inscrire(brouillon)
       .subscribe({
         next: (inscrite) => {
           this.inscriptionEnCours.set(false);

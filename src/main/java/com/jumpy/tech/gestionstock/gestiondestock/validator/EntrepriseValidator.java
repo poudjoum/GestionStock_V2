@@ -35,12 +35,12 @@ public class EntrepriseValidator {
         if(!StringUtils.hasLength(dto.getNom())){
             errors.add("Veuillez renseigner le nom de l'entreprise");
         }
-        if(!StringUtils.hasLength(dto.getRegistreCommerce())){
-            errors.add("Veuillez renseigner le registre de commerce");
-        }
-        if(!StringUtils.hasLength(dto.getEmail())){
-            errors.add("Veuillez renseigner l'adresse de courriel de l'entreprise");
-        }
+        // Le registre de commerce et le courriel ne sont plus exiges.
+        //
+        // Ce sont des mentions qui s'impriment sur les tickets, et le commercant les connait ;
+        // l'editeur qui lui ouvre un espace, non. Les exiger a l'inscription obligeait a les
+        // inventer ou a rappeler le client avant de pouvoir creer son compte. Ils se renseignent
+        // dans « Le magasin », qui est leur place.
         if(!StringUtils.hasLength(dto.getTel())){
             errors.add("Veuillez renseigner un numéro de téléphone");
         }

@@ -57,4 +57,36 @@ public class UserValidator {
         }
         return errors;
     }
+
+    /**
+     * Ce qu'il faut pour ouvrir un compte a quelqu'un qu'on ne connait pas.
+     *
+     * `validate` sert quand l'administrateur d'un magasin inscrit son propre personnel : il en
+     * connait la date de naissance et l'adresse, et les lui demander a du sens. L'editeur qui
+     * ouvre un espace a une quincaillerie n'en sait rien, et n'a aucune raison de l'apprendre.
+     *
+     * Restent les quatre choses sans lesquelles le compte n'existe pas : un nom pour le designer,
+     * un identifiant et un mot de passe pour entrer, une adresse ou recevoir les deux. Le gerant
+     * completera le reste lui-meme, ou ne le completera pas.
+     */
+    public static List<String> validerPourInscription(UserDto dto){
+        List<String> errors=new ArrayList<>();
+        if(dto==null){
+            errors.add("Veuillez renseigner le gérant");
+            return errors;
+        }
+        if(!StringUtils.hasLength(dto.getNom())){
+            errors.add("Veuillez renseigner le nom du gérant");
+        }
+        if(!StringUtils.hasLength(dto.getUsername())){
+            errors.add("Veuillez renseigner l'identifiant de connexion du gérant");
+        }
+        if(!StringUtils.hasLength(dto.getEmail())){
+            errors.add("Veuillez renseigner l'adresse de courriel du gérant");
+        }
+        if(!StringUtils.hasLength(dto.getMotdepasse())){
+            errors.add("Veuillez renseigner le mot de passe provisoire du gérant");
+        }
+        return errors;
+    }
 }
