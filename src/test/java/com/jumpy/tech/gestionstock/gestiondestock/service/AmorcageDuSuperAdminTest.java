@@ -9,11 +9,14 @@ import com.jumpy.tech.gestionstock.gestiondestock.repository.UtilisateurReposito
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.mockito.Mockito;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 /**
  * L'amorcage du super-administrateur par l'environnement.
@@ -44,10 +47,12 @@ class AmorcageDuSuperAdminTest extends AbstractIntegrationTest {
     private RoleRepository roleRepository;
     @Autowired
     private PasswordEncoder encodeur;
+    @Autowired
+    private PlatformTransactionManager transactions;
 
     private AmorcageDuSuperAdmin amorcage(String username, String email, String motdepasse) {
         return new AmorcageDuSuperAdmin(utilisateurRepository, roleRepository, encodeur,
-                username, email, motdepasse);
+                transactions, username, email, motdepasse);
     }
 
     private String nomUnique() {
@@ -139,6 +144,20 @@ class AmorcageDuSuperAdminTest extends AbstractIntegrationTest {
         amorcage(username, username + "@exemple.test", "court").amorcer();
 
         assertThat(utilisateurRepository.findUtilisateurByUsername(username)).isEmpty();
+    }
+
+    @Test
+    void aucun_echec_n_empeche_le_demarrage() {
+        // La promesse etait ecrite dans le commentaire et absente du code : une violation de
+        // contrainte ne se manifeste qu'au commit, hors de la methode, et le serveur de caisse a
+        // refuse de demarrer parce qu'un compte d'administration n'avait pas pu etre cree.
+        UtilisateurRepository injoignable = Mockito.mock(UtilisateurRepository.class);
+        Mockito.when(injoignable.findUtilisateurByUsername(Mockito.anyString()))
+                .thenThrow(new IllegalStateException("base injoignable"));
+        AmorcageDuSuperAdmin casse = new AmorcageDuSuperAdmin(injoignable, roleRepository,
+                encodeur, transactions, nomUnique(), "x@exemple.test", MOT_DE_PASSE);
+
+        assertThatCode(() -> casse.run(null)).doesNotThrowAnyException();
     }
 
     @Test

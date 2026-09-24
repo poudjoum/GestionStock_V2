@@ -11,7 +11,8 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 import java.util.Optional;
@@ -51,6 +52,7 @@ public class AmorcageDuSuperAdmin implements ApplicationRunner {
     private final UtilisateurRepository utilisateurRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder encodeur;
+    private final TransactionTemplate transactions;
     private final String username;
     private final String email;
     private final String motdepasse;
@@ -58,30 +60,51 @@ public class AmorcageDuSuperAdmin implements ApplicationRunner {
     public AmorcageDuSuperAdmin(UtilisateurRepository utilisateurRepository,
                                 RoleRepository roleRepository,
                                 PasswordEncoder encodeur,
+                                PlatformTransactionManager transactions,
                                 @Value("${amorcage.super-admin.username:}") String username,
                                 @Value("${amorcage.super-admin.email:}") String email,
                                 @Value("${amorcage.super-admin.motdepasse:}") String motdepasse) {
         this.utilisateurRepository = utilisateurRepository;
         this.roleRepository = roleRepository;
         this.encodeur = encodeur;
+        this.transactions = new TransactionTemplate(transactions);
         this.username = username;
         this.email = email;
         this.motdepasse = motdepasse;
     }
 
+    /**
+     * Le point d'entree, et le seul endroit ou l'echec est rattrape.
+     *
+     * Deux choses s'y jouent, et la premiere version les avait ratees toutes les deux.
+     *
+     * La transaction est ouverte ici, par un `TransactionTemplate`, et non par un `@Transactional`
+     * sur `amorcer()` : cette methode est appelee depuis celle-ci, sur le meme objet. L'appel ne
+     * passe donc pas par le proxy de Spring, et l'annotation n'avait aucun effet — les roles d'un
+     * compte existant se lisaient hors session, et l'enregistrement n'etait couvert par rien.
+     *
+     * Le `catch` entoure la validation de la transaction, et pas seulement son contenu. Une
+     * violation de contrainte ne se manifeste qu'au commit : rattrapee a l'interieur, elle
+     * s'echappait quand meme — et un serveur de caisse refusait de demarrer parce qu'un compte
+     * d'administration n'avait pas pu etre cree. C'est arrive.
+     */
     @Override
     public void run(ApplicationArguments arguments) {
-        amorcer();
+        try {
+            transactions.executeWithoutResult(statut -> amorcer());
+        } catch (RuntimeException echec) {
+            log.error("Amorçage du super-administrateur impossible : {} — {}. L'application "
+                            + "démarre quand même, et aucun compte n'est créé.",
+                    echec.getClass().getSimpleName(), echec.getMessage());
+        }
     }
 
     /**
      * Le travail lui-meme, separe du demarrage pour qu'il se teste sans relancer l'application.
      *
-     * Il ne leve jamais : un amorcage impossible ne doit pas empecher le serveur de demarrer. Une
-     * caisse qui refuse d'ouvrir parce qu'un compte d'administration n'a pas pu etre cree serait
-     * un remede pire que le mal — le journal le dit, et l'application sert.
+     * Il peut lever : c'est `run` qui rattrape, parce que c'est lui qui tient la transaction et
+     * qui voit donc aussi ce que le commit refuse.
      */
-    @Transactional
     public void amorcer() {
         if (!StringUtils.hasText(username) && !StringUtils.hasText(email)
                 && !StringUtils.hasText(motdepasse)) {
@@ -110,9 +133,13 @@ public class AmorcageDuSuperAdmin implements ApplicationRunner {
         }
         // L'adresse est unique en base : la contrainte ferait echouer l'enregistrement, et l'echec
         // arriverait au demarrage sous une forme que personne ne saurait lire.
-        if (utilisateurRepository.existsByEmail(email)) {
+        Optional<Utilisateur> memeAdresse = utilisateurRepository.findUtilisateurByEmail(email);
+        if (memeAdresse.isPresent()) {
+            // Nommer le detenteur : sans lui, on cherche un compte inconnu alors que c'est souvent
+            // le sien, cree sous un autre identifiant a l'essai precedent.
             log.error("Amorçage du super-administrateur refusé : l'adresse de courriel demandée "
-                    + "appartient déjà à un autre compte. Aucun compte n'est créé.");
+                            + "appartient déjà au compte « {} » (id {}). Aucun compte n'est créé.",
+                    memeAdresse.get().getUsername(), memeAdresse.get().getId());
             return;
         }
 
