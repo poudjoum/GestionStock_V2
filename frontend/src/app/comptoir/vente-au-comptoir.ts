@@ -9,9 +9,21 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Comptoir, VenteDto } from './comptoir.service';
+import { Comptoir, FactureDto, ModeReglement, VenteDto } from './comptoir.service';
 import { messageDErreur } from '../noyau/erreurs';
-import type { ArticleDto, ClientDto } from '../noyau/api';
+import { Entreprise } from '../noyau/entreprise';
+import { imprimerLeTicket } from '../noyau/impression';
+import { PaiementDuTicket, Ticket } from '../ticket/ticket';
+import { MODES_DE_REGLEMENT } from '../noyau/reglements';
+import type { ArticleDto, ClientDto, EntrepriseDto } from '../noyau/api';
+
+/** Les montants suivent la regle du serveur : deux decimales, au plus pres. */
+function arrondi(montant: number): number {
+  return Math.round(montant * 100) / 100;
+}
+
+/** Ce qu'on tend au comptoir : les coupures qui evitent de compter la monnaie a l'unite. */
+const COUPURES = [500, 1000, 2000, 5000, 10000];
 
 /** Un article dans le panier, avec la quantite que le caissier a saisie. */
 interface LignePanier {
@@ -49,11 +61,13 @@ interface LignePanier {
     MatIconModule,
     MatInputModule,
     MatProgressBarModule,
+    Ticket,
   ],
   templateUrl: './vente-au-comptoir.html',
 })
 export class VenteAuComptoir {
   private readonly service = inject(Comptoir);
+  private readonly magasinService = inject(Entreprise);
   private readonly snack = inject(MatSnackBar);
   private readonly frappe = new Subject<string>();
   private readonly frappeClient = new Subject<string>();
@@ -95,12 +109,92 @@ export class VenteAuComptoir {
   protected readonly dernierAjout = signal<number | null>(null);
   private clignotement?: ReturnType<typeof setTimeout>;
 
+  /**
+   * L'identite du magasin : l'en-tete du ticket, et le regime de TVA qui decide du total a
+   * encaisser. Chargee des l'ouverture du comptoir, pas au moment ou le client attend.
+   */
+  protected readonly magasin = signal<EntrepriseDto | null>(null);
+
+  /** Le panneau d'encaissement, une fois le panier ferme. */
+  protected readonly encaissement = signal(false);
+  protected readonly mode = signal<ModeReglement>('ESPECES');
+  /** Ce que le client tend. Nul veut dire « le compte exact ». */
+  protected readonly recu = signal<number | null>(null);
+  protected readonly modes = MODES_DE_REGLEMENT;
+  protected readonly coupures = COUPURES;
+
+  /** Le ticket a imprimer : pose apres l'encaissement, retire quand le caissier le referme. */
+  protected readonly aImprimer = signal<{
+    facture: FactureDto;
+    paiement: PaiementDuTicket;
+  } | null>(null);
+  private readonly zoneTicket = viewChild<ElementRef<HTMLElement>>('zoneTicket');
+
   protected readonly total = computed(() =>
-    this.panier().reduce((somme, l) => somme + (l.article.prixUnitaireHt ?? 0) * l.quantite, 0),
+    this.panier().reduce(
+      (somme, l) => somme + arrondi((l.article.prixUnitaireHt ?? 0) * l.quantite),
+      0,
+    ),
   );
   protected readonly articles = computed(() => this.panier().length);
 
+  /**
+   * La TVA du panier, estimee ici avec la regle du serveur : l'entreprise decide d'abord — non
+   * assujettie, rien n'est taxe — puis le taux de l'article l'emporte s'il en porte un, et a
+   * defaut celui de l'entreprise s'applique.
+   *
+   * C'est une estimation, et elle est assumee : le caissier doit annoncer un montant avant que
+   * quoi que ce soit ne parte au serveur, sans quoi il prendrait l'argent apres avoir enregistre
+   * la vente. Ce qui sera reellement encaisse et imprime, lui, vient de la facture emise — les
+   * deux ne peuvent differer que d'un franc d'arrondi, et c'est le papier qui fait foi.
+   */
+  protected readonly totalTva = computed(() =>
+    this.panier().reduce((somme, l) => {
+      const ht = arrondi((l.article.prixUnitaireHt ?? 0) * l.quantite);
+      return somme + arrondi((ht * this.taux(l.article)) / 100);
+    }, 0),
+  );
+  protected readonly totalTtc = computed(() => arrondi(this.total() + this.totalTva()));
+
+  /** Ce qu'on rend. Zero tant que le client n'a pas tendu plus que le total. */
+  protected readonly aRendre = computed(() =>
+    Math.max(0, arrondi((this.recu() ?? this.totalTtc()) - this.totalTtc())),
+  );
+  /** Ce qui manquerait si l'on validait maintenant : un acompte, et le reste reste du. */
+  protected readonly manquant = computed(() =>
+    Math.max(0, arrondi(this.totalTtc() - (this.recu() ?? this.totalTtc()))),
+  );
+
+  /** Les coupures superieures au total : ce qu'un client est susceptible de tendre. */
+  protected readonly coupuresUtiles = computed(() => {
+    const total = this.totalTtc();
+    return COUPURES.filter((c) => c > total).slice(0, 3);
+  });
+
+  private taux(article: ArticleDto): number {
+    const magasin = this.magasin();
+    if (magasin?.assujettieTva === false) {
+      return 0;
+    }
+    if (article.tauxTva != null) {
+      return article.tauxTva;
+    }
+    return magasin?.tauxTva ?? 0;
+  }
+
   constructor() {
+    // L'en-tete du magasin et son regime de TVA, des l'ouverture du comptoir : quand le client
+    // attend son ticket, il est trop tard pour aller les chercher.
+    this.magasinService
+      .charger()
+      .pipe(takeUntilDestroyed())
+      .subscribe({
+        next: (magasin) => this.magasin.set(magasin),
+        // Sans identite, on vend quand meme : le ticket sortira sans en-tete plutot que pas du
+        // tout. Perdre une vente parce qu'un nom de magasin manque serait absurde.
+        error: () => this.magasin.set(null),
+      });
+
     this.frappe
       .pipe(
         debounceTime(300),
@@ -251,13 +345,55 @@ export class VenteAuComptoir {
   }
 
   /**
-   * Enregistre la vente, puis emet sa facture.
+   * Ouvre l'encaissement : on ferme le panier et l'on passe a l'argent.
    *
-   * Deux appels et non un : la facture fige ce qu'elle doit, et l'emettre est un geste distinct
-   * de la vente. Si elle echoue, la vente reste — la marchandise est partie, et l'effacer pour
-   * un probleme de facturation serait perdre l'information la plus importante des deux.
+   * Le total annonce est celui du panier, TVA comprise — c'est ce que le client paie, et ce que
+   * le caissier doit pouvoir dire a voix haute avant que rien ne soit enregistre.
    */
-  protected vendre(): void {
+  protected ouvrirEncaissement(): void {
+    if (this.panier().length === 0 || this.envoiEnCours()) {
+      return;
+    }
+    this.erreur.set(null);
+    this.recu.set(null);
+    this.mode.set('ESPECES');
+    this.encaissement.set(true);
+  }
+
+  protected fermerEncaissement(): void {
+    this.encaissement.set(false);
+    this.rendreLePoint();
+  }
+
+  protected choisirLeMode(mode: ModeReglement): void {
+    this.mode.set(mode);
+    // Hors especes, il n'y a pas de monnaie a rendre : le montant tendu est le compte exact.
+    if (mode !== 'ESPECES') {
+      this.recu.set(null);
+    }
+  }
+
+  protected proposer(montant: number | null): void {
+    this.recu.set(montant);
+  }
+
+  /**
+   * Enregistre la vente, emet sa facture, encaisse, puis imprime.
+   *
+   * Quatre appels et non un, et leur ordre porte tout le raisonnement :
+   *
+   * La vente d'abord, parce que la marchandise est partie — c'est le fait a constater, et il ne
+   * doit dependre de rien d'autre. Si la facture echoue ensuite, la vente reste : l'effacer pour
+   * un probleme de facturation serait perdre la plus importante des deux informations.
+   *
+   * La facture ensuite, qui fige les prix et les taux et donne le seul total qui fasse foi. C'est
+   * le sien, et non l'estimation du panier, qui est encaisse et imprime.
+   *
+   * L'encaissement enfin. S'il echoue, la vente et la facture existent toujours : le ticket sort
+   * quand meme, avec son reste a payer, et la facture se retrouve dans « a encaisser ». Rien n'est
+   * perdu, et le caissier le sait.
+   */
+  protected encaisser(): void {
     if (this.envoiEnCours() || this.panier().length === 0) {
       return;
     }
@@ -276,28 +412,21 @@ export class VenteAuComptoir {
         prixUnitaire: l.article.prixUnitaireHt,
       })),
     };
+    const tendu = this.recu();
+    const mode = this.mode();
 
     this.service.vendre(vente).subscribe({
       next: (enregistree) => {
         this.service.facturer(enregistree.id!).subscribe({
-          next: (facture) => {
-            this.envoiEnCours.set(false);
-            this.snack.open(
-              `Vente enregistrée — facture ${facture.numero}, ${facture.totalTtc} F TTC`,
-              'Fermer',
-              { duration: 5000 },
-            );
-            this.viderLePanier();
-          },
+          next: (facture) => this.encaisserLaFacture(facture, tendu, mode),
           error: () => {
             // La vente est passee : c'est ce qui compte, la marchandise est partie.
-            this.envoiEnCours.set(false);
+            this.terminer();
             this.snack.open(
-              'Vente enregistrée, mais la facture n’a pas pu être émise.',
+              'Vente enregistrée, mais la facture n’a pas pu être émise — rien n’est imprimé.',
               'Fermer',
-              { duration: 6000 },
+              { duration: 8000 },
             );
-            this.viderLePanier();
           },
         });
       },
@@ -308,5 +437,81 @@ export class VenteAuComptoir {
         this.erreur.set(messageDErreur(echec, 'La vente n’a pas pu être enregistrée.'));
       },
     });
+  }
+
+  private encaisserLaFacture(
+    facture: FactureDto,
+    tendu: number | null,
+    mode: ModeReglement,
+  ): void {
+    const du = facture.totalTtc ?? 0;
+    // Ce qui entre en caisse est plafonne a ce qui est du : le surplus n'est pas une recette,
+    // c'est la monnaie qu'on rend. Le serveur refuserait d'ailleurs un montant qui depasse.
+    const encaisse = Math.min(tendu ?? du, du);
+    const paiement: PaiementDuTicket = {
+      mode,
+      recu: tendu ?? du,
+      monnaie: Math.max(0, arrondi((tendu ?? du) - du)),
+    };
+
+    if (encaisse <= 0) {
+      this.presenterLeTicket(facture, paiement, 'Vente enregistrée — rien n’a été encaissé.');
+      return;
+    }
+
+    this.service.regler(facture.id!, { montant: encaisse, mode }).subscribe({
+      next: () => {
+        // Ce qui reste du se deduit sans rien redemander au serveur : il vient d'accepter ce
+        // montant, donc de constater qu'il ne depassait pas. Un aller-retour de plus ferait
+        // attendre un client qui a deja paye.
+        this.presenterLeTicket(
+          { ...facture, montantRegle: encaisse, resteAPayer: arrondi(du - encaisse) },
+          paiement,
+          paiement.monnaie > 0
+            ? `Encaissé — rendre ${paiement.monnaie.toLocaleString()} F`
+            : 'Encaissé.',
+        );
+      },
+      error: (echec: unknown) => {
+        // La vente et la facture existent : le ticket sort avec son reste a payer, et la facture
+        // attend dans « a encaisser ».
+        this.presenterLeTicket({ ...facture }, { ...paiement, recu: 0, monnaie: 0 }, null);
+        this.erreur.set(
+          messageDErreur(echec, 'L’encaissement n’a pas pu être enregistré : la facture reste due.'),
+        );
+      },
+    });
+  }
+
+  /** Pose le ticket a l'ecran, vide le panier, et rend le comptoir pret pour le client suivant. */
+  private presenterLeTicket(
+    facture: FactureDto,
+    paiement: PaiementDuTicket,
+    message: string | null,
+  ): void {
+    this.aImprimer.set({ facture, paiement });
+    this.terminer();
+    if (message) {
+      this.snack.open(message, 'Fermer', { duration: 5000 });
+    }
+  }
+
+  private terminer(): void {
+    this.envoiEnCours.set(false);
+    this.encaissement.set(false);
+    this.viderLePanier();
+  }
+
+  /** Envoie le ticket affiche sur le rouleau. */
+  protected imprimer(): void {
+    const zone = this.zoneTicket()?.nativeElement;
+    if (zone) {
+      imprimerLeTicket(zone);
+    }
+  }
+
+  protected fermerLeTicket(): void {
+    this.aImprimer.set(null);
+    this.rendreLePoint();
   }
 }

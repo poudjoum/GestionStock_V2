@@ -139,6 +139,14 @@
               {{ f.dateEmission | date: 'dd/MM/yyyy à HH:mm' }}
             </span>
           </span>
+          <button
+            mat-icon-button
+            (click)="reimprimer(f)"
+            aria-label="Réimprimer le ticket"
+            matTooltip="Réimprimer le ticket"
+          >
+            <mat-icon>print</mat-icon>
+          </button>
           <button mat-icon-button (click)="fermer()" aria-label="Fermer">
             <mat-icon>close</mat-icon>
           </button>
@@ -303,3 +311,30 @@
     </aside>
   }
 </div>
+
+<!--
+  Le duplicata.
+  Montre avant d'etre envoye au rouleau : on verifie qu'on reimprime la bonne facture avant de
+  gacher du papier.
+-->
+@if (ticket(); as f) {
+  <div
+    class="fixed inset-0 z-40 flex items-center justify-center p-4"
+    style="background: rgba(0, 0, 0, 0.5)"
+    role="dialog"
+    aria-label="Duplicata du ticket"
+  >
+    <div class="flex max-h-full flex-col items-center gap-3 overflow-y-auto">
+      <div #zoneTicket class="rounded-lg p-2 shadow-lg" style="background: #fff">
+        <app-ticket [facture]="f" [entreprise]="magasin()" [duplicata]="true" />
+      </div>
+      <div class="flex gap-2 pb-2">
+        <button mat-flat-button class="!h-12" (click)="imprimerLeDuplicata()">
+          <mat-icon>print</mat-icon>
+          Imprimer
+        </button>
+        <button mat-stroked-button class="!h-12" (click)="fermerLeTicket()">Fermer</button>
+      </div>
+    </div>
+  </div>
+}

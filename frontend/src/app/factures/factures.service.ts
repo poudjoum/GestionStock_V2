@@ -3,26 +3,17 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environnement } from '../../environnements/environnement';
 import type { components } from '../api/schema';
+import type { ReglementDto } from '../noyau/reglements';
 import type { Page } from '../noyau/api';
 
 export type FactureDto = components['schemas']['FactureDto'];
-export type ReglementDto = components['schemas']['ReglementDto'];
-export type ModeReglement = NonNullable<ReglementDto['mode']>;
+
+// Les moyens de paiement et leurs libelles vivent dans le noyau : le comptoir les lit aussi, et
+// le ticket les imprime.
+export type { ModeReglement, ReglementDto } from '../noyau/reglements';
+export { MODES_DE_REGLEMENT, libelleDuMode } from '../noyau/reglements';
 
 const API = `${environnement.api}/gestiondestock/v1`;
-
-/** Les libelles des moyens de paiement, qui arrivent en majuscules de l'API. */
-export const MODES_DE_REGLEMENT: { valeur: ModeReglement; libelle: string; icone: string }[] = [
-  { valeur: 'ESPECES', libelle: 'Espèces', icone: 'payments' },
-  { valeur: 'MOBILE_MONEY', libelle: 'Mobile Money', icone: 'smartphone' },
-  { valeur: 'VIREMENT', libelle: 'Virement', icone: 'account_balance' },
-  { valeur: 'CHEQUE', libelle: 'Chèque', icone: 'receipt' },
-  { valeur: 'AUTRE', libelle: 'Autre', icone: 'more_horiz' },
-];
-
-export function libelleDuMode(mode: string | undefined): string {
-  return MODES_DE_REGLEMENT.find((m) => m.valeur === mode)?.libelle ?? mode ?? '—';
-}
 
 @Injectable({ providedIn: 'root' })
 export class Factures {

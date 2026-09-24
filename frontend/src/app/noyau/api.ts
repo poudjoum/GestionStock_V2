@@ -17,6 +17,9 @@ export type ClientDto = Schemas['ClientDto'];
 export type NotificationDto = Schemas['NotificationDto'];
 export type LigneInventaireDto = Schemas['LigneInventaireDto'];
 
+/** L'identite du magasin, telle qu'elle s'imprime en tete d'un ticket. */
+export type EntrepriseDto = Schemas['EntrepriseDto'];
+
 /**
  * Une page telle que Spring Data la rend.
  *

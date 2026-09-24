@@ -4,9 +4,11 @@ import { Observable } from 'rxjs';
 import { environnement } from '../../environnements/environnement';
 import type { components } from '../api/schema';
 import type { ArticleDto, ClientDto, Page } from '../noyau/api';
+import type { ReglementDto } from '../noyau/reglements';
 
 export type VenteDto = components['schemas']['VenteDto'];
 export type FactureDto = components['schemas']['FactureDto'];
+export type { ModeReglement, ReglementDto } from '../noyau/reglements';
 
 const API = `${environnement.api}/gestiondestock/v1`;
 
@@ -40,5 +42,15 @@ export class Comptoir {
 
   facturer(idVente: number): Observable<FactureDto> {
     return this.http.post<FactureDto>(`${API}/ventes/${idVente}/facture`, {});
+  }
+
+  /**
+   * Enregistre l'encaissement de la facture.
+   *
+   * Le serveur refuse un montant qui depasse ce qui reste du : c'est lui qui tient la regle, et le
+   * comptoir n'a pas a la redire — il envoie ce qu'il encaisse.
+   */
+  regler(idFacture: number, reglement: ReglementDto): Observable<ReglementDto> {
+    return this.http.post<ReglementDto>(`${API}/factures/${idFacture}/reglements`, reglement);
   }
 }

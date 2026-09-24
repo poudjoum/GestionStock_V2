@@ -1,0 +1,118 @@
+<!--
+  Le ticket.
+
+  Tout y est en pouces du papier — `mm` et non `rem` — parce que ce document a une largeur reelle
+  et que rien ici ne doit dependre de la taille de police du navigateur. Une casse de caractere a
+  chasse fixe parce qu'une colonne de montants qui ne s'aligne pas se relit mal, et qu'une
+  thermique rend ces formes-la mieux que les autres.
+-->
+<article class="ticket">
+  <header class="ticket__entete">
+    @if (entreprise()?.logo) {
+      <img class="ticket__logo" [src]="entreprise()!.logo!" alt="" />
+    }
+    <div class="ticket__nom">{{ entreprise()?.nom }}</div>
+    @if (adresse()) {
+      <div>{{ adresse() }}</div>
+    }
+    @if (entreprise()?.tel) {
+      <div>Tél. {{ entreprise()!.tel }}</div>
+    }
+    @if (entreprise()?.registreCommerce) {
+      <div>RCCM {{ entreprise()!.registreCommerce }}</div>
+    }
+    @if (entreprise()?.niu) {
+      <div>NIU {{ entreprise()!.niu }}</div>
+    }
+  </header>
+
+  <div class="ticket__filet"></div>
+
+  <div class="ticket__ligne">
+    <span>{{ facture().numero }}</span>
+    <span>{{ facture().dateEmission | date: 'dd/MM/yyyy HH:mm' }}</span>
+  </div>
+  @if (facture().nomClient) {
+    <div class="ticket__ligne">
+      <span>Client</span>
+      <span>{{ facture().nomClient }}</span>
+    </div>
+  }
+
+  <div class="ticket__filet"></div>
+
+  <!--
+    Deux lignes par article, et non une seule sur quatre colonnes : une designation de quarante
+    caracteres ne tient pas a cote d'une quantite et de deux montants sur 72 mm. Elle prend donc
+    la premiere ligne, et le detail du calcul vient dessous avec son total a droite.
+  -->
+  @for (ligne of lignes(); track ligne.id) {
+    <div class="ticket__article">
+      <div class="ticket__designation">{{ ligne.designation }}</div>
+      <div class="ticket__ligne">
+        <span>{{ ligne.quantite | number: '1.0-2' }} × {{ ligne.prixUnitaireHt | number: '1.0-0' }}</span>
+        <span>{{ ligne.montantHt | number: '1.0-0' }}</span>
+      </div>
+    </div>
+  }
+
+  <div class="ticket__filet"></div>
+
+  @if (facture().tvaApplicable) {
+    <div class="ticket__ligne">
+      <span>Total HT</span>
+      <span>{{ facture().totalHt | number: '1.0-0' }}</span>
+    </div>
+    <div class="ticket__ligne">
+      <span>TVA @if (tauxUnique() !== null) {{{ tauxUnique() | number: '1.0-2' }} %}</span>
+      <span>{{ facture().totalTva | number: '1.0-0' }}</span>
+    </div>
+  }
+  <div class="ticket__ligne ticket__total">
+    <span>TOTAL</span>
+    <span>{{ facture().totalTtc | number: '1.0-0' }} F</span>
+  </div>
+  @if (!facture().tvaApplicable) {
+    <!-- La mention est obligatoire : un total de TVA absent ne se distingue pas d'un oubli. -->
+    <div class="ticket__mention">TVA non applicable</div>
+  }
+
+  @if (paiement()) {
+    <div class="ticket__filet"></div>
+    <div class="ticket__ligne">
+      <span>Reçu ({{ modeLisible() }})</span>
+      <span>{{ paiement()!.recu | number: '1.0-0' }}</span>
+    </div>
+    @if (paiement()!.monnaie > 0) {
+      <div class="ticket__ligne">
+        <span>Monnaie rendue</span>
+        <span>{{ paiement()!.monnaie | number: '1.0-0' }}</span>
+      </div>
+    }
+  }
+
+  @if (!solde()) {
+    <!--
+      Un client qui emporte sa marchandise sans avoir tout paye doit lire combien il reste, sur le
+      papier qu'il garde. C'est le cas de l'acompte, courant sur une commande.
+    -->
+    <div class="ticket__ligne ticket__total">
+      <span>RESTE À PAYER</span>
+      <span>{{ facture().resteAPayer | number: '1.0-0' }} F</span>
+    </div>
+  } @else if (paiement()) {
+    <div class="ticket__cachet">PAYÉ</div>
+  }
+
+  <div class="ticket__filet"></div>
+
+  @if (duplicata()) {
+    <div class="ticket__cachet">DUPLICATA</div>
+  }
+  <footer class="ticket__pied">
+    <div>Merci de votre visite</div>
+    @if (facture().annulee) {
+      <div class="ticket__cachet">VENTE ANNULÉE</div>
+    }
+  </footer>
+</article>

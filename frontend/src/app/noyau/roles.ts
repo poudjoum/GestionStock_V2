@@ -101,6 +101,14 @@ export const MENU: EntreeDeMenu[] = [
     icone: 'group',
     roles: ['ROLE_ADMIN', 'ROLE_SUPER_ADMIN'],
   },
+  {
+    chemin: '/parametres',
+    libelle: 'Le magasin',
+    icone: 'storefront',
+    // L'administrateur seul : c'est lui que le serveur laisse ecrire sur son entreprise. Le
+    // super-administrateur n'en a aucune — l'ecran n'aurait rien a lui montrer.
+    roles: ['ROLE_ADMIN'],
+  },
 ];
 
 /**

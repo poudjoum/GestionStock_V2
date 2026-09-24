@@ -109,3 +109,113 @@ body {
     animation: none;
   }
 }
+
+/*
+ * Le ticket de caisse.
+ *
+ * Tout est en millimetres parce que ce document a une largeur reelle : 72 mm, ce qu'une
+ * thermique 80 mm imprime effectivement, le reste du rouleau etant sa marge. En `rem`, le ticket
+ * changerait de largeur avec la taille de police du navigateur, ce qui n'a aucun sens sur du
+ * papier.
+ *
+ * Noir sur blanc, y compris en mode sombre : l'apercu a l'ecran doit ressembler au papier, et le
+ * papier ne connait pas le mode sombre.
+ */
+.ticket {
+  width: 72mm;
+  box-sizing: border-box;
+  padding: 3mm 2mm;
+  background: #fff;
+  color: #000;
+  /* Une chasse fixe : une colonne de montants qui ne s'aligne pas se relit mal, et les
+     thermiques rendent ces formes-la mieux que les proportionnelles. */
+  font-family: ui-monospace, 'Cascadia Mono', 'Courier New', monospace;
+  font-size: 3.1mm;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.ticket__entete {
+  text-align: center;
+}
+
+.ticket__logo {
+  display: block;
+  margin: 0 auto 1.5mm;
+  max-width: 40mm;
+  max-height: 20mm;
+  /* Sans cela, les navigateurs « economisent l'encre » a l'impression et sortent un logo
+     delave, la ou une thermique ne sait de toute facon imprimer que du noir. */
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.ticket__nom {
+  font-size: 4mm;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Un trait pointille : c'est ce qu'on lit sur un ticket, et il reste net a 203 points par pouce. */
+.ticket__filet {
+  border-top: 1px dashed #000;
+  margin: 1.5mm 0;
+}
+
+.ticket__ligne {
+  display: flex;
+  justify-content: space-between;
+  gap: 2mm;
+}
+
+.ticket__article {
+  margin-bottom: 0.8mm;
+}
+
+/* Une designation longue passe a la ligne plutot que de pousser le montant hors du papier. */
+.ticket__designation {
+  overflow-wrap: anywhere;
+}
+
+.ticket__total {
+  font-size: 3.6mm;
+  font-weight: 700;
+}
+
+.ticket__mention,
+.ticket__pied {
+  text-align: center;
+}
+
+.ticket__cachet {
+  margin: 1.5mm 0;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.4mm;
+}
+
+/*
+ * Le support d'impression.
+ *
+ * Il n'existe que le temps d'un `window.print()` : le ticket y est copie, sous `body`, pour
+ * echapper aux conteneurs de la coque qui le decouperaient. Masque a l'ecran, sans quoi il
+ * apparaitrait une fraction de seconde avant l'ouverture de la boite d'impression.
+ */
+.support-impression {
+  display: none;
+}
+
+@media print {
+  body > *:not(.support-impression) {
+    display: none !important;
+  }
+
+  .support-impression {
+    display: block !important;
+  }
+
+  .ticket {
+    margin: 0 auto;
+    padding: 2mm;
+  }
+}

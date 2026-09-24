@@ -104,6 +104,14 @@ export const routes: Routes = [
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')],
         loadComponent: () => import('./comptes/comptes').then((m) => m.Comptes),
       },
+      {
+        // L'identite du magasin : ce que le ticket de caisse imprime en en-tete. Reserve a
+        // l'administrateur, seul que le serveur laisse ecrire sur son entreprise.
+        path: 'parametres',
+        canActivate: [gardeRoles('ROLE_ADMIN')],
+        loadComponent: () =>
+          import('./parametres/identite-du-magasin').then((m) => m.IdentiteDuMagasin),
+      },
       // La racine mene a l'accueil du role, et non a une page fixe.
       //
       // Elle sert a ceux qui arrivent par un signet ou en tapant l'adresse : un administrateur

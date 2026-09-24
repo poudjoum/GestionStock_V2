@@ -1,4 +1,13 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  OnInit,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -7,9 +16,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Entreprise } from '../noyau/entreprise';
+import { imprimerLeTicket } from '../noyau/impression';
+import { Ticket } from '../ticket/ticket';
+import type { EntrepriseDto } from '../noyau/api';
 import {
   FactureDto,
   Factures,
@@ -72,11 +86,15 @@ function pastilleDe(facture: FactureDto) {
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    MatTooltipModule,
+    Ticket,
   ],
   templateUrl: './liste-factures.html',
 })
 export class ListeFactures implements OnInit {
   private readonly service = inject(Factures);
+  private readonly magasinService = inject(Entreprise);
+  private readonly destruction = inject(DestroyRef);
   private readonly session = inject(Session);
   private readonly snack = inject(MatSnackBar);
   private readonly frappe = new Subject<string>();
@@ -87,6 +105,18 @@ export class ListeFactures implements OnInit {
   protected readonly total = signal(0);
   protected readonly chargement = signal(true);
   protected readonly erreur = signal<string | null>(null);
+
+  /** L'en-tete du magasin, pour le ticket. Chargee une fois et gardee par le service. */
+  protected readonly magasin = signal<EntrepriseDto | null>(null);
+
+  /**
+   * La facture dont on montre le ticket avant de le ressortir.
+   *
+   * Toujours marque DUPLICATA : un ticket reimprime qui ne le dirait pas laisserait circuler deux
+   * papiers identiques pour un seul encaissement.
+   */
+  protected readonly ticket = signal<FactureDto | null>(null);
+  private readonly zoneTicket = viewChild<ElementRef<HTMLElement>>('zoneTicket');
 
   // Le volet de detail
   protected readonly ouverte = signal<FactureDto | null>(null);
@@ -133,6 +163,30 @@ export class ListeFactures implements OnInit {
 
   ngOnInit(): void {
     this.charger();
+    this.magasinService
+      .charger()
+      .pipe(takeUntilDestroyed(this.destruction))
+      .subscribe({
+        // Sans identite, le ticket sortira sans en-tete plutot que pas du tout.
+        next: (magasin) => this.magasin.set(magasin),
+        error: () => this.magasin.set(null),
+      });
+  }
+
+  /** Montre le ticket de cette facture, tel qu'il ressortira du rouleau. */
+  protected reimprimer(facture: FactureDto): void {
+    this.ticket.set(facture);
+  }
+
+  protected imprimerLeDuplicata(): void {
+    const zone = this.zoneTicket()?.nativeElement;
+    if (zone) {
+      imprimerLeTicket(zone);
+    }
+  }
+
+  protected fermerLeTicket(): void {
+    this.ticket.set(null);
   }
 
   protected chercher(q: string): void {
