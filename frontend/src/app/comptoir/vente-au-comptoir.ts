@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,6 +28,16 @@ interface LignePanier {
  *
  * Le code de la vente est tire ici. Il pourrait l'etre par le serveur, mais le tirer localement
  * est ce qui permettra, au lot du hors-ligne, de poser une vente dans une file sans reseau.
+ *
+ * <b>La douchette.</b> Un lecteur de code-barres USB est un clavier : il tape le code dans le
+ * champ qui a le point, puis envoie Entree. Il n'y a donc rien a brancher — ni camera, ni
+ * bibliotheque, ni permission du navigateur. Tout tient dans ce que fait Entree : chercher le
+ * code exact, et poser l'article au panier.
+ *
+ * Le meme champ sert a chercher par le nom, et c'est voulu. Un champ dedie au scan, toujours au
+ * point, volerait le curseur au caissier des qu'il veut taper autre chose ; deux champs cote a
+ * cote l'obligeraient a choisir avant chaque geste. Celui-ci ne demande rien : on scanne, ou on
+ * tape, et Entree ne se trompe pas puisqu'elle ne repond qu'a un code exact.
  */
 @Component({
   selector: 'app-vente-au-comptoir',
@@ -61,6 +71,30 @@ export class VenteAuComptoir {
   protected readonly envoiEnCours = signal(false);
   protected readonly erreur = signal<string | null>(null);
 
+  /** Le champ de recherche, qu'on rend au caissier apres chaque geste : le scan suivant y va. */
+  private readonly champRecherche = viewChild<ElementRef<HTMLInputElement>>('champRecherche');
+
+  /** Resolution d'un code en cours : deux scans coup sur coup ne doivent pas se chevaucher. */
+  protected readonly resolution = signal(false);
+
+  /**
+   * Le code scanne qu'aucun article ne porte.
+   *
+   * Dit sans bloquer : au comptoir, on ne perd pas un panier parce qu'un article manque au
+   * catalogue. Le caissier passe au suivant et regularisera plus tard.
+   */
+  protected readonly codeInconnu = signal<string | null>(null);
+
+  /**
+   * Le dernier article pose au panier, le temps d'un clignotement.
+   *
+   * Le caissier ne regarde pas l'ecran quand il scanne — il tient la marchandise. Sans ce retour,
+   * rien ne distingue un scan qui a porte d'un scan que la douchette a manque, et on s'en aperçoit
+   * au total.
+   */
+  protected readonly dernierAjout = signal<number | null>(null);
+  private clignotement?: ReturnType<typeof setTimeout>;
+
   protected readonly total = computed(() =>
     this.panier().reduce((somme, l) => somme + (l.article.prixUnitaireHt ?? 0) * l.quantite, 0),
   );
@@ -76,8 +110,14 @@ export class VenteAuComptoir {
       )
       .subscribe({
         next: (page) => {
-          this.resultats.set(page.content ?? []);
           this.cherche.set(false);
+          // Une recherche partie pendant la frappe repond apres que le scan a pose l'article et
+          // vide le champ. Sans ce garde, la tuile du produit deja au panier restait affichee,
+          // et l'ecran avait l'air de n'avoir rien fait.
+          if (!this.recherche().trim()) {
+            return;
+          }
+          this.resultats.set(page.content ?? []);
         },
         error: () => this.cherche.set(false),
       });
@@ -97,12 +137,50 @@ export class VenteAuComptoir {
 
   protected chercher(q: string): void {
     this.recherche.set(q);
+    // Retaper efface le refus precedent : le garder ferait croire que le nouveau code est
+    // inconnu lui aussi.
+    this.codeInconnu.set(null);
     if (!q.trim()) {
       this.resultats.set([]);
       return;
     }
     this.cherche.set(true);
     this.frappe.next(q);
+  }
+
+  /**
+   * Entree : le code exact, et rien d'autre.
+   *
+   * Strictement le code, meme quand la liste ci-dessous ne montre qu'un seul resultat. Ajouter
+   * « le seul article affiche » serait juste la plupart du temps, et faux le jour ou la recherche
+   * est en retard d'une frappe — au comptoir, devant un client, une vente fausse coute plus cher
+   * qu'un clic de plus.
+   */
+  protected valider(): void {
+    const saisi = this.recherche().trim();
+    if (!saisi || this.resolution()) {
+      return;
+    }
+    this.resolution.set(true);
+    this.codeInconnu.set(null);
+
+    this.service.parCode(saisi).subscribe({
+      next: (article) => {
+        this.resolution.set(false);
+        this.ajouter(article);
+      },
+      error: () => {
+        this.resolution.set(false);
+        // La saisie reste : elle sert de point de depart a une recherche par le nom.
+        this.codeInconnu.set(saisi);
+        this.rendreLePoint();
+      },
+    });
+  }
+
+  /** Remet le point au champ, pour que le scan suivant parte sans un clic. */
+  private rendreLePoint(): void {
+    this.champRecherche()?.nativeElement.focus();
   }
 
   /**
@@ -120,6 +198,16 @@ export class VenteAuComptoir {
     });
     this.recherche.set('');
     this.resultats.set([]);
+    this.codeInconnu.set(null);
+    // Le squelette de chargement de la recherche en vol n'a plus lieu d'etre : l'article est pose.
+    this.cherche.set(false);
+
+    // Le clignotement de la ligne, et le point rendu au champ : le caissier enchaine les scans
+    // sans jamais toucher la souris.
+    this.dernierAjout.set(article.id ?? null);
+    clearTimeout(this.clignotement);
+    this.clignotement = setTimeout(() => this.dernierAjout.set(null), 900);
+    this.rendreLePoint();
   }
 
   protected changerQuantite(idArticle: number, quantite: number): void {

@@ -8,24 +8,52 @@
 <div class="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[1fr_380px]">
   <!-- Volet gauche : chercher et ajouter -->
   <section class="min-w-0">
+    <!--
+      Un seul champ pour scanner et pour chercher. La douchette tape ici comme un clavier et
+      termine par Entree ; le caissier tape ici aussi quand il cherche par le nom. `autofocus`
+      parce que le premier geste d'une vente est toujours celui-la.
+    -->
     <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
-      <mat-label>Chercher un article</mat-label>
-      <mat-icon matPrefix>search</mat-icon>
+      <mat-label>Scanner ou chercher un article</mat-label>
+      <mat-icon matPrefix>barcode_reader</mat-icon>
       <input
+        #champRecherche
         matInput
+        autofocus
         inputmode="search"
         autocapitalize="none"
         autocorrect="off"
         [ngModel]="recherche()"
         (ngModelChange)="chercher($event)"
-        placeholder="code ou désignation"
+        (keyup.enter)="valider()"
+        placeholder="douchette, code ou désignation"
       />
-      @if (recherche()) {
+      @if (resolution()) {
+        <mat-icon matSuffix class="animate-pulse">hourglass_empty</mat-icon>
+      } @else if (recherche()) {
         <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer">
           <mat-icon>close</mat-icon>
         </button>
       }
     </mat-form-field>
+
+    @if (codeInconnu(); as code) {
+      <!--
+        Un avertissement, pas un blocage : on ne perd pas un panier parce qu'un article manque au
+        catalogue. Le caissier passe au suivant, et l'article se regularisera plus tard.
+      -->
+      <p
+        class="mt-2 flex items-start gap-2 rounded-lg px-3 py-2 text-sm"
+        style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)"
+        role="status"
+      >
+        <mat-icon class="!h-5 !w-5 !text-xl">error_outline</mat-icon>
+        <span class="flex-1">
+          Aucun article ne porte le code <span class="font-mono">{{ code }}</span
+          >. Cherchez-le par son nom, ou passez au suivant.
+        </span>
+      </p>
+    }
 
     @if (cherche()) {
       <div class="mt-3 grid gap-2 sm:grid-cols-2">
@@ -67,7 +95,7 @@
     } @else {
       <div class="py-12 text-center opacity-50">
         <mat-icon class="!h-10 !w-10 !text-4xl">barcode_reader</mat-icon>
-        <p class="mt-1 text-sm">Cherchez un article pour commencer.</p>
+        <p class="mt-1 text-sm">Scannez un article, ou cherchez-le par son nom.</p>
       </div>
     }
   </section>
@@ -96,9 +124,17 @@
       } @else {
         <ul class="flex min-h-0 flex-1 list-none flex-col gap-0 overflow-y-auto p-0">
           @for (ligne of lignes; track ligne.article.id) {
+            <!--
+              La ligne s'allume brievement quand elle vient d'etre scannee. Le caissier regarde
+              la marchandise, pas l'ecran : sans ce signal, un scan manque par la douchette ne se
+              distingue pas d'un scan qui a porte, et l'ecart se decouvre au total.
+            -->
             <li
-              class="border-b px-3 py-2 last:border-b-0"
+              class="border-b px-3 py-2 transition-colors duration-700 last:border-b-0"
               style="border-color: var(--mat-sys-outline-variant)"
+              [style.background]="
+                dernierAjout() === ligne.article.id ? 'var(--mat-sys-secondary-container)' : ''
+              "
             >
               <div class="flex items-start gap-2">
                 <span class="min-w-0 flex-1">
