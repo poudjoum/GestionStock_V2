@@ -14,10 +14,14 @@
 # La conclusion des tests vient de GitHub, pas d'ici : le serveur n'a ni JDK ni Maven, et rien
 # ne serait gagne a lui faire refaire ce que la machine d'integration vient de faire.
 #
+# Il ne deploie qu'aux heures ou le magasin est ferme. Un deploiement remplace le conteneur de
+# l'API : pendant les quelques minutes de la reconstruction, la caisse ne repond plus. C'est
+# arrive en plein service, et un caissier est reste devant un bouton qui n'aboutissait pas.
+#
 #     ./deploiement-continu.sh [--maintenant]
 #
-# --maintenant : deploie master sans regarder ses tests. Pour le jour ou GitHub est en panne et
-# ou il faut quand meme livrer un correctif. A n'employer que la.
+# --maintenant : deploie master tout de suite, sans regarder ni les tests ni l'heure. Pour le jour
+# ou GitHub est en panne et ou il faut quand meme livrer un correctif. A n'employer que la.
 set -euo pipefail
 
 DEPOT=${DEPOT:-poudjoum/GestionStock_V2}
@@ -28,6 +32,17 @@ SOURCE="$RACINE/source"
 # « rien n'a bouge » de « je viens de demarrer ».
 TEMOIN="$RACINE/.deployee"
 VERROU="$RACINE/.deploiement.lock"
+
+# La plage ou le deploiement est permis : de 22 h a 6 h, magasin ferme. Elle passe minuit, d'ou
+# le « ou » dans le test plus bas plutot qu'un encadrement.
+PLAGE_DEBUT=${PLAGE_DEBUT:-22}
+PLAGE_FIN=${PLAGE_FIN:-6}
+
+# Le fuseau du magasin, nomme plutot que deduit de l'horloge du serveur.
+#
+# Une machine reglee en UTC decalerait la plage d'une heure sans que rien ne le signale : le
+# deploiement partirait a 23 h locales, et le magasin qui ferme a 22 h 30 y passerait encore.
+FUSEAU=${FUSEAU:-Africa/Douala}
 
 force=${1:-}
 
@@ -90,6 +105,25 @@ if [ "$force" != "--maintenant" ]; then
         fi
         exit 0
     fi
+fi
+
+# L'heure, apres les tests et avant tout le reste.
+#
+# `%-H` et non `%H` : sans lui, huit heures du matin s'ecrit « 08 ». La comparaison de `[ ]` s'en
+# accommode, mais l'arithmetique du shell y lit de l'octal — et « 08 » n'en est pas un valide.
+# Retirer le zero ici evite que ce nombre ne devienne un piege le jour ou quelqu'un le calcule,
+# et il se lit mieux dans le journal.
+heure=$(TZ="$FUSEAU" date +%-H)
+if [ "$force" != "--maintenant" ] \
+    && [ "$heure" -lt "$PLAGE_DEBUT" ] && [ "$heure" -ge "$PLAGE_FIN" ]; then
+    # Une seule ligne, et non une par minute : hors plage, ce script se reveille des centaines de
+    # fois avant que l'heure ne vienne, et syslog en garderait la trace de chacune.
+    trace="$RACINE/.differee"
+    if [ "$(cat "$trace" 2>/dev/null || echo)" != "$attendue" ]; then
+        journal "${attendue:0:8} : tests verts, mais il est ${heure} h — deploiement differe a ${PLAGE_DEBUT} h."
+        echo "$attendue" >"$trace"
+    fi
+    exit 0
 fi
 
 journal "${attendue:0:8} : tests verts, deploiement."

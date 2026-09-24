@@ -1109,6 +1109,12 @@ Trois etats a chaque reveil : `master` n'a pas bouge, rien ne se passe ; il a bo
 tests tournent ou ont echoue, rien ne se passe et le journal le dit une fois ; ses tests sont
 verts, le serveur tire, construit et relance, puis verifie que l'API repond.
 
+**Mais seulement entre 22 h et 6 h**, heure de Douala. Un deploiement remplace le conteneur de
+l'API : pendant les quelques minutes de la reconstruction, la caisse ne repond plus. C'est arrive
+en plein service, un caissier devant un bouton qui n'aboutissait pas. Une version poussee a 11 h
+attend donc le soir, et le journal le dit une fois. `PLAGE_DEBUT`, `PLAGE_FIN` et `FUSEAU` se
+changent dans le script ; `--maintenant` passe outre, pour un correctif qui presse.
+
 Mise en place, une seule fois, sur le serveur. Une commande par ligne, sans continuation `\` : la
 barre ne prolonge la ligne que si elle en est le dernier caractere, or un espace se glisse derriere
 elle au copier-coller. Bash n'y voit alors plus une fin de ligne mais un argument, et la commande
