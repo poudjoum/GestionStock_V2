@@ -34,6 +34,11 @@ public class EntrepriseController implements EntrepriseControllerApi {
     }
 
     @Override
+    public ResponseEntity<EntrepriseDto> mettreAJourMienne(EntrepriseDto dto) {
+        return ResponseEntity.ok(entrepriseService.mettreAJourMienne(dto));
+    }
+
+    @Override
     public ResponseEntity<EntrepriseDto> findById(Long idEntreprise) {
         return ResponseEntity.status(HttpStatus.OK).body(entrepriseService.findById(idEntreprise));
     }

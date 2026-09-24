@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.AdresseDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.EntrepriseDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.InscriptionEntrepriseDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.UserDto;
@@ -139,6 +140,49 @@ public class EntrepriseServiceImpl implements EntrepriseService {
                     ErrorCodes.ENTREPRISE_NOT_FOUND);
         }
         return findById(id);
+    }
+
+    @Override
+    @Transactional
+    public EntrepriseDto mettreAJourMienne(EntrepriseDto dto) {
+        Long id = cloisonnement.entrepriseCourante();
+        if (id == null) {
+            throw new EntityNotFoundException(
+                    "Ce compte n'est rattaché à aucune entreprise",
+                    ErrorCodes.ENTREPRISE_NOT_FOUND);
+        }
+        List<String> errors = EntrepriseValidator.validate(dto);
+        if (!errors.isEmpty()) {
+            log.error("Entreprise Invalid {}", errors);
+            throw new InvalidEntityException("L'entreprise n'est pas valide",
+                    ErrorCodes.ENTREPRISE_NOT_VALID, errors);
+        }
+        Entreprise entreprise = entrepriseRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucune entreprise avec l'identifiant " + id + " n'a été trouvée",
+                        ErrorCodes.ENTREPRISE_NOT_FOUND));
+
+        // Champ par champ, et non `toEntity` : celui-ci construit une entreprise neuve, dont
+        // l'identifiant viendrait du corps de la requete. Ecrire les champs sur l'entite chargee
+        // garantit que c'est bien l'entreprise du jeton qui est modifiee, et qu'aucune colonne
+        // absente du formulaire — les comptes rattaches — n'est effacee au passage.
+        entreprise.setNom(dto.getNom());
+        entreprise.setDescription(dto.getDescription());
+        entreprise.setAdresse(AdresseDto.toEntity(dto.getAdresse()));
+        entreprise.setRegistreCommerce(dto.getRegistreCommerce());
+        entreprise.setNiu(dto.getNiu());
+        entreprise.setEmail_Entreprise(dto.getEmail());
+        entreprise.setTel(dto.getTel());
+        entreprise.setSiteWeb(dto.getSiteWeb());
+        entreprise.setLogo(dto.getLogo());
+        // Une entreprise est assujettie sauf mention contraire, comme a la creation : une omission
+        // ne doit pas la faire passer pour exoneree.
+        entreprise.setAssujettieTva(dto.getAssujettieTva() == null || dto.getAssujettieTva());
+        entreprise.setTauxTva(dto.getTauxTva() == null
+                ? EntrepriseDto.TAUX_TVA_PAR_DEFAUT
+                : dto.getTauxTva());
+
+        return EntrepriseDto.fromEntity(entrepriseRepository.save(entreprise));
     }
 
     @Override

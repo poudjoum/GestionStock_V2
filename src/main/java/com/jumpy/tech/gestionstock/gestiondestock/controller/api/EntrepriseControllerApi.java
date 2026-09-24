@@ -36,6 +36,18 @@ public interface EntrepriseControllerApi {
     @GetMapping(value = APP_ROOT+"/entreprises/mienne",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<EntrepriseDto> mienne();
 
+    /**
+     * Corrige l'identite de sa propre entreprise : nom, adresse, telephone, registre de commerce,
+     * NIU, logo et regime de TVA.
+     *
+     * C'est le pendant en ecriture de la lecture ci-dessus, et l'entreprise visee se deduit de la
+     * meme facon — du jeton. L'identifiant present dans le corps est ignore : il ne designe rien
+     * qu'on accepterait de suivre.
+     */
+    @PutMapping(value = APP_ROOT+"/entreprises/mienne",consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<EntrepriseDto> mettreAJourMienne(@RequestBody EntrepriseDto dto);
+
     @GetMapping(value = APP_ROOT+"/entreprise/{idEntreprise}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<EntrepriseDto> findById(@PathVariable Long idEntreprise);
     @GetMapping(value = APP_ROOT+"/entreprises/all",produces = MediaType.APPLICATION_JSON_VALUE)

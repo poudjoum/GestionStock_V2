@@ -33,6 +33,20 @@ public class Entreprise extends AbstractEntity{
     @Column(name="Siteweb")
     private String siteWeb;
     /**
+     * Le numero d'identifiant unique aupres des impots. Il figure sur le ticket et sur la facture
+     * d'une entreprise assujettie ; nul tant qu'il n'a pas ete renseigne.
+     */
+    @Column(name="niu", length = 30)
+    private String niu;
+    /**
+     * Le logo, encode, tel qu'il s'imprime en tete du ticket.
+     *
+     * Une image et non une adresse : une URL suppose que quelqu'un l'heberge encore le jour ou
+     * l'on imprime, et une caisse imprime aussi quand le reseau est tombe.
+     */
+    @Column(name="logo", columnDefinition = "text")
+    private String logo;
+    /**
      * Si l'entreprise collecte la TVA. Toutes ne le font pas : certaines la reversent aux impots
      * par declaration, d'autres n'y sont pas soumises. Quand c'est faux, aucune ligne de facture
      * ne porte de TVA, quel que soit l'article.

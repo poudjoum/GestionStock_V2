@@ -32,6 +32,18 @@ public class EntrepriseDto {
 
     private String siteWeb;
 
+    /** Le numero d'identifiant unique aupres des impots, imprime sur le ticket et la facture. */
+    private String niu;
+
+    /**
+     * Le logo, encode en data URI, tel qu'il s'imprime en tete du ticket.
+     *
+     * Le navigateur le reduit a 384 pixels de large avant de l'envoyer : c'est la largeur de la
+     * tete d'une imprimante 80 mm, et au-dela on transporterait des pixels que le papier ne rend
+     * pas.
+     */
+    private String logo;
+
     /** Si l'entreprise collecte la TVA. Vrai par defaut. */
     private Boolean assujettieTva;
 
@@ -54,6 +66,8 @@ public class EntrepriseDto {
                 .siteWeb(en.getSiteWeb())
                 .tel(en.getTel())
                 .adresse(AdresseDto.fromEntity(en.getAdresse()))
+                .niu(en.getNiu())
+                .logo(en.getLogo())
                 .assujettieTva(en.isAssujettieTva())
                 .tauxTva(en.getTauxTva())
                 .build();
@@ -73,6 +87,8 @@ public class EntrepriseDto {
         en.setSiteWeb(dto.getSiteWeb());
         en.setTel(dto.getTel());
         en.setAdresse(AdresseDto.toEntity(dto.getAdresse()));
+        en.setNiu(dto.getNiu());
+        en.setLogo(dto.getLogo());
         // Une entreprise est assujettie sauf mention contraire : c'est le cas courant, et une
         // omission ne doit pas la faire passer pour exoneree.
         en.setAssujettieTva(dto.getAssujettieTva() == null || dto.getAssujettieTva());

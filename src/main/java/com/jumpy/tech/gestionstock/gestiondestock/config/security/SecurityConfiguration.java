@@ -244,6 +244,16 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.PATCH, API + "/**")
                             .hasAnyRole(ADMIN, MANAGER, MAGASINIER)
 
+                        // Remplacer une ressource entiere engage plus que la modifier en partie :
+                        // les memes deux roles que la suppression, et non les trois du PATCH.
+                        //
+                        // Sans cette ligne, un PUT ne rencontrait aucune regle de methode et
+                        // tombait dans le `authenticated()` final — ouvert a tout compte connecte.
+                        // Le premier PUT de l'application etant celui de l'identite de
+                        // l'entreprise, que la regle /entreprises/** ferme deja plus haut, le
+                        // probleme ne se voyait pas : il attendait le suivant.
+                        .requestMatchers(HttpMethod.PUT, API + "/**").hasAnyRole(ADMIN, MANAGER)
+
                         // Supprimer engage plus que creer : deux roles, pas cinq.
                         .requestMatchers(HttpMethod.DELETE, API + "/**").hasAnyRole(ADMIN, MANAGER)
                         .requestMatchers(HttpMethod.POST, API + "/**").hasAnyRole(ADMIN, MANAGER, MAGASINIER)

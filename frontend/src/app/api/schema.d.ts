@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/gestiondestock/v1/entreprises/mienne": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mienne"];
+        put: operations["mettreAJourMienne"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/ventes/{idVente}/lignes": {
         parameters: {
             query?: never;
@@ -382,6 +398,26 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["save_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/articles/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer un catalogue d'articles depuis un classeur Excel
+         * @description Simule par defaut. Les articles sont reconnus par leur code : un fichier corrige et rejoue met a jour au lieu de creer des doublons.
+         */
+        post: operations["importer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1332,6 +1368,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/articles/import/modele": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Telecharger le modele de fichier a remplir */
+        get: operations["modele"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/articles/code/{codeArticle}": {
         parameters: {
             query?: never;
@@ -1528,6 +1581,29 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AdresseDto: {
+            adresse1?: string;
+            adresse2?: string;
+            ville?: string;
+            codePostale?: string;
+            pays?: string;
+        };
+        EntrepriseDto: {
+            /** Format: int64 */
+            id?: number;
+            nom?: string;
+            description?: string;
+            adresse?: components["schemas"]["AdresseDto"];
+            registreCommerce?: string;
+            email?: string;
+            photo?: string;
+            tel?: string;
+            siteWeb?: string;
+            niu?: string;
+            logo?: string;
+            assujettieTva?: boolean;
+            tauxTva?: number;
+        };
         ArticleDto: {
             codeArticle?: string;
             designation?: string;
@@ -1538,9 +1614,9 @@ export interface components {
             category?: components["schemas"]["CategoryDto"];
             /** Format: int64 */
             idEntreprise?: number;
-            photo?: string;
             /** Format: int64 */
             id?: number;
+            photo?: string;
         };
         CategoryDto: {
             codeCategorie?: string;
@@ -1596,13 +1672,6 @@ export interface components {
             montantTva?: number;
             montantTtc?: number;
         };
-        AdresseDto: {
-            adresse1?: string;
-            adresse2?: string;
-            ville?: string;
-            codePostale?: string;
-            pays?: string;
-        };
         ClientDto: {
             nom?: string;
             prenoms?: string;
@@ -1630,20 +1699,6 @@ export interface components {
             idCommandeClient?: number;
             ligneVente?: components["schemas"]["LigneVenteDto"][];
             commentaires?: string;
-        };
-        EntrepriseDto: {
-            /** Format: int64 */
-            id?: number;
-            nom?: string;
-            description?: string;
-            adresse?: components["schemas"]["AdresseDto"];
-            registreCommerce?: string;
-            email?: string;
-            photo?: string;
-            tel?: string;
-            siteWeb?: string;
-            assujettieTva?: boolean;
-            tauxTva?: number;
         };
         RoleDto: {
             /** Format: int64 */
@@ -1762,6 +1817,22 @@ export interface components {
             ligneCmndeClients?: components["schemas"]["LigneCommandeClientDto"][];
             /** Format: int64 */
             id?: number;
+        };
+        LigneRefuseeDto: {
+            /** Format: int32 */
+            ligne?: number;
+            code?: string;
+            raison?: string;
+        };
+        RapportImportDto: {
+            simulation?: boolean;
+            /** Format: int32 */
+            lues?: number;
+            /** Format: int32 */
+            creees?: number;
+            /** Format: int32 */
+            modifiees?: number;
+            refusees?: components["schemas"]["LigneRefuseeDto"][];
         };
         SignupRequest: {
             username: string;
@@ -2047,6 +2118,50 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    mienne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntrepriseDto"];
+                };
+            };
+        };
+    };
+    mettreAJourMienne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntrepriseDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntrepriseDto"];
+                };
+            };
+        };
+    };
     lignes: {
         parameters: {
             query?: never;
@@ -2737,6 +2852,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryDto"];
+                };
+            };
+        };
+    };
+    importer: {
+        parameters: {
+            query?: {
+                simulation?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    fichier: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RapportImportDto"];
                 };
             };
         };
@@ -4120,6 +4264,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticleDto"];
+                };
+            };
+        };
+    };
+    modele: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
                 };
             };
         };
