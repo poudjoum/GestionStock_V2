@@ -50,7 +50,14 @@
                   "replace": "src/environnements/environnement.ts",
                   "with": "src/environnements/environnement.production.ts"
                 }
-              ]
+              ],
+              "optimization": {
+                "scripts": true,
+                "styles": true,
+                "fonts": {
+                  "inline": false
+                }
+              }
             },
             "development": {
               "optimization": false,

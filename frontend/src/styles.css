@@ -9,6 +9,51 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities);
 
+/*
+ * Les polices, hebergees ici et non chez Google.
+ *
+ * Elles etaient chargees depuis fonts.googleapis.com. Deux problemes, et le second est le pire.
+ *
+ * A la construction, Angular telecharge ces polices pour les integrer au paquet : un serveur qui
+ * ne joint pas Google ne compile plus du tout. C'est arrive, et le deploiement s'est arrete la.
+ *
+ * Et chez le commercant, une connexion tombee ne rendait pas seulement le texte moins joli : les
+ * icones de Material s'affichent par ligature, c'est-a-dire que le navigateur ecrit le nom de
+ * l'icone tant que la fonte n'est pas la. Une caisse sans internet affichait « point_of_sale »,
+ * « print » et « close » a la place de ses boutons, et avait l'air cassee.
+ *
+ * Les deux fontes pesent quelques centaines de kilo-octets, servies par le meme nginx que le
+ * reste. C'est le prix d'une application qui ne depend de personne pour s'afficher.
+ */
+@import '@fontsource/roboto/300.css';
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/material-icons/index.css';
+
+/*
+ * Ce que la feuille de Google posait avec la fonte, et qu'elle seule posait.
+ *
+ * `mat-icon` rend un element portant cette classe et le nom de l'icone en texte ; c'est la
+ * ligature qui le transforme en dessin. Sans ces regles, la fonte est bien chargee mais personne
+ * ne la demande, et le nom reste ecrit en toutes lettres.
+ */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
 html,
 body {
   height: 100%;
