@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Comptoir, FactureDto, ModeReglement, VenteDto } from './comptoir.service';
 import { messageDErreur } from '../noyau/erreurs';
 import { Entreprise } from '../noyau/entreprise';
+import { identifiantDeVente } from '../noyau/identifiants';
 import { imprimerLeTicket } from '../noyau/impression';
 import { PaiementDuTicket, Ticket } from '../ticket/ticket';
 import { MODES_DE_REGLEMENT } from '../noyau/reglements';
@@ -404,7 +405,10 @@ export class VenteAuComptoir {
       code: `V-${Date.now()}`,
       // Rejouable sans risque : reposter la meme reference rend la vente deja enregistree au lieu
       // d'en creer une seconde. Le comptoir aussi peut perdre sa reponse.
-      referenceClient: crypto.randomUUID(),
+      //
+      // `identifiantDeVente` et non `crypto.randomUUID` : cette derniere n'existe qu'en contexte
+      // securise, et le magasin sert l'application en clair sur son reseau local.
+      referenceClient: identifiantDeVente(),
       client: this.client() ?? undefined,
       ligneVente: this.panier().map((l) => ({
         article: { id: l.article.id },
