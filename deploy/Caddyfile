@@ -1,0 +1,60 @@
+# Terminaison TLS devant l'application.
+#
+# Pourquoi du HTTPS sur un reseau local, ou personne n'ecoute : parce que le navigateur reserve
+# aux origines sures tout un pan de ses capacites. En clair, `crypto.randomUUID` n'existe pas —
+# l'encaissement a echoue dessus en production — et le service worker ne s'enregistre pas du tout.
+# L'application est declaree installable et capable de fonctionner hors ligne ; en HTTP elle n'est
+# ni l'un ni l'autre, et tout ce travail dort.
+#
+# Deux modes, selon TLS_MODE :
+#
+#   internal            autorite de certification locale, generee par Caddy. C'est le mode du
+#                       reseau local, ou aucune autorite publique ne peut certifier une adresse
+#                       privee. Les navigateurs avertissent tant que cette autorite n'est pas
+#                       installee sur l'appareil — la marche a suivre est dans le README.
+#
+#   une adresse e-mail  Let's Encrypt. Le jour ou un vrai nom de domaine existe : renseigner
+#                       SERVER_NAME avec ce domaine et TLS_MODE avec l'adresse de contact. Rien
+#                       d'autre ne change ici.
+#
+# SERVER_NAME ne porte que l'hote — ni schema ni port.
+
+{
+	# Indispensable pour servir une adresse IP. La norme interdit de mettre une IP dans le SNI :
+	# un client qui se connecte par adresse n'annonce donc aucun nom, et sans repli Caddy ne sait
+	# quel certificat presenter — la negociation echoue avant la moindre requete. Inoffensif avec
+	# un vrai domaine, ou le SNI est toujours transmis.
+	default_sni {$SERVER_NAME:localhost}
+
+	# Aucun port 80 n'est ouvert ici : celui de la machine appartient a un autre projet. L'autorite
+	# interne n'en a pas besoin — elle signe elle-meme, sans defi ACME. Le jour du vrai domaine, la
+	# validation se fera par DNS plutot que par le port 80, pour la meme raison.
+	auto_https disable_redirects
+
+	log {
+		format json
+	}
+}
+
+https://{$SERVER_NAME:localhost}:{$HTTPS_PORT:9443} {
+	tls {$TLS_MODE:internal}
+
+	# Tout vers le nginx du front, qui relaie lui-meme `/api` et `/gestiondestock` vers l'API.
+	#
+	# Un seul relais plutot que deux : le decoupage existe deja un cran plus bas, et le refaire ici
+	# donnerait deux endroits ou se tromper. Le navigateur ne voit qu'une origine, et la question
+	# du CORS ne se pose toujours pas.
+	reverse_proxy gestionstock-web:80 {
+		# Sans ces en-tetes, l'application croit tout le trafic arrive en clair et fabriquerait
+		# des redirections en HTTP — qui ramenent le navigateur a une origine non sure, et l'on
+		# perdrait precisement ce qu'on est venu chercher.
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+
+	encode gzip
+
+	log {
+		format json
+	}
+}

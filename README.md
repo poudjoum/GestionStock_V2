@@ -1170,6 +1170,72 @@ Puis verifier dans le journal de l'application :
 docker logs gestionstock-app 2>&1 | grep -i 'super-administrateur'
 ```
 
+
+### Le HTTPS sur le reseau du magasin
+
+Ce n'est pas une precaution de principe : **le navigateur reserve aux origines sures tout un pan
+de ses capacites**, et l'application en depend.
+
+`crypto.randomUUID` n'existe pas en HTTP — l'encaissement a echoue dessus en production, au moment
+precis ou le client tendait son argent. Le *service worker* ne s'enregistre pas davantage :
+l'application est declaree installable et capable de fonctionner hors ligne, et en clair elle n'est
+ni l'un ni l'autre. Tout ce travail dort tant qu'on sert en HTTP.
+
+Caddy assure donc la terminaison TLS devant nginx. Il a le sien, et non un site ajoute a celui d'un
+autre projet de la machine : cela lierait les deux deploiements, et redeployer l'un ferait
+disparaitre le site de l'autre sans prevenir.
+
+Trois variables dans le `.env` :
+
+```bash
+SERVER_NAME=192.168.1.100
+TLS_MODE=internal
+HTTPS_PORT=9443
+```
+
+`internal` veut dire que Caddy signe lui-meme, avec une autorite de certification qu'il genere au
+premier demarrage. Aucune autorite publique ne peut certifier une adresse privee : c'est le seul
+moyen d'avoir du HTTPS sur un reseau local. En contrepartie, chaque appareil du magasin doit
+installer cette autorite, une fois.
+
+**Recuperer le certificat racine** — apres le premier demarrage de Caddy :
+
+```bash
+docker exec gestionstock-caddy cat /data/caddy/pki/authorities/local/root.crt > ~/gestionstock-ca.crt
+```
+
+**L'installer**, selon l'appareil :
+
+Sur Windows, double-cliquer le fichier, « Installer le certificat », choisir « Ordinateur local »
+puis le magasin « Autorites de certification racines de confiance ».
+
+Sur Android, Parametres, rechercher « certificat », « Installer un certificat » puis « Certificat
+CA ». L'appareil previendra que le reseau peut etre surveille : c'est le message normal, et il dit
+vrai — cette autorite est la votre.
+
+Sur iOS, ouvrir le fichier depuis Fichiers, l'installer dans Reglages, puis **activer la confiance**
+dans Reglages, General, Informations, Reglages des certificats. Sans cette seconde etape, le
+certificat est installe mais ignore.
+
+**Le volume de Caddy ne se supprime pas a la legere** : il contient la clef de cette autorite. La
+perdre oblige a refaire l'installation sur chaque appareil.
+
+**Refermer les portes en clair**, une fois le HTTPS verifie depuis un appareil du magasin :
+
+```bash
+WEB_BIND=127.0.0.1
+APP_BIND=127.0.0.1
+```
+
+L'application et l'API cessent alors d'etre joignables autrement que par Caddy. A ne faire
+qu'apres verification — sans quoi plus personne n'entre.
+
+**Le jour d'un vrai nom de domaine**, remplacer `TLS_MODE` par une adresse de courriel et
+`SERVER_NAME` par le domaine. Caddy prend alors un certificat Let's Encrypt, et plus rien n'est a
+installer sur les appareils. Attention : la machine est derriere le NAT de Starlink, et la
+validation par le port 80 n'y arrivera pas — il faudra une validation par DNS, donc un fournisseur
+dont l'API est accessible, et une image de Caddy compilee avec le greffon correspondant.
+
 Ce que fait le serveur se lit dans son journal :
 
 ```bash

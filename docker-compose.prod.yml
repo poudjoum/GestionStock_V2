@@ -99,6 +99,42 @@ services:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
 
+  # La terminaison TLS.
+  #
+  # Pourquoi du HTTPS sur un reseau local : le navigateur reserve aux origines sures tout un pan
+  # de ses capacites. `crypto.randomUUID` n'existe pas en clair — l'encaissement a echoue dessus
+  # en production — et le service worker ne s'enregistre pas du tout. L'application est declaree
+  # installable et capable de fonctionner hors ligne ; en HTTP elle n'est ni l'un ni l'autre.
+  #
+  # Son propre Caddy, et non un site ajoute a celui d'un autre projet de la machine : cela lierait
+  # les deux deploiements, et redeployer l'un ferait disparaitre le site de l'autre sans prevenir.
+  # Le prix de cette separation est une seconde autorite de certification a installer sur les
+  # appareils du magasin — une fois par appareil.
+  caddy:
+    image: caddy:2-alpine
+    container_name: gestionstock-caddy
+    restart: unless-stopped
+    depends_on: [web]
+    environment:
+      # L'hote seul : ni schema ni port. L'adresse du serveur sur le reseau, ou le nom de domaine
+      # le jour ou il y en aura un.
+      SERVER_NAME: ${SERVER_NAME:-localhost}
+      # `internal` pour l'autorite locale ; une adresse de courriel pour Let's Encrypt.
+      TLS_MODE: ${TLS_MODE:-internal}
+      HTTPS_PORT: ${HTTPS_PORT:-9443}
+    ports:
+      - "${HTTPS_BIND:-0.0.0.0}:${HTTPS_PORT:-9443}:${HTTPS_PORT:-9443}"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # L'autorite de certification vit ici. La perdre obligerait a reinstaller le certificat
+      # racine sur chaque appareil du magasin : ce volume ne se supprime pas a la legere.
+      - caddydata:/data
+      - caddyconfig:/config
+    networks: [gestionstock]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
 networks:
   gestionstock:
     name: gestionstock
@@ -106,3 +142,7 @@ networks:
 volumes:
   pgdata:
     name: gestionstock-pgdata
+  caddydata:
+    name: gestionstock-caddy-data
+  caddyconfig:
+    name: gestionstock-caddy-config
