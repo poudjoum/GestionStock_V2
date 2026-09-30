@@ -438,6 +438,47 @@ public class FactureServiceImpl implements FactureService {
     }
 
     @Override
+    @Transactional
+    public FactureDto encaisserVenteSynchronisee(Long idVente, ReglementDto encaissement, Instant quand) {
+        // La facture deja emise est reprise : un envoi rejoue apres une reponse perdue ne doit pas
+        // echouer sur « deja facturee », ce qui bloquerait la file du poste pour toujours.
+        Facture facture = factureRepository.findByVenteId(idVente).orElse(null);
+        if (facture == null) {
+            emettre(idVente);
+            facture = factureRepository.findByVenteId(idVente).orElseThrow();
+        }
+
+        BigDecimal montant = encaissement == null || encaissement.getMontant() == null
+                ? BigDecimal.ZERO : encaissement.getMontant();
+        // Une facture annulee entre-temps ne recoit rien ; une facture qui porte deja un reglement
+        // non plus, parce que c'est celui de cet envoi, fait par un envoi precedent. Le poste de
+        // vente n'envoie jamais qu'un encaissement par vente.
+        if (montant.signum() > 0 && !facture.isAnnulee()
+                && reglementRepository.totalReglePour(facture.getId()).signum() == 0) {
+            if (encaissement.getMode() == null) {
+                throw new InvalidEntityException("Un règlement dit par quel moyen il a été reçu",
+                        ErrorCodes.VENTE_NOT_VALID);
+            }
+            Reglement reglement = new Reglement();
+            reglement.setFacture(facture);
+            // Plafonne a ce qui est du : le surplus est la monnaie rendue, ou l'arrondi de
+            // l'estimation que le poste a annoncee avant que la facture n'existe.
+            reglement.setMontant(montant.min(facture.getTotalTtc()));
+            reglement.setMode(encaissement.getMode());
+            reglement.setReference(encaissement.getReference());
+            // La date de la vente, et c'est le seul reglement qui la porte. Ce n'est pas antidater :
+            // l'argent est entre dans le tiroir ce jour-la, et c'est le tiroir de ce jour-la qu'on
+            // a compte le soir.
+            reglement.setDateReglement(quand);
+            reglement.setIdEntreprise(facture.getIdEntreprise());
+            reglementRepository.save(reglement);
+            log.info("Vente synchronisee {} : {} encaisses sur la facture {} au {}",
+                    idVente, reglement.getMontant(), facture.getNumero(), quand);
+        }
+        return findByVente(idVente);
+    }
+
+    @Override
     public List<ReglementDto> reglements(Long idFacture) {
         facture(idFacture);
         return reglementRepository.findAllByFactureIdOrderByDateReglementAsc(idFacture).stream()

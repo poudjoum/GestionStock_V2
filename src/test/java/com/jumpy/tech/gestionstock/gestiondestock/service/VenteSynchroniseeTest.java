@@ -3,11 +3,15 @@ package com.jumpy.tech.gestionstock.gestiondestock.service;
 import com.jumpy.tech.gestionstock.gestiondestock.AbstractIntegrationTest;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CategoryDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.FactureDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ReglementDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.ModeReglement;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.StatutStock;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeMvtStk;
+import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +20,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +48,10 @@ class VenteSynchroniseeTest extends AbstractIntegrationTest {
     private MvtStkService mvtStkService;
     @Autowired
     private StockService stockService;
+    @Autowired
+    private FactureService factureService;
+    @Autowired
+    private CaisseService caisseService;
 
     private Long idArticle;
 
@@ -268,6 +278,132 @@ class VenteSynchroniseeTest extends AbstractIntegrationTest {
                 .build());
 
         assertThat(vente.getDatevente()).isAfter(avant);
+    }
+
+    // --- L'encaissement ----------------------------------------------------------------------
+    //
+    // Hors ligne, le comptoir a pris l'argent sans pouvoir ni facturer ni encaisser. L'encaissement
+    // voyage avec la vente : envoye a part, il serait date du jour de l'envoi, et rejoue apres une
+    // reponse perdue, il serait encaisse deux fois.
+
+    private VenteDto venteEncaissee(String reference, Instant quand, String montant) {
+        VenteDto vente = venteHorsLigne(reference, quand, "2");
+        vente.setEncaissement(ReglementDto.builder()
+                .montant(new BigDecimal(montant))
+                .mode(ModeReglement.ESPECES)
+                .build());
+        return vente;
+    }
+
+    private static LocalDate jourDe(Instant instant) {
+        return LocalDate.ofInstant(instant, ZoneId.of("Africa/Douala"));
+    }
+
+    @Test
+    void une_vente_synchronisee_avec_son_encaissement_est_facturee_et_reglee() {
+        approvisionner("100");
+        Instant ceMatin = ilYA(Duration.ofHours(5));
+
+        VenteDto vente = venteService.synchroniser(
+                venteEncaissee(UUID.randomUUID().toString(), ceMatin, "10000"));
+
+        FactureDto facture = factureService.findByVente(vente.getId());
+        assertThat(facture.getTotalTtc()).isEqualByComparingTo("10000");
+        assertThat(facture.getResteAPayer()).isEqualByComparingTo("0");
+
+        List<ReglementDto> reglements = factureService.reglements(facture.getId());
+        assertThat(reglements).hasSize(1);
+        assertThat(reglements.get(0).getMode()).isEqualTo(ModeReglement.ESPECES);
+        // L'argent est entre dans le tiroir ce matin, pas au moment de l'envoi.
+        assertThat(reglements.get(0).getDateReglement()).isEqualTo(ceMatin);
+    }
+
+    @Test
+    void rejouer_une_vente_encaissee_n_encaisse_pas_deux_fois() {
+        approvisionner("100");
+        VenteDto envoi = venteEncaissee(UUID.randomUUID().toString(), ilYA(Duration.ofHours(2)), "10000");
+
+        VenteDto premiere = venteService.synchroniser(envoi);
+        // Le poste n'a pas recu la reponse : il renvoie tout, et doit retrouver son travail fait —
+        // ni « deja facturee », ni un second reglement.
+        VenteDto seconde = venteService.synchroniser(envoi);
+
+        assertThat(seconde.getId()).isEqualTo(premiere.getId());
+        FactureDto facture = factureService.findByVente(premiere.getId());
+        assertThat(factureService.reglements(facture.getId())).hasSize(1);
+        assertThat(facture.getMontantRegle()).isEqualByComparingTo("10000");
+    }
+
+    @Test
+    void l_encaissement_compte_dans_la_caisse_du_jour_de_la_vente() {
+        approvisionner("100");
+        Instant hier = ilYA(Duration.ofDays(1));
+        BigDecimal caisseDHierAvant = caisseService.etat(jourDe(hier), jourDe(hier)).getTotal();
+        BigDecimal caisseDuJourAvant = caisseService.etat(jourDe(Instant.now()), jourDe(Instant.now())).getTotal();
+
+        venteService.synchroniser(venteEncaissee(UUID.randomUUID().toString(), hier, "10000"));
+
+        // Le tiroir d'hier a ete compte hier soir avec ces especes dedans : c'est la qu'elles
+        // doivent apparaitre, et le tiroir d'aujourd'hui ne doit pas les compter une seconde fois.
+        assertThat(caisseService.etat(jourDe(hier), jourDe(hier)).getTotal())
+                .isEqualByComparingTo(caisseDHierAvant.add(new BigDecimal("10000")));
+        assertThat(caisseService.etat(jourDe(Instant.now()), jourDe(Instant.now())).getTotal())
+                .isEqualByComparingTo(caisseDuJourAvant);
+    }
+
+    @Test
+    void la_monnaie_rendue_n_entre_pas_en_caisse() {
+        approvisionner("100");
+
+        // Le client a tendu 20 000 pour 10 000 : le poste envoie ce qu'il a recu, et le surplus
+        // est reparti avec le client.
+        VenteDto vente = venteService.synchroniser(
+                venteEncaissee(UUID.randomUUID().toString(), ilYA(Duration.ofHours(1)), "20000"));
+
+        FactureDto facture = factureService.findByVente(vente.getId());
+        assertThat(facture.getMontantRegle()).isEqualByComparingTo("10000");
+    }
+
+    @Test
+    void une_vente_a_credit_est_facturee_sans_reglement() {
+        approvisionner("100");
+
+        VenteDto vente = venteService.synchroniser(
+                venteEncaissee(UUID.randomUUID().toString(), ilYA(Duration.ofHours(1)), "0"));
+
+        FactureDto facture = factureService.findByVente(vente.getId());
+        assertThat(factureService.reglements(facture.getId())).isEmpty();
+        assertThat(facture.getResteAPayer()).isEqualByComparingTo("10000");
+    }
+
+    @Test
+    void sans_encaissement_la_vente_synchronisee_n_est_pas_facturee() {
+        approvisionner("100");
+
+        // Le contrat d'avant reste valable : un poste qui n'envoie que la vente n'obtient qu'une
+        // vente.
+        VenteDto vente = venteService.synchroniser(
+                venteHorsLigne(UUID.randomUUID().toString(), ilYA(Duration.ofHours(1)), "2"));
+
+        assertThatThrownBy(() -> factureService.findByVente(vente.getId()))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    void une_vente_annulee_depuis_se_rejoue_sans_erreur() {
+        approvisionner("100");
+        String reference = UUID.randomUUID().toString();
+        Instant quand = ilYA(Duration.ofHours(2));
+        VenteDto vente = venteService.synchroniser(venteHorsLigne(reference, quand, "2"));
+        venteService.annuler(vente.getId());
+
+        // Un envoi qui echouerait ici resterait en file sur le poste pour toujours. Une vente
+        // annulee ne se facture pas : l'envoi reussit, et rien n'est encaisse.
+        VenteDto rejouee = venteService.synchroniser(venteEncaissee(reference, quand, "10000"));
+
+        assertThat(rejouee.getId()).isEqualTo(vente.getId());
+        assertThatThrownBy(() -> factureService.findByVente(vente.getId()))
+                .isInstanceOf(EntityNotFoundException.class);
     }
 
     // --- Le stock -----------------------------------------------------------------------------

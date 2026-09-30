@@ -24,6 +24,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.repository.FactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneCmndeClientRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneVenteRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.VenteRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.service.FactureService;
 import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
 import com.jumpy.tech.gestionstock.gestiondestock.service.VenteService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.VenteValidator;
@@ -67,6 +68,7 @@ public class VenteServiceImpl implements VenteService {
     private final ClientRepository clientRepository;
     private final Cloisonnement cloisonnement;
     private final MvtStkService mvtStkService;
+    private final FactureService factureService;
 
     public VenteServiceImpl(VenteRepository venteRepository, ArticleRepository articleRepository,
                             LigneVenteRepository ligneVenteRepository,
@@ -75,7 +77,9 @@ public class VenteServiceImpl implements VenteService {
                             LigneCmndeClientRepository ligneCmndeClientRepository,
                             ClientRepository clientRepository,
                             Cloisonnement cloisonnement,
-                            MvtStkService mvtStkService) {
+                            MvtStkService mvtStkService,
+                            FactureService factureService) {
+        this.factureService = factureService;
         this.clientRepository = clientRepository;
         this.cloisonnement = cloisonnement;
         this.venteRepository = venteRepository;
@@ -126,7 +130,22 @@ public class VenteServiceImpl implements VenteService {
                     ErrorCodes.VENTE_NOT_VALID,
                     List.of("Sans elle, la vente pèserait sur la caisse du jour de l'envoi"));
         }
-        return enregistrer(dto, dateDeVenteValide(dto.getDatevente()));
+        VenteDto vente = enregistrer(dto, dateDeVenteValide(dto.getDatevente()));
+
+        // L'encaissement du comptoir, dans la meme transaction : la vente, sa facture et son
+        // reglement arrivent ensemble ou pas du tout. Une vente enregistree sans son encaissement
+        // laisserait l'argent du tiroir sans trace, et le poste ne saurait pas quoi renvoyer.
+        //
+        // La date est celle de la vente enregistree, et non celle de cet envoi : sur un envoi
+        // rejoue, c'est la meme, et c'est elle qui range l'argent dans la bonne caisse.
+        //
+        // Une vente annulee depuis ne se facture pas ; l'envoi reussit quand meme, sans quoi il
+        // resterait en file sur le poste pour toujours.
+        if (dto.getEncaissement() != null && !vente.isAnnulee()) {
+            factureService.encaisserVenteSynchronisee(
+                    vente.getId(), dto.getEncaissement(), vente.getDatevente());
+        }
+        return vente;
     }
 
     /**

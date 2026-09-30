@@ -31,6 +31,21 @@ public class VenteDto {
     /** Nul pour une vente au comptoir ; renseigne quand la vente sert une commande client. */
     private Long idCommandeClient;
     private List<LigneVenteDto> ligneVente;
+
+    /**
+     * Ce que le client a paye au comptoir, pour une vente synchronisee. Ignore partout ailleurs, et
+     * jamais rendu.
+     *
+     * Hors ligne, le poste de vente ne peut ni facturer ni encaisser : il a pourtant pris l'argent.
+     * S'il envoyait l'encaissement a part, une fois la connexion revenue, le reglement serait date
+     * du jour de l'envoi — l'etat de caisse additionne les reglements par leur date, et les especes
+     * de lundi compteraient dans le tiroir de mardi. Et un reglement rejoue apres une reponse
+     * perdue serait encaisse deux fois. L'encaissement voyage donc avec la vente, et le serveur fait
+     * le tout dans une seule transaction, a la date de la vente.
+     *
+     * Un montant nul facture sans rien encaisser : la vente a credit.
+     */
+    private ReglementDto encaissement;
     public static VenteDto fromEntity(Vente vente) {
         if(vente==null) {
             // TODO Auto-generated method stub

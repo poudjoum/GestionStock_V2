@@ -5,6 +5,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.ReglementDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -58,6 +59,19 @@ public interface FactureService {
      * saisie, pas une situation a enregistrer.
      */
     ReglementDto regler(Long idFacture, ReglementDto reglement);
+
+    /**
+     * Facture et encaisse une vente faite hors ligne, a la date ou elle a eu lieu.
+     *
+     * Rejouable : la facture deja emise est reprise, et une facture qui porte deja un reglement
+     * n'en recoit pas un second — un poste qui a perdu la reponse renvoie tout, et doit retrouver
+     * son travail fait plutot que de le refaire.
+     *
+     * Le montant est plafonne a ce qui est du, et non refuse comme a {@link #regler} : le poste a
+     * annonce un total estime avant la facture, qui peut differer d'un franc d'arrondi, et refuser
+     * bloquerait pour toujours une vente dont l'argent est deja dans le tiroir.
+     */
+    FactureDto encaisserVenteSynchronisee(Long idVente, ReglementDto encaissement, Instant quand);
 
     /** Les encaissements d'une facture, du plus ancien au plus recent. */
     List<ReglementDto> reglements(Long idFacture);
