@@ -11,6 +11,7 @@ import { Session } from '../noyau/session';
 import { Reseau } from '../noyau/reseau';
 import { FileDesVentes } from '../comptoir/file-des-ventes';
 import { Notifications } from '../notifications/notifications.service';
+import { NotificationsPush } from '../notifications/push.service';
 import { LIBELLE_DES_ROLES, MENU, menuPour } from '../noyau/roles';
 
 /**
@@ -48,6 +49,7 @@ export class Coque implements OnInit {
   private readonly router = inject(Router);
   private readonly reseau = inject(Reseau);
   private readonly file = inject(FileDesVentes);
+  private readonly push = inject(NotificationsPush);
 
   protected readonly username = this.session.username;
   protected readonly nonLues = this.notifications.nonLues;
@@ -108,6 +110,8 @@ export class Coque implements OnInit {
       error: () => undefined,
     });
     this.notifications.rafraichirLeCompte();
+    // L'abonnement de l'appareil redonne au compte qui vient de se connecter.
+    void this.push.demarrer();
   }
 
   protected envoyerMaintenant(): void {
@@ -118,7 +122,12 @@ export class Coque implements OnInit {
     void this.file.reessayer(referenceClient);
   }
 
-  protected seDeconnecter(): void {
+  /**
+   * L'appareil est retire du compte avant la deconnexion, tant que le jeton vaut encore : sur une
+   * caisse partagee, celui qui part ne doit plus y recevoir ses alertes de stock.
+   */
+  protected async seDeconnecter(): Promise<void> {
+    await this.push.oublierCetAppareil();
     this.session.seDeconnecter();
     location.assign('/connexion');
   }

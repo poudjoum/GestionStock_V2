@@ -5,7 +5,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Notifications } from './notifications.service';
+import { NotificationsPush } from './push.service';
 import type { NotificationDto } from '../noyau/api';
 
 /** L'icone qui va avec chaque famille d'alerte. */
@@ -28,6 +30,34 @@ export class ListeNotifications implements OnInit {
   protected readonly chargement = signal(true);
   protected readonly nonLuesSeulement = signal(false);
   protected readonly erreur = signal<string | null>(null);
+
+  private readonly push = inject(NotificationsPush);
+  private readonly snack = inject(MatSnackBar);
+  protected readonly etatPush = this.push.etat;
+  protected readonly pushEnCours = signal(false);
+
+  protected activerLePush(): void {
+    this.pushEnCours.set(true);
+    this.push.activer().then(
+      () => {
+        this.pushEnCours.set(false);
+        if (this.push.etat().etat === 'active') {
+          this.snack.open('Alertes activées sur cet appareil.', 'Fermer', { duration: 4000 });
+        }
+      },
+      () => {
+        this.pushEnCours.set(false);
+        this.snack.open('L’activation a échoué. Réessayez dans un instant.', 'Fermer', {
+          duration: 6000,
+        });
+      },
+    );
+  }
+
+  protected desactiverLePush(): void {
+    this.pushEnCours.set(true);
+    void this.push.desactiver().finally(() => this.pushEnCours.set(false));
+  }
 
   ngOnInit(): void {
     this.charger();

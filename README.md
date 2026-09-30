@@ -1023,9 +1023,14 @@ l'API. La vente est partie seule en moins de quinze secondes ; en base, la factu
 14 310 date de l'heure de la vente, et le stock juste. Le meme envoi rejoue deux fois : ni vente, ni
 facture, ni reglement de plus.
 
-### Ce qui n'y est pas encore
+### Alertes sur l'appareil
 
-Web Push, qui a maintenant une application ou atterrir.
+L'ecran des notifications propose de recevoir les alertes sur l'appareil, application fermee
+(`notifications/push.service.ts`, sur `SwPush` d'Angular). Chaque etat dit ce qu'il y a a faire :
+permission refusee — elle se rend dans les reglages du navigateur, pas depuis la page —, HTTPS
+necessaire, serveur non configure. Un clic sur la notification ouvre l'application a l'endroit de
+l'alerte ; une alerte recue application ouverte fait monter la cloche aussitot. Le detail cote
+serveur est dans la section Notifications.
 
 ## Notifications
 
@@ -1063,7 +1068,7 @@ Deux tables, parce que ce sont deux choses :
 
 | Evenement | Qui est prevenu | Par ou |
 |---|---|---|
-| Article sous son seuil, a zero, ou sous zero | ADMIN, MANAGER, MAGASINIER de l'entreprise | in-app |
+| Article sous son seuil, a zero, ou sous zero | ADMIN, MANAGER, MAGASINIER de l'entreprise | in-app, et Web Push sur leurs appareils abonnes |
 | Facture emise | le client, s'il a une adresse | courriel |
 | Compte ouvert | son titulaire | courriel |
 
@@ -1113,11 +1118,68 @@ d'application**, a generer dans les parametres de securite Google. Il ouvre l'en
 au nom de l'adresse : c'est un secret a part entiere, et il n'a rien a faire ailleurs que dans
 `.env`.
 
-### Ce qui n'y est pas encore
+### Web Push
 
-**Web Push.** Notifier le navigateur d'une application qui n'existe pas encore ne mene nulle
-part : cela demande des cles VAPID, une table d'abonnements et un service worker cote client. Le
-canal viendra avec le front, qui interrogera d'ici la `/notifications/non-lues`.
+Une alerte de rupture qui attend que le magasinier ouvre l'application arrive trop tard : le
+client est deja reparti. Un appareil abonne la recoit tout de suite, application fermee.
+
+```
+GET    /gestiondestock/v1/notifications/push/cle            la cle VAPID publique ; 204 si non configure
+POST   /gestiondestock/v1/notifications/push/abonnements    corps : PushSubscription.toJSON()
+DELETE /gestiondestock/v1/notifications/push/abonnements    corps : { "endpoint": "..." }
+```
+
+**Le meme chemin que les courriels.** Chaque notification ecrite pour un compte donne un envoi
+`PUSH` par appareil abonne de ce compte, dans la transaction de l'operation. L'expediteur le livre
+ensuite, avec les memes regles : une transaction par envoi, l'attente qui double, l'abandon apres
+six essais. Le service push de Google en panne ne fait donc jamais echouer la vente qui a
+declenche l'alerte. Un passage toutes les **dix secondes** (`PUSH_INTERVALLE_MS`), et non la minute
+des courriels : l'alerte est faite pour arriver pendant que le client est encore au comptoir.
+
+Ce que rend le service push decide de la suite. **404 ou 410** : l'appareil s'est desabonne,
+il est oublie et l'envoi abandonne au premier essai — le retenter une heure n'apprendrait rien.
+**429 et 5xx** : la file retentera. **400, 403, 413** : abandonne sans reessayer.
+
+**Chiffre de bout en bout** (RFC 8291) : le message traverse Google, Mozilla, Apple ou Microsoft
+sans qu'ils puissent le lire — une alerte de stock dit ce que vend un commerce et ce qui lui
+manque. Chiffrement et signature VAPID (RFC 8292) sont ecrits avec le seul JDK, sans bibliotheque :
+celles qui existent en Java ne sont plus entretenues. La justesse est verifiee contre l'exemple
+publie par la RFC, reproduit au bit pres (`ChiffrementWebPushTest`), et un test d'integration joue
+le navigateur : il s'abonne avec ses propres cles et dechiffre ce que le serveur depose.
+
+**Un appareil appartient au dernier compte qui s'y est connecte.** L'abonnement est redonne au
+serveur a chaque ouverture, et retire a la deconnexion : sur une caisse partagee, celui qui part
+ne doit plus y recevoir ses alertes.
+
+**Seuls les services push des navigateurs sont admis** comme adresse d'abonnement (Google, Mozilla,
+Microsoft, Apple), en HTTPS et sans port. L'adresse vient de l'appelant, et le serveur ira y
+deposer des messages : sans cette liste, s'abonner avec `http://192.168.1.1/…` ferait de lui un
+relais vers son propre reseau.
+
+**Il faut HTTPS.** Le service worker n'existe qu'en contexte sur : l'abonnement se fait depuis
+`https://stock.tontinepro.uk` ou le port 9443 du magasin. En clair, l'ecran des notifications le
+dit au lieu de proposer un bouton qui ne marcherait pas.
+
+**Les cles**, a generer une fois et a ne jamais changer — en changer desabonne tous les appareils :
+
+```bash
+node -e 'const {generateKeyPairSync}=require("crypto");const k=generateKeyPairSync("ec",{namedCurve:"prime256v1"}).privateKey.export({format:"jwk"});const b=s=>Buffer.from(s,"base64url");console.log("VAPID_CLE_PUBLIQUE="+Buffer.concat([Buffer.from([4]),b(k.x),b(k.y)]).toString("base64url")+"\nVAPID_CLE_PRIVEE="+k.d)'
+```
+
+```
+VAPID_CLE_PUBLIQUE=...
+VAPID_CLE_PRIVEE=...
+VAPID_SUJET=https://stock.tontinepro.uk
+```
+
+Vides, rien ne part sur les appareils et l'application ne propose pas de s'abonner. Une cle mal
+recopiee fait echouer le demarrage avec son message, plutot que de passer pour une panne du service
+push au premier envoi.
+
+**Verifie de bout en bout** avec un vrai Chrome, sur une pile jetable : abonnement accepte par
+Chrome aupres de Google (FCM), alerte de stock declenchee par une sortie, message accepte par FCM
+cinq secondes plus tard, puis recu et dechiffre par Chrome — titre, corps et lien intacts. La
+deconnexion a retire l'abonnement du serveur et du navigateur.
 
 ## CORS
 

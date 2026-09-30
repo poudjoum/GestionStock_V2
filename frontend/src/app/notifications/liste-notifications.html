@@ -10,6 +10,52 @@
     <button mat-button (click)="toutMarquerLu()">Tout marquer lu</button>
   </div>
 
+  <!--
+    Les alertes sur l'appareil. En tete de la liste, parce que c'est ici qu'on vient quand on se
+    demande pourquoi une rupture n'a prevenu personne. Chaque etat dit ce qu'il y a a faire : une
+    permission refusee ne se redemande pas depuis la page, elle se rend dans le navigateur.
+  -->
+  @let push = etatPush();
+  @if (push.etat !== 'verification') {
+    <section
+      class="mb-4 flex flex-wrap items-center gap-3 rounded-lg px-4 py-3"
+      style="background: var(--mat-sys-surface-container); color: var(--mat-sys-on-surface)"
+    >
+      <mat-icon class="shrink-0" [style.color]="push.etat === 'active' ? 'var(--mat-sys-primary)' : ''">
+        {{ push.etat === 'active' ? 'notifications_active' : 'notifications_off' }}
+      </mat-icon>
+      <div class="min-w-0 flex-1 text-sm">
+        <p class="m-0 font-medium">Alertes sur cet appareil</p>
+        <p class="m-0 text-xs opacity-70">
+          @switch (push.etat) {
+            @case ('active') {
+              Activées : les alertes de stock arrivent ici, même application fermée.
+            }
+            @case ('inactive') {
+              Recevez les alertes de stock ici, même application fermée.
+            }
+            @case ('refusee') {
+              Refusées dans le navigateur. Autorisez les notifications pour ce site dans ses
+              réglages, puis rechargez la page.
+            }
+            @case ('indisponible') {
+              {{ push.raison }}
+            }
+          }
+        </p>
+      </div>
+      @if (push.etat === 'inactive') {
+        <button mat-flat-button (click)="activerLePush()" [disabled]="pushEnCours()">
+          Activer
+        </button>
+      } @else if (push.etat === 'active') {
+        <button mat-button (click)="desactiverLePush()" [disabled]="pushEnCours()">
+          Désactiver
+        </button>
+      }
+    </section>
+  }
+
   @if (chargement()) {
     <mat-progress-bar mode="indeterminate" />
   } @else if (erreur(); as message) {

@@ -14,8 +14,9 @@ const RACINE = `${environnement.api}/gestiondestock/v1/notifications`;
  *
  * Il se redemande a la main, et non par un minuteur. Interroger le serveur toutes les dix
  * secondes pour un compteur couterait du reseau a un telephone qui en manque, pour une
- * information qui peut attendre le prochain ecran. Le canal Web Push prendra ce relais quand il
- * existera.
+ * information qui peut attendre le prochain ecran. Sur un appareil abonne aux alertes, Web Push
+ * prend le relais : une alerte recue application ouverte fait remonter la cloche aussitot
+ * (`NotificationsPush`).
  */
 @Injectable({ providedIn: 'root' })
 export class Notifications {
