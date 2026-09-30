@@ -63,6 +63,12 @@ springdoc:
     path: /api-GestionStock
 
 app:
+  # L'adresse a laquelle les commercants ouvrent l'application.
+  #
+  # Elle figure dans le courriel d'acces envoye au gerant a l'inscription de son commerce : sans
+  # elle, il recoit un identifiant et un mot de passe sans savoir ou les presenter. Vide, le
+  # courriel n'en parle pas — ce qui vaut mieux qu'une adresse fausse.
+  adressePublique: ${ADRESSE_PUBLIQUE:}
   # Le fuseau dans lequel se lisent les journees : la caisse du 21 septembre est celle du jour
   # civil local, pas celle de l'horloge du serveur. Le conteneur tourne en UTC et l'ecart d'une
   # heure suffirait a faire basculer les encaissements du soir sur le lendemain.

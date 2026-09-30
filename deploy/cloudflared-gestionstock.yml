@@ -1,0 +1,18 @@
+# Configuration du tunnel GestionStock, a copier dans ~/.cloudflared/gestionstock-config.yml.
+#
+# Elle ne contient aucun secret : le secret, c'est le fichier d'identifiants qu'elle designe, cree
+# par `cloudflared tunnel create gestionstock` et qui ne quitte pas le serveur.
+#
+# Toute l'application est publiee, et non un seul chemin comme pour le webhook de HotSpot : ce sont
+# les commercants eux-memes qui ouvrent la caisse depuis l'exterieur. Le relais vise le nginx du
+# front, qui sert l'application et relaie l'API sous la meme origine.
+#
+# Le service est joint en clair, et ce n'est pas une negligence : ce trafic ne quitte pas la
+# machine. Le chiffrement public est assure par Cloudflare jusqu'au navigateur.
+tunnel: gestionstock
+credentials-file: /home/jumpy/.cloudflared/0f565913-29fa-48b3-be0b-a862dbb3e93e.json
+
+ingress:
+  - hostname: stock.tontinepro.uk
+    service: http://127.0.0.1:9093
+  - service: http_status:404

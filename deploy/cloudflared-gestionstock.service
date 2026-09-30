@@ -1,0 +1,48 @@
+# Tunnel Cloudflare qui publie GestionStock sur https://stock.tontinepro.uk.
+#
+# La machine est derriere le NAT partage de Starlink : pas d'adresse publique, aucune redirection
+# de port possible. Le tunnel renverse la direction — c'est elle qui ouvre une connexion sortante
+# vers Cloudflare, et le trafic des commercants y redescend. Le certificat est celui de
+# Cloudflare : rien a installer sur les appareils, contrairement a l'autorite interne du Caddy.
+#
+# Un tunnel a lui, comme HotSpot : cloudflared.service est celui de tontinepro, et
+# cloudflared-hotspot.service celui de HotSpot. Ne pas les confondre, ni les fusionner — un
+# redemarrage de l'un couperait les autres.
+#
+# Il n'est pas redeploye a chaque push : ce qui change, c'est l'application derriere lui, pas le
+# chemin qui y mene. Le relais vise 127.0.0.1:9093, port publie par gestionstock-web.
+#
+# Installation (demande sudo) :
+#   cp deploy/cloudflared-gestionstock.yml ~/.cloudflared/gestionstock-config.yml
+#   pkill -f "gestionstock-config.yml"
+#   sudo cp deploy/cloudflared-gestionstock.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now cloudflared-gestionstock
+
+[Unit]
+Description=Tunnel Cloudflare GestionStock (stock.tontinepro.uk)
+Documentation=https://github.com/poudjoum/GestionStock_V2
+# Demarrer apres Docker evite une fenetre de 502 au demarrage. Ce n'est qu'un confort,
+# cloudflared reessayant a chaque requete.
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=jumpy
+Group=jumpy
+# Les identifiants du tunnel vivent dans /home/jumpy/.cloudflared : cloudflared les retrouve par
+# $HOME, que systemd renseigne a partir de User=.
+#
+# `--no-autoupdate` : une mise a jour qui se declenche seule, sur une machine qui porte la caisse
+# de plusieurs commerces, se decide et ne se subit pas.
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate --config /home/jumpy/.cloudflared/gestionstock-config.yml tunnel run gestionstock
+
+# Restart=always et non on-failure : cloudflared sait s'arreter proprement quand il perd toutes ses
+# connexions, et un arret propre laisserait alors les caisses injoignables sans que rien ne le
+# signale.
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

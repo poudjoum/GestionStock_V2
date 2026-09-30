@@ -1236,6 +1236,73 @@ installer sur les appareils. Attention : la machine est derriere le NAT de Starl
 validation par le port 80 n'y arrivera pas — il faudra une validation par DNS, donc un fournisseur
 dont l'API est accessible, et une image de Caddy compilee avec le greffon correspondant.
 
+
+### Ouvrir l'application a des clients
+
+La machine est derriere le **NAT partage de Starlink** : elle n'a pas d'adresse publique a elle, et
+aucune redirection de port n'est possible. Personne ne peut initier une connexion vers elle — c'est
+deja ce qui empechait GitHub de la joindre.
+
+Un **tunnel** renverse la direction. C'est la machine qui ouvre une connexion sortante vers
+Cloudflare, et le trafic des clients y redescend. Aucun port ouvert, aucune adresse publique a
+louer, et le certificat est celui de Cloudflare : rien a installer sur les appareils des
+commercants, contrairement a l'autorite interne du reseau local.
+
+L'application est publiee sur **https://stock.tontinepro.uk**, par un tunnel nomme `gestionstock`,
+sur le meme modele que ceux de tontinepro et de HotSpot : `cloudflared` sur l'hote, une
+configuration par tunnel dans `~/.cloudflared/`, une unite systemd par tunnel.
+
+| Tunnel | Configuration | Unite systemd |
+|---|---|---|
+| `tontinepro` | `/etc/cloudflared/config.yml` | `cloudflared.service` |
+| `hotspot` | `~/.cloudflared/hotspot-config.yml` | `cloudflared-hotspot.service` |
+| `gestionstock` | `~/.cloudflared/gestionstock-config.yml` | `cloudflared-gestionstock.service` |
+
+Le relais vise `http://127.0.0.1:9093`, le nginx du front. Il est joint en clair, et ce n'est pas
+une negligence : ce trafic ne quitte pas la machine. Le chiffrement public est assure par
+Cloudflare jusqu'au navigateur.
+
+**Installer l'unite** — une fois, et elle n'est pas redeployee ensuite :
+
+```bash
+cd ~/apps/gestionstock/source
+cp deploy/cloudflared-gestionstock.yml ~/.cloudflared/gestionstock-config.yml
+pkill -f "gestionstock-config.yml"          # le processus detache lance a la creation
+sudo cp deploy/cloudflared-gestionstock.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now cloudflared-gestionstock
+```
+
+Le tunnel est volontairement hors de la pile de l'application. Un tunnel qui se couperait a chaque
+push deconnecterait les caisses de tous les clients pendant la reconstruction, et pour rien : ce
+qui change, c'est l'application derriere lui, pas le chemin qui y mene.
+
+**Piege a la creation d'un tunnel sur ce serveur.** `~/.cloudflared/config.yml` porte
+`tunnel: tontinepro`, et `cloudflared tunnel route dns <tunnel> <nom>` le lit en priorite sur le
+nom passe en argument : le CNAME part alors vers le tunnel tontinepro, qui repond 404. Toujours
+passer la configuration du nouveau tunnel :
+
+```bash
+cloudflared --config ~/.cloudflared/<projet>-config.yml tunnel route dns --overwrite-dns <tunnel> <nom>
+```
+
+**Dans le `.env` :**
+
+```bash
+ADRESSE_PUBLIQUE=https://stock.tontinepro.uk
+```
+
+`ADRESSE_PUBLIQUE` figure dans le courriel d'acces envoye au gerant a l'inscription de son
+commerce : sans elle, il recoit un identifiant et un mot de passe sans savoir ou les presenter.
+
+**Ce qu'il reste a decider avant d'accepter un client qui paie**, et qui n'est pas resolu ici :
+
+La **disponibilite**. La caisse de vos clients depend desormais de votre electricite, de votre
+liaison et de cette machine. Une coupure chez vous arrete leur commerce.
+
+Les **sauvegardes**. La base ne contient plus vos donnees mais les leurs, et rien ne les sauvegarde
+aujourd'hui.
+
 Ce que fait le serveur se lit dans son journal :
 
 ```bash
