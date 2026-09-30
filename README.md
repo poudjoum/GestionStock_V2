@@ -1300,8 +1300,9 @@ commerce : sans elle, il recoit un identifiant et un mot de passe sans savoir ou
 La **disponibilite**. La caisse de vos clients depend desormais de votre electricite, de votre
 liaison et de cette machine. Une coupure chez vous arrete leur commerce.
 
-Les **sauvegardes** quittent-elles la machine ? Elles sont faites chaque jour (ci-dessous), mais
-sur le disque meme qu'elles protegent.
+Les **sauvegardes** ne quittent pas les lieux. Elles sont faites chaque jour et recopiees sur le
+poste de developpement (ci-dessous), mais un incendie ou un cambriolage emporterait les deux
+machines ensemble.
 
 ### Sauvegardes
 
@@ -1365,6 +1366,41 @@ docker stop gestionstock-caddy
 docker run --rm -v gestionstock-caddy-data:/donnees -v "$PWD/sauvegardes:/s:ro" alpine:3 \
     sh -c 'rm -rf /donnees/* && tar xzf /s/caddy-AAAAMMJJ-HHMMSS.tar.gz -C /donnees'
 docker start gestionstock-caddy
+```
+
+#### La copie hors du serveur
+
+Une sauvegarde qui reste sur le serveur ne protege pas de la panne de son disque. Le poste Windows
+de developpement va la chercher, par SSH : `deploy/copier-sauvegardes.ps1`, dans
+`D:\Sauvegardes\GestionStock`. C'est lui qui tire, et non le serveur qui depose : le serveur n'a
+ainsi aucun acces au poste.
+
+- **Chaque fichier est verifie par son empreinte SHA-256**, calculee des deux cotes. Une copie
+  tronquee par une coupure est recopiee au passage suivant.
+- **90 jours de quotidiennes** sur le poste, contre 30 sur le serveur, et le 1er du mois garde
+  sans limite. C'est la qu'on vient chercher ce qui a ete perdu depuis longtemps.
+- Le dossier n'est lisible que par le compte, SYSTEM et les administrateurs, pour la meme raison
+  que sur le serveur : la cle de l'autorite du Caddy.
+
+Tache planifiee **« Sauvegardes GestionStock »**, chaque jour a 10 h et a chaque ouverture de
+session, avec rattrapage si le poste etait eteint. Son **resultat de la derniere execution**, dans
+le Planificateur de taches, dit tout :
+
+| Resultat | Sens |
+|---|---|
+| `0` | copies a jour |
+| `1` | serveur injoignable, ou une copie n'a pas pu etre faite intacte |
+| `2` | copies a jour, mais la derniere sauvegarde du serveur a plus de deux jours : `sauvegarder.sh` ne tourne plus |
+
+Le detail est dans `D:\Sauvegardes\GestionStock\journal.log`.
+
+Pour la recreer sur un autre poste (PowerShell, sans droits d'administrateur) :
+
+```powershell
+$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File <depot>\deploy\copier-sauvegardes.ps1'
+$session = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME; $session.Delay = 'PT5M'
+$reglages = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 30)
+Register-ScheduledTask -TaskName 'Sauvegardes GestionStock' -Action $action -Trigger (New-ScheduledTaskTrigger -Daily -At 10:00), $session -Settings $reglages
 ```
 
 Ce que fait le serveur se lit dans son journal :
