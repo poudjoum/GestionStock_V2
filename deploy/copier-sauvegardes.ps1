@@ -18,13 +18,23 @@
 #   1  le serveur est injoignable, ou une copie a echoue
 #   2  les copies sont a jour, mais la derniere sauvegarde du serveur a plus de deux jours :
 #      c'est sauvegarder.sh qui ne tourne plus, et il faut aller voir son journal.
+#   3  les copies locales sont faites, mais l'envoi vers Google Drive a echoue.
+#
+# Puis tout est renvoye sur Google Drive, chiffre par rclone avant de partir (remote « crypt ») :
+# ce poste et le serveur sont dans les memes murs, et un incendie ou un cambriolage emporterait
+# les deux. Chiffre, parce que ces fichiers contiennent les donnees de chaque commerce inscrit et
+# la cle privee de l'autorite du magasin ; Google ne voit passer que des noms et des contenus
+# illisibles. Les cles sont dans la configuration de rclone de ce poste, et doivent aussi etre
+# rangees ailleurs — voir le README.
 
 param(
     [string]$Serveur = 'jumpy@192.168.1.100',
     [string]$Distant = 'apps/gestionstock/sauvegardes',
     [string]$Local = 'D:\Sauvegardes\GestionStock',
     # Les quotidiennes au-dela de ce delai sont purgees ; celles du 1er du mois sont gardees.
-    [int]$RetentionJours = 90
+    [int]$RetentionJours = 90,
+    # Le remote rclone chiffre ; vide pour ne pas envoyer vers Google Drive.
+    [string]$Drive = 'gdrive-chiffre:'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -96,6 +106,42 @@ $derniere = $distants | Where-Object { $_.Nom -match '^gestionstock-(\d{8})-' } 
     ForEach-Object { [datetime]::ParseExact(($_.Nom -replace '^gestionstock-(\d{8})-.*', '$1'), 'yyyyMMdd', $null) } |
     Sort-Object -Descending | Select-Object -First 1
 
+# L'envoi vers Google Drive. `copy` et non `sync` : un dossier local vide par accident ferait
+# sinon effacer les copies distantes, c'est-a-dire les seules restantes. La purge distante est a
+# part, et suit la meme regle que la locale : les quotidiennes au-dela de $RetentionJours jours,
+# jamais celles du 1er du mois (nom en AAAAMM01).
+#
+# Seules les sauvegardes partent, par liste d'inclusion : ni le journal, ni surtout le fichier des
+# cles, qui s'il etait envoye rendrait le chiffrement inutile.
+$driveEchoue = $false
+if ($Drive) {
+    $rclone = (Get-Command rclone.exe -ErrorAction SilentlyContinue).Source
+    if (-not $rclone) {
+        $rclone = (Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Rclone.Rclone*\rclone-*\rclone.exe" -ErrorAction SilentlyContinue |
+            Select-Object -First 1).FullName
+    }
+    if (-not $rclone) {
+        Journal "ERREUR : rclone est introuvable, rien n'est envoye vers Google Drive. « winget install Rclone.Rclone »."
+        $driveEchoue = $true
+    } else {
+        # rclone ecrit son compte rendu sur stderr. Sous PowerShell 5.1, rediriger stderr avec
+        # « Stop » transforme chaque ligne en erreur fatale : c'est son code de sortie qui juge.
+        $ErrorActionPreference = 'Continue'
+        $filtres = @('--include', 'gestionstock-*.dump', '--include', 'caddy-*.tar.gz')
+        $sortie = & $rclone copy $Local $Drive @filtres --stats-one-line -v 2>&1 | Out-String
+        if ($LASTEXITCODE -ne 0) {
+            Journal "  ERREUR : l'envoi vers Google Drive a echoue (rclone $LASTEXITCODE)."
+            ($sortie -split "`r?`n" | Where-Object { $_ -match 'ERROR|Failed' } | Select-Object -First 3) |
+                ForEach-Object { Journal "    $_" }
+            $driveEchoue = $true
+        } else {
+            $envoyes = ([regex]::Matches($sortie, ': Copied \(new\)')).Count
+            & $rclone delete $Drive @filtres --exclude '*-??????01-*' --min-age "${RetentionJours}d" 2>&1 | Out-Null
+            Journal "  Google Drive : $envoyes fichier(s) envoye(s), chiffres."
+        }
+    }
+}
+
 if ($echecs -gt 0) {
     Journal "Termine avec $echecs echec(s) : $copies copie(s)."
     exit 1
@@ -103,6 +149,10 @@ if ($echecs -gt 0) {
 if (-not $derniere -or $derniere -lt (Get-Date).Date.AddDays(-2)) {
     Journal "ATTENTION : la derniere sauvegarde du serveur date du $('{0:dd/MM/yyyy}' -f $derniere). sauvegarder.sh ne tourne plus : voir ~/$Distant/journal.log."
     exit 2
+}
+if ($driveEchoue) {
+    Journal "Copies locales a jour, mais Google Drive n'a pas ete mis a jour."
+    exit 3
 }
 Journal "A jour : $copies nouvelle(s) copie(s), derniere sauvegarde du $('{0:dd/MM/yyyy}' -f $derniere)."
 exit 0

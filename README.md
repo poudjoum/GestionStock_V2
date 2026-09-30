@@ -1300,9 +1300,8 @@ commerce : sans elle, il recoit un identifiant et un mot de passe sans savoir ou
 La **disponibilite**. La caisse de vos clients depend desormais de votre electricite, de votre
 liaison et de cette machine. Une coupure chez vous arrete leur commerce.
 
-Les **sauvegardes** ne quittent pas les lieux. Elles sont faites chaque jour et recopiees sur le
-poste de developpement (ci-dessous), mais un incendie ou un cambriolage emporterait les deux
-machines ensemble.
+Les **sauvegardes** sont faites chaque jour, recopiees sur le poste de developpement et envoyees
+chiffrees sur Google Drive (ci-dessous).
 
 ### Sauvegardes
 
@@ -1391,8 +1390,50 @@ le Planificateur de taches, dit tout :
 | `0` | copies a jour |
 | `1` | serveur injoignable, ou une copie n'a pas pu etre faite intacte |
 | `2` | copies a jour, mais la derniere sauvegarde du serveur a plus de deux jours : `sauvegarder.sh` ne tourne plus |
+| `3` | copies locales a jour, mais l'envoi vers Google Drive a echoue |
 
 Le detail est dans `D:\Sauvegardes\GestionStock\journal.log`.
+
+#### Google Drive
+
+Le poste et le serveur sont dans les memes murs : un incendie ou un cambriolage emporterait les
+deux. Le meme script renvoie donc chaque sauvegarde sur Google Drive, dans
+`GestionStock-sauvegardes`, par rclone.
+
+**Chiffree avant de partir**, par un remote rclone de type `crypt` (`gdrive-chiffre:`, pose sur
+`gdrive:`). Ces fichiers contiennent les donnees de chaque commerce inscrit et la cle privee de
+l'autorite du magasin : Google ne voit que des noms et des contenus illisibles. Seules les
+sauvegardes partent, par liste d'inclusion — ni le journal, ni les cles.
+
+- **`copy` et non `sync`** : un dossier local vide par accident ferait sinon effacer les copies
+  distantes, les seules restantes a ce moment-la. La purge distante est a part, et suit la regle
+  locale : 90 jours de quotidiennes, le 1er du mois garde.
+- **Acces limite** (`scope=drive.file`) : rclone ne voit sur le Drive que ce qu'il y a lui-meme
+  depose.
+
+**Les cles de chiffrement sont la seule facon de relire ces copies.** Elles sont dans
+`%APPDATA%\rclone\rclone.conf`, sur ce poste — celui-la meme dont la perte rendrait Drive
+necessaire. Elles doivent donc exister ailleurs : un gestionnaire de mots de passe, ou une feuille
+imprimee rangee hors du magasin. Sans elles, les copies sur Drive ne sont que du bruit.
+
+Relire depuis une autre machine :
+
+```bash
+rclone config create gdrive drive scope=drive      # drive, et non drive.file : ce rclone-la
+                                                   # doit voir les fichiers deposes par l'autre
+rclone config create gdrive-chiffre crypt remote=gdrive:GestionStock-sauvegardes \
+    filename_encryption=standard directory_name_encryption=true password=<cle 1> password2=<cle 2>
+rclone copy gdrive-chiffre: ./restauration
+```
+
+**L'identifiant d'application Google partage par rclone est en cours de retrait**, et cessera de
+fonctionner dans le courant de 2026. Le jour ou il tombe, la tache repond `3`. Le remplacer par
+un identifiant a soi (https://rclone.org/drive/#making-your-own-client-id), puis :
+
+```powershell
+rclone config update gdrive client_id=<id> client_secret=<secret> --drive-scope drive.file
+rclone config reconnect gdrive:
+```
 
 Pour la recreer sur un autre poste (PowerShell, sans droits d'administrateur) :
 
