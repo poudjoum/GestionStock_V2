@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confidentialité — GestionStock</title>
+<style>
+  :root { color-scheme: light dark; --texte: #1d1d1f; --doux: #5f6368; --fond: #fafafa; --trait: #e3e3e3; }
+  @media (prefers-color-scheme: dark) { :root { --texte: #ececec; --doux: #a0a0a0; --fond: #161616; --trait: #2e2e2e; } }
+  body { margin: 0; background: var(--fond); color: var(--texte);
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 42rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+  h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 .25rem; }
+  h2 { font-size: 1.1rem; margin: 2.25rem 0 .5rem; padding-top: 1.25rem; border-top: 1px solid var(--trait); }
+  .date { color: var(--doux); margin: 0 0 2rem; }
+  code { font-size: .92em; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Règles de confidentialité</h1>
+  <p class="date">GestionStock et l'application « Sauvegardes GestionStock » — 30 septembre 2026</p>
+
+  <p>GestionStock est une application de caisse et de gestion de stock, accessible sur
+  <a href="https://stock.tontinepro.uk/">stock.tontinepro.uk</a>. Cette page décrit les données
+  qu'elle traite, et en particulier l'usage qui est fait de Google Drive.</p>
+
+  <h2>L'accès à Google Drive</h2>
+  <p>L'application « Sauvegardes GestionStock » sert à une seule chose : déposer les sauvegardes
+  de la base de GestionStock dans le Google Drive de son exploitant, pour qu'elles survivent à la
+  perte du serveur.</p>
+  <ul>
+    <li><strong>Accès limité.</strong> Elle ne demande que l'autorisation
+      <code>drive.file</code> : elle ne peut voir et modifier que les fichiers qu'elle a elle-même
+      créés. Le reste du Drive lui est invisible.</li>
+    <li><strong>Chiffrement avant l'envoi.</strong> Les sauvegardes sont chiffrées sur la machine
+      de l'exploitant avant de partir. Google ne reçoit que des fichiers illisibles, aux noms
+      illisibles.</li>
+    <li><strong>Aucun partage.</strong> Rien n'est transmis à un tiers, vendu, ni utilisé à des fins
+      publicitaires ou d'analyse. Les données obtenues par les API Google ne servent qu'à
+      déposer, relire et purger ces sauvegardes.</li>
+    <li><strong>Révocation.</strong> L'accès se retire à tout moment depuis
+      <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+  </ul>
+
+  <h2>Les données de l'application de caisse</h2>
+  <p>Chaque commerce inscrit y enregistre ses articles, ses ventes, ses clients et ses factures.
+  Ces données appartiennent au commerce : elles ne sont ni vendues, ni partagées, ni exploitées à
+  d'autres fins que le fonctionnement de l'application. Elles sont cloisonnées par commerce, et
+  sauvegardées chaque jour sous forme chiffrée.</p>
+
+  <h2>Contact</h2>
+  <p>Pour toute question sur ces données, ou pour en demander la suppression : l'adresse
+  d'assistance indiquée sur l'écran d'autorisation Google de l'application, ou le gérant qui vous
+  a ouvert votre accès.</p>
+</main>
+</body>
+</html>
