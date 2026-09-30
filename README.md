@@ -1300,8 +1300,72 @@ commerce : sans elle, il recoit un identifiant et un mot de passe sans savoir ou
 La **disponibilite**. La caisse de vos clients depend desormais de votre electricite, de votre
 liaison et de cette machine. Une coupure chez vous arrete leur commerce.
 
-Les **sauvegardes**. La base ne contient plus vos donnees mais les leurs, et rien ne les sauvegarde
-aujourd'hui.
+Les **sauvegardes** quittent-elles la machine ? Elles sont faites chaque jour (ci-dessous), mais
+sur le disque meme qu'elles protegent.
+
+### Sauvegardes
+
+La base ne contient plus seulement les donnees du magasin, mais celles de chaque commerce inscrit.
+`deploy/sauvegarder.sh` en fait une copie par jour, dans `~/apps/gestionstock/sauvegardes/` :
+
+| Fichier | Contenu |
+|---|---|
+| `gestionstock-AAAAMMJJ-HHMMSS.dump` | la base, format personnalise de `pg_dump` (deja compresse) |
+| `caddy-AAAAMMJJ-HHMMSS.tar.gz` | l'autorite de certification du reseau local — sa cle privee comprise |
+| `journal.log` | une ligne par sauvegarde, et la raison de chaque echec |
+
+**Chaque sauvegarde est restauree avant d'etre gardee.** Le dump est recharge dans une base jetable
+du meme conteneur, et chaque table doit y retrouver exactement autant de lignes que dans la vraie.
+Une sauvegarde qui ne se restaure pas est ecartee et l'echec ecrit au journal : on ne l'apprend
+pas le jour ou on en a besoin.
+
+**Elle se lance chaque heure, et ne travaille qu'une fois par jour.** Les autres reveils trouvent
+la sauvegarde du jour et repartent sans rien ecrire. Une crontab a heure fixe raterait la nuit ou
+la machine etait eteinte — le journal de livraison, sauvegarde a 2 h, en a trois en septembre. Ici
+la sauvegarde manquee se fait au premier reveil apres le retour du courant.
+
+Trente jours de quotidiennes ; celle du 1er de chaque mois est gardee un an. Le dossier est en
+`700` et les fichiers en `600` : l'archive du Caddy permettrait de se faire passer pour le serveur
+aupres de chaque appareil du magasin.
+
+**L'installation** — dans la crontab de `jumpy`, sans `sudo` :
+
+```bash
+( crontab -l; echo '17 * * * * $HOME/apps/gestionstock/source/deploy/sauvegarder.sh >> $HOME/apps/gestionstock/sauvegardes/journal.log 2>&1' ) | crontab -
+```
+
+**Sauvegarder tout de suite**, avant une operation risquee (une migration a la main, une remise a
+zero) :
+
+```bash
+~/apps/gestionstock/source/deploy/sauvegarder.sh --maintenant
+```
+
+**Restaurer.** Arreter l'API pour que personne n'ecrive pendant l'operation, recharger, relancer :
+
+```bash
+cd ~/apps/gestionstock
+SAUVEGARDE=sauvegardes/gestionstock-AAAAMMJJ-HHMMSS.dump
+
+source/deploy/sauvegarder.sh --maintenant          # l'etat actuel, au cas ou
+docker stop gestionstock-app
+docker exec gestionstock-postgres dropdb -U gestionstock gestionstock
+docker exec gestionstock-postgres createdb -U gestionstock gestionstock
+docker exec -i gestionstock-postgres pg_restore -U gestionstock -d gestionstock --no-owner --exit-on-error < "$SAUVEGARDE"
+docker start gestionstock-app
+```
+
+Flyway retrouve au demarrage la version du schema enregistree dans la sauvegarde et applique les
+migrations plus recentes, s'il y en a.
+
+L'autorite du Caddy ne se restaure que si le volume a ete perdu :
+
+```bash
+docker stop gestionstock-caddy
+docker run --rm -v gestionstock-caddy-data:/donnees -v "$PWD/sauvegardes:/s:ro" alpine:3 \
+    sh -c 'rm -rf /donnees/* && tar xzf /s/caddy-AAAAMMJJ-HHMMSS.tar.gz -C /donnees'
+docker start gestionstock-caddy
+```
 
 Ce que fait le serveur se lit dans son journal :
 
