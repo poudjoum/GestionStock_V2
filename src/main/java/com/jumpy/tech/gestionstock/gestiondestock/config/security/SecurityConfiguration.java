@@ -150,6 +150,11 @@ public class SecurityConfiguration {
                         // compte encore aucune entreprise.
                         .requestMatchers(HttpMethod.POST, API + "/entreprises/inscription").permitAll()
 
+                        // Le ticket d'un client, retrouve par le code de son QR : le client n'a pas
+                        // de compte. Le code est tire au hasard sur soixante bits — le connaitre,
+                        // c'est avoir le ticket en main — et la reponse ne dit rien du client.
+                        .requestMatchers(HttpMethod.GET, API + "/tickets/*").permitAll()
+
                         // Chacun lit son propre compte et change son propre mot de passe : les
                         // seuls points de /users ouverts a tout compte. Ces regles viennent avant
                         // celle des comptes, qui sinon les reserverait a l'administration.
@@ -245,6 +250,13 @@ public class SecurityConfiguration {
                         // cette ligne, la regle PATCH generique reserverait la lecture d'une
                         // cloche a trois roles sur six.
                         .requestMatchers(HttpMethod.PATCH, API + "/notifications/**").authenticated()
+                        // De meme pour abonner ou desabonner son appareil aux alertes. Sans ces
+                        // deux lignes, les regles generiques reservaient l'abonnement a trois
+                        // roles et le desabonnement a deux : le magasinier qui se deconnectait
+                        // d'une caisse partagee ne pouvait pas en retirer l'appareil, qui
+                        // continuait de recevoir ses alertes.
+                        .requestMatchers(HttpMethod.POST, API + "/notifications/push/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, API + "/notifications/push/**").authenticated()
 
                         // Renoncer a un reliquat n'est pas un constat de magasin mais une
                         // decision : on cesse d'attendre un fournisseur, ou de devoir a un

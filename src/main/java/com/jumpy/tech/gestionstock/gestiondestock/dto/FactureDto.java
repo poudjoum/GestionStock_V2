@@ -19,6 +19,8 @@ public class FactureDto {
     private Instant dateEmission;
     private Long idVente;
     private String codeVente;
+    /** Le code du QR imprime sur le ticket : c'est par lui que le client retrouve son achat. */
+    private String codeTicket;
     private BigDecimal totalHt;
     private BigDecimal totalTva;
     private BigDecimal totalTtc;
@@ -54,6 +56,7 @@ public class FactureDto {
                 .dateEmission(facture.getDateEmission())
                 .idVente(facture.getVente() == null ? null : facture.getVente().getId())
                 .codeVente(facture.getVente() == null ? null : facture.getVente().getCode())
+                .codeTicket(facture.getVente() == null ? null : facture.getVente().getCodeTicket())
                 .totalHt(facture.getTotalHt())
                 .totalTva(facture.getTotalTva())
                 .totalTtc(facture.getTotalTtc())

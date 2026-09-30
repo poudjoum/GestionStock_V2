@@ -11,6 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.test.web.servlet.ResultMatcher;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -119,5 +122,62 @@ class SecuriteApiTest extends AbstractIntegrationTest {
                         .content("{\"username\":\"intrus\",\"email\":\"intrus@exemple.test\","
                                 + "\"password\":\"MotDePasse123!\",\"role\":[\"admin\"]}"))
                 .andExpect(status().isForbidden());
+    }
+
+    // --- Les alertes sur l'appareil -----------------------------------------------------------
+    // Chacun abonne et desabonne son propre appareil. Les regles generiques reservaient l'un a
+    // trois roles et l'autre a deux : le magasinier qui quittait une caisse partagee ne pouvait
+    // pas en retirer l'appareil, qui continuait de recevoir ses alertes. Ce que ces tests
+    // verifient, c'est que la requete atteint le controleur — tout sauf un 403.
+
+    @Test
+    @WithMockUser(roles = "CAISSIER")
+    void le_caissier_peut_abonner_son_appareil() throws Exception {
+        mockMvc.perform(post(API + "/notifications/push/abonnements")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"endpoint\":\"https://fcm.googleapis.com/fcm/send/x\"}"))
+                .andExpect(pasRefuse());
+    }
+
+    @Test
+    @WithMockUser(roles = "MAGASINIER")
+    void le_magasinier_peut_desabonner_son_appareil() throws Exception {
+        mockMvc.perform(delete(API + "/notifications/push/abonnements")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"endpoint\":\"https://fcm.googleapis.com/fcm/send/x\"}"))
+                .andExpect(pasRefuse());
+    }
+
+    @Test
+    @WithMockUser(roles = "COMPTABLE")
+    void le_comptable_peut_desabonner_son_appareil() throws Exception {
+        mockMvc.perform(delete(API + "/notifications/push/abonnements")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"endpoint\":\"https://fcm.googleapis.com/fcm/send/x\"}"))
+                .andExpect(pasRefuse());
+    }
+
+    // --- Le ticket d'un client ----------------------------------------------------------------
+
+    @Test
+    void le_ticket_se_consulte_sans_compte() throws Exception {
+        // Le client qui scanne son ticket n'a pas de compte. Un code inconnu rend 404 — le
+        // controleur a repondu —, et non 401.
+        mockMvc.perform(get(API + "/tickets/ZZZZZZZZZZZZ"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void le_reste_de_l_api_reste_ferme_sans_compte() throws Exception {
+        // L'ouverture du ticket ne doit pas s'etendre a ce qui l'entoure.
+        mockMvc.perform(get(API + "/tickets"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    private static ResultMatcher pasRefuse() {
+        return resultat -> org.assertj.core.api.Assertions
+                .assertThat(resultat.getResponse().getStatus())
+                .as("la requete doit atteindre le controleur")
+                .isNotIn(401, 403);
     }
 }

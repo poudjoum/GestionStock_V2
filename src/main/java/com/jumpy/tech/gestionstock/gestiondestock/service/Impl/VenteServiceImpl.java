@@ -15,6 +15,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneVente;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Vente;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
+import com.jumpy.tech.gestionstock.gestiondestock.fidelite.CodeTicket;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
@@ -195,6 +196,7 @@ public class VenteServiceImpl implements VenteService {
         }
 
         List<String> articleErrors = new ArrayList<>();
+        Map<Long, Article> articlesCharges = new HashMap<>();
         for (LigneVenteDto ligne : lignes) {
             if (ligne.getArticle() == null || ligne.getArticle().getId() == null) {
                 articleErrors.add("Impossible d'enregistrer une vente sans article");
@@ -204,6 +206,8 @@ public class VenteServiceImpl implements VenteService {
             if (article.isEmpty()) {
                 articleErrors.add("L'article avec l'identifiant " + ligne.getArticle().getId()
                         + " n'existe pas");
+            } else {
+                articlesCharges.put(article.get().getId(), article.get());
             }
         }
         if (!articleErrors.isEmpty()) {
@@ -224,6 +228,7 @@ public class VenteServiceImpl implements VenteService {
         // Une vente directe a lieu maintenant ; une vente synchronisee porte la date qu'elle
         // avait sur le poste, et la date envoyee ne fait donc foi que dans ce second cas.
         aEnregistrer.setDatevente(quand == null ? Instant.now() : quand);
+        aEnregistrer.setCodeTicket(codeDeTicket(dto.getCodeTicket()));
         // Le client est facultatif : la vente de comptoir anonyme reste le cas ordinaire.
         if (dto.getClient() != null && dto.getClient().getId() != null) {
             aEnregistrer.setClient(client(dto.getClient().getId()));
@@ -246,12 +251,35 @@ public class VenteServiceImpl implements VenteService {
 
         for (LigneVenteDto ligneDto : lignes) {
             LigneVente ligne = LigneVenteDto.toEntity(ligneDto);
+            // L'article charge, et non celui que construit le DTO, qui ne porte que son
+            // identifiant. Quand la facture est emise dans la meme transaction — une vente
+            // synchronisee avec son encaissement —, elle lit la ligne telle qu'elle est en memoire :
+            // avec l'article du DTO, elle figeait une designation et un code vides, et perdait le
+            // taux de TVA propre a l'article.
+            ligne.setArticles(articlesCharges.get(ligneDto.getArticle().getId()));
             ligne.setVente(savedVente);
             ligneVenteRepository.save(ligne);
             sortirDuStock(ligneDto, savedVente, quand);
         }
 
         return VenteDto.fromEntity(savedVente);
+    }
+
+    /**
+     * Le code de ticket de la vente : celui du poste de vente, ou un neuf.
+     *
+     * Celui du poste est garde tel quel des qu'il a la bonne forme — il est deja imprime sur le
+     * papier du client, hors ligne peut-etre. Mal forme, il est refuse plutot que remplace : le
+     * ticket imprime porterait un code que la base ne connaitrait pas.
+     */
+    private static String codeDeTicket(String propose) {
+        if (!StringUtils.hasText(propose)) {
+            return CodeTicket.nouveau();
+        }
+        return CodeTicket.lire(propose).orElseThrow(() -> new InvalidEntityException(
+                "Le code de ticket n'a pas la forme attendue : " + propose,
+                ErrorCodes.VENTE_NOT_VALID,
+                List.of("Douze caractères parmi " + CodeTicket.ALPHABET)));
     }
 
     /**
@@ -422,6 +450,8 @@ public class VenteServiceImpl implements VenteService {
         // Le client de la commande devient celui de la vente : la lecture n'a ensuite qu'un seul
         // chemin a suivre, que la vente vienne du comptoir ou d'une commande.
         vente.setClient(commande.getClient());
+        // Son ticket rapporte des points comme un autre : il porte donc son code.
+        vente.setCodeTicket(CodeTicket.nouveau());
         Vente enregistree = venteRepository.save(vente);
 
         for (LigneCmndeClient ligneCommande : lignesCommande) {

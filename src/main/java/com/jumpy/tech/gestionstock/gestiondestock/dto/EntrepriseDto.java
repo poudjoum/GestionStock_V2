@@ -50,6 +50,23 @@ public class EntrepriseDto {
     /** Taux applique par defaut, en pourcentage. 19,25 au Cameroun. */
     private BigDecimal tauxTva;
 
+    /** Si les tickets rapportent des points de fidelite. Vrai par defaut. */
+    private Boolean fideliteActive;
+
+    /** Ce qu'il faut payer, TTC et sur un seul ticket, pour un point. 10 000 par defaut. */
+    private BigDecimal montantParPoint;
+
+    /**
+     * Ou le client consulte son ticket : l'adresse que porte le QR. En lecture seule.
+     *
+     * Le front ne peut pas la deviner : ouvert sur le reseau du magasin, il ne connait que
+     * `http://192.168.1.100:9093`, une adresse qui ne mene nulle part depuis le telephone d'un
+     * client. C'est `ADRESSE_PUBLIQUE`, lue par le serveur.
+     */
+    private String adresseTickets;
+
+    public static final BigDecimal MONTANT_PAR_POINT_PAR_DEFAUT = new BigDecimal("10000");
+
     @JsonIgnore
     private List<UserDto> user;
 
@@ -70,9 +87,16 @@ public class EntrepriseDto {
                 .logo(en.getLogo())
                 .assujettieTva(en.isAssujettieTva())
                 .tauxTva(en.getTauxTva())
+                .fideliteActive(en.isFideliteActive())
+                .montantParPoint(en.getMontantParPoint())
                 .build();
 
     }
+    /** Le montant pour un point, ou celui par defaut s'il manque ou n'est pas positif. */
+    public static BigDecimal montantParPoint(BigDecimal propose) {
+        return propose == null || propose.signum() <= 0 ? MONTANT_PAR_POINT_PAR_DEFAUT : propose;
+    }
+
     public static Entreprise toEntity(EntrepriseDto dto) {
         if(dto==null) {
             return null;
@@ -93,6 +117,8 @@ public class EntrepriseDto {
         // omission ne doit pas la faire passer pour exoneree.
         en.setAssujettieTva(dto.getAssujettieTva() == null || dto.getAssujettieTva());
         en.setTauxTva(dto.getTauxTva() == null ? TAUX_TVA_PAR_DEFAUT : dto.getTauxTva());
+        en.setFideliteActive(dto.getFideliteActive() == null || dto.getFideliteActive());
+        en.setMontantParPoint(montantParPoint(dto.getMontantParPoint()));
 
         return en;
     }

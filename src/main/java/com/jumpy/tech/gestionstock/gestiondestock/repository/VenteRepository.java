@@ -26,6 +26,8 @@ public interface VenteRepository extends JpaRepository<Vente,Long> {
      */
     Optional<Vente> findVenteByReferenceClient(String referenceClient);
 
+    Optional<Vente> findByCodeTicket(String codeTicket);
+
     /**
      * Le nombre de ventes et la date de la derniere, par entreprise.
      *

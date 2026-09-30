@@ -36,6 +36,15 @@ public class Vente extends AbstractEntity{
      */
     @Column(name="reference_client", length = 64)
     private String referenceClient;
+    /**
+     * Le code imprime sous le QR du ticket, qui mene le client a son achat.
+     *
+     * Distinct de `referenceClient` : celle-ci sert a rejouer un envoi sans vendre deux fois, et
+     * n'a rien a faire sur un papier qui circule. Douze caracteres de l'alphabet de Crockford,
+     * soixante bits tires au hasard.
+     */
+    @Column(name="code_ticket", length = 12)
+    private String codeTicket;
     @Column(name="commentaire")
     private String Commentaires;
     @Column(name="idEntreprise")

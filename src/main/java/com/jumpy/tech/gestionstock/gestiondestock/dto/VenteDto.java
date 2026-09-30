@@ -22,6 +22,11 @@ public class VenteDto {
      * synchronisation.
      */
     private String referenceClient;
+    /**
+     * Le code imprime sous le QR du ticket. Tire par le poste de vente — un ticket imprime hors
+     * ligne doit deja porter le sien — ou par le serveur quand la vente arrive sans.
+     */
+    private String codeTicket;
     private String Commentaires;
     private boolean annulee;
     /** A qui l'on vend, s'il est connu. Une vente de comptoir anonyme n'en a pas. */
@@ -57,6 +62,7 @@ public class VenteDto {
                 .code(vente.getCode())
                 .datevente(vente.getDatevente())
                 .referenceClient(vente.getReferenceClient())
+                .codeTicket(vente.getCodeTicket())
                 .Commentaires(vente.getCommentaires())
                 .annulee(vente.isAnnulee())
                 .client(ClientDto.fromEntity(vente.getClient()))

@@ -56,6 +56,12 @@ public class Entreprise extends AbstractEntity{
     /** Le taux applique par defaut aux articles qui n'en fixent pas un a eux. */
     @Column(name="taux_tva", nullable = false)
     private BigDecimal tauxTva;
+    /** Si les tickets de ce commerce rapportent des points de fidelite. */
+    @Column(name="fidelite_active", nullable = false)
+    private boolean fideliteActive = true;
+    /** Ce qu'il faut payer, TTC et sur un seul ticket, pour gagner un point. */
+    @Column(name="montant_par_point", nullable = false)
+    private BigDecimal montantParPoint = new BigDecimal("10000");
     /**
      * L'echeance de l'abonnement annuel. Nulle pour un commerce qui n'en a pas encore.
      *

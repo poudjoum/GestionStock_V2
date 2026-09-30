@@ -166,7 +166,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
                     "Ce compte n'est rattaché à aucune entreprise",
                     ErrorCodes.ENTREPRISE_NOT_FOUND);
         }
-        return findById(id);
+        return avecAdresseDesTickets(findById(id));
     }
 
     @Override
@@ -208,8 +208,28 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         entreprise.setTauxTva(dto.getTauxTva() == null
                 ? EntrepriseDto.TAUX_TVA_PAR_DEFAUT
                 : dto.getTauxTva());
+        // Absents du formulaire, les reglages de fidelite ne bougent pas : un ecran plus ancien
+        // qui ne les connait pas ne doit pas les remettre a zero en enregistrant l'adresse.
+        if (dto.getFideliteActive() != null) {
+            entreprise.setFideliteActive(dto.getFideliteActive());
+        }
+        if (dto.getMontantParPoint() != null) {
+            if (dto.getMontantParPoint().signum() <= 0) {
+                throw new InvalidEntityException("Le montant pour un point doit être positif",
+                        ErrorCodes.ENTREPRISE_NOT_VALID);
+            }
+            entreprise.setMontantParPoint(dto.getMontantParPoint());
+        }
 
-        return EntrepriseDto.fromEntity(entrepriseRepository.save(entreprise));
+        return avecAdresseDesTickets(EntrepriseDto.fromEntity(entrepriseRepository.save(entreprise)));
+    }
+
+    /** L'adresse ou se consultent les tickets, pour que le front la mette dans le QR. */
+    private EntrepriseDto avecAdresseDesTickets(EntrepriseDto entreprise) {
+        entreprise.setAdresseTickets(StringUtils.hasText(adressePublique)
+                ? adressePublique.replaceAll("/+$", "")
+                : null);
+        return entreprise;
     }
 
     @Override

@@ -319,6 +319,40 @@ class VenteSynchroniseeTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void la_facture_d_une_vente_synchronisee_porte_les_articles_et_leur_taux() {
+        // Un article au taux reduit : c'est le sien, et non celui du magasin, qui doit s'appliquer.
+        Long reduit = articleService.save(ArticleDto.builder()
+                .codeArticle("ART-" + UUID.randomUUID())
+                .designation("Lait en poudre")
+                .prixUnitaireHt(new BigDecimal("5000"))
+                .tauxTva(new BigDecimal("5.5"))
+                .category(categoryService.save(CategoryDto.builder()
+                        .codeCategorie("CAT-" + UUID.randomUUID()).designation("Épicerie").build()))
+                .build()).getId();
+        mvtStkService.entreeStock(MvtStkDto.builder()
+                .article(ArticleDto.builder().Id(reduit).build())
+                .quantite(new BigDecimal("10")).build());
+        VenteDto envoi = venteHorsLigne(UUID.randomUUID().toString(), ilYA(Duration.ofHours(1)), "2");
+        envoi.setLigneVente(List.of(LigneVenteDto.builder()
+                .article(ArticleDto.builder().Id(reduit).build())
+                .quantite(new BigDecimal("2"))
+                .prixUnitaire(new BigDecimal("5000"))
+                .build()));
+        envoi.setEncaissement(ReglementDto.builder()
+                .montant(new BigDecimal("10550")).mode(ModeReglement.ESPECES).build());
+
+        VenteDto vente = venteService.synchroniser(envoi);
+
+        // La facture est emise dans la transaction de la vente. Elle lisait alors l'article tel
+        // que le construit la requete — un identifiant, rien d'autre — et figeait des lignes sans
+        // designation, au taux du magasin au lieu de celui de l'article.
+        var ligne = factureService.findByVente(vente.getId()).getLignes().get(0);
+        assertThat(ligne.getDesignation()).isEqualTo("Lait en poudre");
+        assertThat(ligne.getCodeArticle()).isNotBlank();
+        assertThat(ligne.getTauxTva()).isEqualByComparingTo("5.5");
+    }
+
+    @Test
     void rejouer_une_vente_encaissee_n_encaisse_pas_deux_fois() {
         approvisionner("100");
         VenteDto envoi = venteEncaissee(UUID.randomUUID().toString(), ilYA(Duration.ofHours(2)), "10000");
