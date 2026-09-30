@@ -96,6 +96,18 @@ public class Envoi extends AbstractEntity {
         this.prochaineTentative = quand.plus(ATTENTE_INITIALE.multipliedBy(1L << (tentatives - 1)));
     }
 
+    /**
+     * Renonce sans attendre : reessayer ne changera rien.
+     *
+     * Un appareil desabonne repond « parti » au premier essai comme au sixieme ; le retenter une
+     * heure durant n'apprendrait rien.
+     */
+    public void abandonne(Instant quand, String raison) {
+        this.tentatives++;
+        this.derniereErreur = tronque(raison);
+        this.etat = EtatEnvoi.ABANDONNE;
+    }
+
     /** La colonne fait 500 caracteres ; une trace d'erreur en fait volontiers davantage. */
     private static String tronque(String erreur) {
         if (erreur == null) {

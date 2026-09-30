@@ -1,12 +1,15 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.NotificationApi;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.AbonnementPushDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.NotificationDto;
 import com.jumpy.tech.gestionstock.gestiondestock.service.NotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 public class NotificationController implements NotificationApi {
@@ -35,5 +38,24 @@ public class NotificationController implements NotificationApi {
     @Override
     public ResponseEntity<Integer> marquerToutesLues() {
         return ResponseEntity.ok(notificationService.marquerToutesLues());
+    }
+
+    @Override
+    public ResponseEntity<Map<String, String>> clePush() {
+        return notificationService.clePush()
+                .map(cle -> ResponseEntity.ok(Map.of("clePublique", cle)))
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @Override
+    public ResponseEntity<Void> abonnerCetAppareil(AbonnementPushDto abonnement, String appareil) {
+        notificationService.abonnerCetAppareil(abonnement, appareil);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> desabonnerCetAppareil(AbonnementPushDto abonnement) {
+        notificationService.desabonnerCetAppareil(abonnement == null ? null : abonnement.getEndpoint());
+        return ResponseEntity.noContent().build();
     }
 }

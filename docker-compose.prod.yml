@@ -68,6 +68,10 @@ services:
       FUSEAU_HORAIRE: ${FUSEAU_HORAIRE:-Africa/Douala}
       # L'adresse publique, pour le courriel d'acces envoye aux gerants.
       ADRESSE_PUBLIQUE: ${ADRESSE_PUBLIQUE:-}
+      # Web Push. Vides, les alertes ne partent pas sur les appareils — rien d'autre ne change.
+      VAPID_CLE_PUBLIQUE: ${VAPID_CLE_PUBLIQUE:-}
+      VAPID_CLE_PRIVEE: ${VAPID_CLE_PRIVEE:-}
+      VAPID_SUJET: ${VAPID_SUJET:-}
       FLICKR_API_KEY: ${FLICKR_API_KEY:-}
       FLICKR_API_SECRET: ${FLICKR_API_SECRET:-}
       FLICKR_APP_KEY: ${FLICKR_APP_KEY:-}

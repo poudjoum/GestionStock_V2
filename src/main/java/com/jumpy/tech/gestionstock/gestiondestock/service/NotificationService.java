@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service;
 
+import com.jumpy.tech.gestionstock.gestiondestock.dto.AbonnementPushDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.NotificationDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeNotification;
@@ -7,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Prevenir quelqu'un, et lui permettre de lire ce dont on l'a prevenu.
@@ -48,4 +50,19 @@ public interface NotificationService {
 
     /** Tout marquer lu d'un coup, et rendre combien l'ont ete. */
     int marquerToutesLues();
+
+    /** La cle VAPID publique, pour s'abonner. Vide : Web Push n'est pas configure ici. */
+    Optional<String> clePush();
+
+    /**
+     * Abonne cet appareil au compte connecte.
+     *
+     * Un appareil deja abonne — la meme adresse — change de proprietaire au lieu d'etre abonne
+     * deux fois : sur une caisse partagee, c'est le dernier compte connecte qui doit etre prevenu,
+     * et lui seul.
+     */
+    void abonnerCetAppareil(AbonnementPushDto abonnement, String appareil);
+
+    /** Desabonne cet appareil, s'il est au compte connecte. Sans effet sinon. */
+    void desabonnerCetAppareil(String adresse);
 }

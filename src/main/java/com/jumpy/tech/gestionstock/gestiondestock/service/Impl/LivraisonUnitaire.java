@@ -50,6 +50,11 @@ public class LivraisonUnitaire {
             }
             envoiRepository.save(envoi);
             return true;
+        } catch (EnvoiImpossible definitif) {
+            envoi.abandonne(Instant.now(), definitif.getMessage());
+            envoiRepository.save(envoi);
+            log.info("Envoi {} abandonne : {}", idEnvoi, definitif.getMessage());
+            return false;
         } catch (RuntimeException echec) {
             envoi.echoue(Instant.now(), echec.getMessage());
             envoiRepository.save(envoi);

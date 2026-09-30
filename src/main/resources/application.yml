@@ -96,6 +96,20 @@ app:
     # Entre deux passages de l'expediteur, en millisecondes. Une minute : un courriel n'est pas
     # une alarme, et interroger la file plus souvent ne ferait que du bruit en base.
     intervalleMs: ${NOTIFICATIONS_INTERVALLE_MS:60000}
+  # Web Push : prevenir un appareil, application fermee.
+  #
+  # Les deux cles vides, rien ne se passe : le front ne propose pas de s'abonner, et aucun envoi
+  # n'est mis en file. Elles se generent une fois (voir le README) et ne changent plus : changer
+  # de paire rend caducs tous les abonnements existants.
+  push:
+    clePublique: ${VAPID_CLE_PUBLIQUE:}
+    clePrivee: ${VAPID_CLE_PRIVEE:}
+    # Un moyen de joindre l'exploitant, `mailto:...` : les services push s'en servent pour
+    # prevenir avant de bloquer un serveur qui envoie mal.
+    sujet: ${VAPID_SUJET:}
+    # Dix secondes, et non la minute des courriels : une alerte de rupture est faite pour arriver
+    # pendant que le client est encore au comptoir.
+    intervalleMs: ${PUSH_INTERVALLE_MS:10000}
 
 #
 # L'amorcage du super-administrateur.

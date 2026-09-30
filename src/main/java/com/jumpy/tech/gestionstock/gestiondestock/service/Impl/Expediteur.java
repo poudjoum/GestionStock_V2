@@ -15,6 +15,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Ce qui vide la file : la livraison, separee de l'enregistrement.
@@ -37,6 +38,7 @@ public class Expediteur {
     private final EnvoiRepository envoiRepository;
     private final LivraisonUnitaire livraison;
     private final JavaMailSender mailSender;
+    private final ServicePush push;
     private final String hoteSmtp;
     private final String expediteur;
 
@@ -46,11 +48,13 @@ public class Expediteur {
     public Expediteur(EnvoiRepository envoiRepository,
                       LivraisonUnitaire livraison,
                       JavaMailSender mailSender,
+                      ServicePush push,
                       @Value("${spring.mail.host:}") String hoteSmtp,
                       @Value("${app.notifications.expediteur:}") String expediteur) {
         this.envoiRepository = envoiRepository;
         this.livraison = livraison;
         this.mailSender = mailSender;
+        this.push = push;
         this.hoteSmtp = hoteSmtp;
         this.expediteur = expediteur;
     }
@@ -67,8 +71,31 @@ public class Expediteur {
         traiterLaFile();
     }
 
-    /** Rend le nombre d'envois effectivement partis. */
+    /**
+     * Rend le nombre d'envois effectivement partis.
+     *
+     * Courriels et notifications push sont traites chacun de leur cote : un SMTP absent ne doit
+     * pas retenir les alertes, ni des cles VAPID absentes les factures.
+     */
     public int traiterLaFile() {
+        return traiterLesCourriels() + traiterLesPush();
+    }
+
+    /** Le passage propre aux notifications push, plus frequent que celui des courriels. */
+    @Scheduled(fixedDelayString = "${app.push.intervalleMs:10000}",
+            initialDelayString = "${app.push.intervalleMs:10000}")
+    public void passagePush() {
+        traiterLesPush();
+    }
+
+    public int traiterLesPush() {
+        if (!push.configure()) {
+            return 0;
+        }
+        return livrerLePaquet(CanalEnvoi.PUSH, push::livrer);
+    }
+
+    private int traiterLesCourriels() {
         if (!smtpConfigure()) {
             if (!absenceDeSmtpDejaSignalee) {
                 long enAttente = envoiRepository.countByEtat(EtatEnvoi.A_ENVOYER);
@@ -79,22 +106,25 @@ public class Expediteur {
             return 0;
         }
         absenceDeSmtpDejaSignalee = false;
+        return livrerLePaquet(CanalEnvoi.EMAIL, this::envoyer);
+    }
 
+    private int livrerLePaquet(CanalEnvoi canal, Consumer<Envoi> livreur) {
         List<Envoi> aTraiter = envoiRepository
                 .findAllByCanalAndEtatAndProchaineTentativeLessThanEqualOrderByIdAsc(
-                        CanalEnvoi.EMAIL, EtatEnvoi.A_ENVOYER, Instant.now(),
+                        canal, EtatEnvoi.A_ENVOYER, Instant.now(),
                         PageRequest.of(0, TAILLE_DU_PAQUET));
 
         int partis = 0;
         for (Envoi envoi : aTraiter) {
             // Chaque envoi dans sa propre transaction : sans cela, le premier echec emporterait
             // avec lui le compte-rendu de tous les autres.
-            if (livraison.livrer(envoi.getId(), this::envoyer)) {
+            if (livraison.livrer(envoi.getId(), livreur)) {
                 partis++;
             }
         }
         if (!aTraiter.isEmpty()) {
-            log.info("File des envois : {} traite(s), {} parti(s)", aTraiter.size(), partis);
+            log.info("File des envois {} : {} traite(s), {} parti(s)", canal, aTraiter.size(), partis);
         }
         return partis;
     }
