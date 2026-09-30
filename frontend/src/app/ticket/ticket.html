@@ -29,7 +29,7 @@
   <div class="ticket__filet"></div>
 
   <div class="ticket__ligne">
-    <span>{{ facture().numero }}</span>
+    <span>{{ provisoire() ? 'Ticket provisoire' : facture().numero }}</span>
     <span>{{ facture().dateEmission | date: 'dd/MM/yyyy HH:mm' }}</span>
   </div>
   @if (facture().nomClient) {
@@ -108,6 +108,10 @@
 
   @if (duplicata()) {
     <div class="ticket__cachet">DUPLICATA</div>
+  }
+  @if (provisoire()) {
+    <!-- Enregistre hors ligne : la facture, et son numero, suivront a la reconnexion. -->
+    <div class="ticket__mention">Vente enregistrée hors ligne.<br />La facture suivra.</div>
   }
   <footer class="ticket__pied">
     <div>Merci de votre visite</div>

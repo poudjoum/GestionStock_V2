@@ -203,6 +203,32 @@ Le reste continue de refuser une sortie au-dela du stock : `/ventes/create`, `/v
 et les deux routes de `/mouvements`. Laisser un appelant quelconque antidater une sortie ou passer
 sous zero permettrait de fabriquer un stock qui n'a jamais existe.
 
+**L'encaissement voyage avec la vente.** Hors ligne, le comptoir a pris l'argent sans pouvoir ni
+facturer ni encaisser :
+
+```json
+{ "...": "...", "encaissement": { "montant": 20000, "mode": "ESPECES" } }
+```
+
+Le serveur enregistre alors la vente, emet sa facture et y porte le reglement, **dans une seule
+transaction**. Envoye a part, une fois la connexion revenue, l'encaissement aurait eu deux defauts :
+
+- **Il serait date du jour de l'envoi.** L'etat de caisse additionne les reglements par leur date :
+  les especes de lundi, synchronisees mardi, compteraient dans le tiroir de mardi, et le comptage
+  de lundi soir ne tomberait plus juste. Le reglement porte donc la date de la vente — le seul qui
+  la porte, parce que c'est bien ce jour-la que l'argent est entre.
+- **Rejoue, il serait encaisse deux fois.** Ici, un envoi rejoue retrouve la vente, reprend sa
+  facture et n'y ajoute pas de second reglement.
+
+Le montant est **plafonne** au total de la facture, et non refuse : le poste envoie ce que le client
+a tendu, le surplus est la monnaie rendue. Un montant nul facture sans encaisser — la vente a
+credit. Sans `encaissement`, rien ne change : la vente seule, sans facture. Une vente annulee
+entre-temps ne se facture pas, et l'envoi reussit quand meme — sans quoi il resterait en file sur
+le poste pour toujours.
+
+La facture, elle, porte la date de la synchronisation : elle n'existait pas avant, et son numero
+suit l'ordre d'emission.
+
 ## TVA
 
 Le regime de TVA se parametre **sur l'entreprise**, a son enregistrement :
@@ -939,10 +965,65 @@ de son propre compte est desactive, comme le serveur le refuse deja. Les roles s
 bloc — decocher en retire un. Le mot de passe reinitialise n'est jamais envoye par courriel : il
 se transmet de vive voix, et l'ecran le rappelle.
 
-### Ce qui n'y est pas encore
+### Vendre sans reseau
 
-Le hors-ligne cote front : la moitie client du lot qui a rendu la vente synchronisable. L'API
-l'accepte depuis `POST /ventes/synchronisation`, le front ne met encore rien en file.
+Le comptoir ne s'arrete plus quand le serveur ne repond pas. La machine vit sur l'electricite et
+la liaison Starlink du magasin ; les commerces qui l'utilisent a distance passent par un tunnel.
+Une coupure, de part ou d'autre, ne doit pas arreter une caisse.
+
+**Ce que l'appareil garde**, dans sa base IndexedDB (`noyau/base-locale.ts`) :
+
+- **le catalogue** (`comptoir/catalogue-local.ts`), recopie a chaque ouverture du comptoir en
+  ligne puis toutes les dix minutes. Hors ligne, la douchette et la recherche le lisent : par code
+  exact, et par nom sans accents ni majuscules ;
+- **l'identite du magasin**, pour le regime de TVA — qui decide du montant annonce — et l'en-tete
+  du ticket ;
+- **les ventes faites hors ligne** (`comptoir/file-des-ventes.ts`), avec ce que le client a paye.
+
+Chaque copie porte le compte qui l'a faite. Un autre compte connecte sur le meme appareil — un
+autre commerce — ne vend pas avec le catalogue du premier, et n'envoie pas ses ventes : l'API les
+rangerait chez lui.
+
+**Hors ligne, comment on le sait.** Pas par `navigator.onLine`, qui dit si l'appareil a une
+connexion et non si le serveur est au bout. Par ce que rencontrent les requetes (`noyau/reseau.ts`) :
+statut 0, delai depasse, **ou une passerelle qui repond a la place de l'application** — nginx rend
+502 pendant qu'un deploiement remplace le conteneur, Cloudflare rend 502 ou 530 quand le serveur ne
+repond plus au tunnel. Ce dernier cas a ete trouve a l'essai : tenu pour une reponse du serveur, il
+faisait annoncer au caissier « aucun article ne porte ce code ». Hors ligne, une sonde repart toutes
+les quinze secondes pour voir le retour.
+
+**La vente.** Hors ligne, elle est ecrite sur le disque *avant* que le ticket ne sorte : si
+l'appareil ne peut pas la garder, le caissier le sait avant de rendre la monnaie. Le ticket est
+**provisoire** — sans numero, avec la mention que la facture suivra —, calcule avec les regles de
+la facture du serveur. Une vente qui perd le reseau en cours de route (la vente est passee, pas la
+facture ; ou la facture, pas l'encaissement) bascule de la meme facon : elle porte la reference
+tiree au comptoir, et le serveur reprend ce qui est deja fait.
+
+**L'envoi**, un a la fois, les plus anciennes d'abord : au retour du serveur, a la connexion du
+compte, et toutes les trente secondes tant qu'il en reste. Une vente n'est effacee de l'appareil
+qu'une fois la reponse du serveur recue.
+
+Une vente **refusee** par le serveur (article supprime, horloge d'appareil tres en avance) n'est ni
+renvoyee en boucle ni effacee : elle reste la, marquee, avec le motif du refus, et un bouton pour la
+relancer une fois le probleme regle. L'argent est dans le tiroir ; elle ne disparait pas d'office.
+
+La barre du haut le montre de partout — pas seulement au comptoir : le gerant qui lit l'etat de
+caisse doit savoir que des ventes de l'appareil ne sont pas encore arrivees.
+
+**Ce qui ne marche pas hors ligne.** La recherche de client : le repertoire n'est pas garde, la
+vente reste anonyme. Et tout le reste de l'application — seul le comptoir vend sans reseau.
+
+**Ouvrir l'application sans reseau** demande le service worker, donc **HTTPS** : sur
+`https://stock.tontinepro.uk` ou le port 9443 du magasin. En clair (`http://…:9093`), une page
+deja ouverte continue de vendre pendant une coupure, mais ne se recharge pas sans serveur.
+
+**Verifie de bout en bout**, sur une pile jetable (base, API et front locaux) : vente en ligne,
+arret de l'API, vente hors ligne de 14 310 F payee 20 000, rechargement de la page, redemarrage de
+l'API. La vente est partie seule en moins de quinze secondes ; en base, la facture, le reglement de
+14 310 date de l'heure de la vente, et le stock juste. Le meme envoi rejoue deux fois : ni vente, ni
+facture, ni reglement de plus.
+
+### Ce qui n'y est pas encore
 
 Web Push, qui a maintenant une application ou atterrir.
 

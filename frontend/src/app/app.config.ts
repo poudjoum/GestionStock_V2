@@ -6,6 +6,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { routes } from './app.routes';
 import { intercepteurDelai } from './noyau/intercepteur-delai';
 import { intercepteurJeton } from './noyau/intercepteur-jeton';
+import { intercepteurReseau } from './noyau/reseau';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -27,7 +28,10 @@ export const appConfig: ApplicationConfig = {
     // Le delai vient en premier : il enveloppe donc toute la chaine, renouvellement du jeton
     // compris. Un rafraichissement qui resterait en vol bloquerait sinon la requete qui l'attend,
     // et c'est precisement le genre de silence qu'on cherche a supprimer.
-    provideHttpClient(withInterceptors([intercepteurDelai, intercepteurJeton])),
+    //
+    // Le constat du reseau vient avant lui, pour voir une requete expiree comme ce qu'elle est
+    // devenue : un echec de statut 0, c'est-a-dire un serveur injoignable.
+    provideHttpClient(withInterceptors([intercepteurReseau, intercepteurDelai, intercepteurJeton])),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',

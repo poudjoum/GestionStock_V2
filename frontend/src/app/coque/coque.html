@@ -64,6 +64,34 @@
       <mat-icon class="md:hidden" style="color: var(--mat-sys-primary)">inventory</mat-icon>
       <span class="flex-1 truncate text-base font-medium">{{ titre() }}</span>
 
+      @if (!joignable()) {
+        <!-- Le mot sur ecran large, l'icone seule sur telephone : la barre n'a pas la place. -->
+        <span
+          class="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+          style="background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container)"
+          role="status"
+          title="Le serveur ne répond pas. Les ventes restent sur cet appareil et partiront au retour du réseau."
+        >
+          <mat-icon class="!h-4 !w-4 !text-base">cloud_off</mat-icon>
+          <span class="hidden sm:inline">Hors ligne</span>
+        </span>
+      }
+
+      @if (aEnvoyer() > 0 || refusees().length > 0) {
+        <button
+          mat-icon-button
+          [matMenuTriggerFor]="enAttente"
+          [attr.aria-label]="aEnvoyer() + refusees().length + ' ventes pas encore envoyées'"
+          [matBadge]="aEnvoyer() + refusees().length"
+          [matBadgeColor]="refusees().length > 0 ? 'warn' : 'primary'"
+          matBadgeSize="small"
+        >
+          <mat-icon [class.animate-pulse]="envoiEnCours()">
+            {{ refusees().length > 0 ? 'sync_problem' : 'cloud_upload' }}
+          </mat-icon>
+        </button>
+      }
+
       <a
         mat-icon-button
         routerLink="/notifications"
@@ -86,11 +114,62 @@
       </button>
     </header>
 
+    <!--
+      Les ventes faites hors ligne sur cet appareil.
+      Celles qui attendent le reseau partent seules ; celles que le serveur a refusees attendent
+      une personne, avec le motif du refus. Aucune ne s'efface d'ici : l'argent est dans le tiroir.
+    -->
+    <mat-menu #enAttente="matMenu" class="!max-w-sm">
+      <div class="px-4 py-2" (click)="$event.stopPropagation()">
+        @if (aEnvoyer() > 0) {
+          <p class="m-0 text-sm font-medium">
+            {{ aEnvoyer() }} vente{{ aEnvoyer() > 1 ? 's' : '' }} à envoyer
+          </p>
+          <p class="m-0 text-xs opacity-70">
+            @if (joignable()) {
+              Envoi en cours.
+            } @else {
+              Elles partiront d’elles-mêmes au retour du réseau.
+            }
+          </p>
+        }
+        @for (vente of refusees(); track vente.referenceClient) {
+          <div
+            class="mt-2 rounded-lg px-3 py-2 text-xs"
+            style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)"
+          >
+            <p class="m-0 font-medium">
+              Refusée — vente du {{ vente.vente.datevente | date: 'dd/MM HH:mm' }},
+              {{ vente.totalTtc | number: '1.0-0' }} F
+            </p>
+            <p class="m-0 mt-0.5">{{ vente.motif }}</p>
+            <button mat-button class="!mt-1 !-ml-3" (click)="reessayer(vente.referenceClient)">
+              <mat-icon>refresh</mat-icon>
+              Réessayer
+            </button>
+          </div>
+        }
+      </div>
+      @if (aEnvoyer() > 0 && joignable()) {
+        <button mat-menu-item (click)="envoyerMaintenant()" [disabled]="envoiEnCours()">
+          <mat-icon>cloud_upload</mat-icon>
+          <span>Envoyer maintenant</span>
+        </button>
+      }
+    </mat-menu>
+
     <mat-menu #compte="matMenu">
       <div class="px-4 py-2">
         <p class="text-sm font-medium">{{ username() }}</p>
         <p class="text-xs opacity-70">{{ metier() }}</p>
       </div>
+      @if (aEnvoyer() + refusees().length > 0) {
+        <!-- Rien n'est perdu a la deconnexion, mais il faut savoir quand les ventes partiront. -->
+        <p class="m-0 max-w-64 px-4 pb-2 text-xs" style="color: var(--mat-sys-error)">
+          {{ aEnvoyer() + refusees().length }} vente(s) de cet appareil pas encore envoyée(s) :
+          elles partiront à votre prochaine connexion ici.
+        </p>
+      }
       <button mat-menu-item (click)="seDeconnecter()">
         <mat-icon>logout</mat-icon>
         <span>Se déconnecter</span>

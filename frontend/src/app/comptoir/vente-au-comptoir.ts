@@ -1,16 +1,39 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
+import {
+  Observable,
+  Subject,
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  interval,
+  map,
+  of,
+  switchMap,
+  throwError,
+} from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Comptoir, FactureDto, ModeReglement, VenteDto } from './comptoir.service';
+import { CatalogueLocal } from './catalogue-local';
+import { FileDesVentes, VenteSynchronisee } from './file-des-ventes';
 import { messageDErreur } from '../noyau/erreurs';
+import { Reseau, estUneCoupure } from '../noyau/reseau';
 import { Entreprise } from '../noyau/entreprise';
 import { identifiantDeVente } from '../noyau/identifiants';
 import { imprimerLeTicket } from '../noyau/impression';
@@ -33,14 +56,35 @@ interface LignePanier {
 }
 
 /**
+ * Le panier tel qu'il etait au moment de valider.
+ *
+ * Une vente qui bascule hors ligne en cours de route — la vente est passee, la facture non —
+ * doit etre gardee telle que le client l'a payee, et non telle que l'ecran l'affiche une seconde
+ * plus tard.
+ */
+interface Instantane {
+  lignes: LignePanier[];
+  client: ClientDto | null;
+  totalHt: number;
+  totalTva: number;
+  totalTtc: number;
+}
+
+/**
  * La vente au comptoir : chercher, ajouter, vendre.
  *
  * Le panier se construit article par article, parce que c'est ainsi qu'il se presente : on ne
  * connait pas ce qu'un client achete avant qu'il ait pose son dernier article. Rien ne part au
  * serveur avant le bouton final — une vente a moitie enregistree serait pire que pas de vente.
  *
- * Le code de la vente est tire ici. Il pourrait l'etre par le serveur, mais le tirer localement
- * est ce qui permettra, au lot du hors-ligne, de poser une vente dans une file sans reseau.
+ * <b>Sans reseau.</b> Le comptoir ne s'arrete pas quand le serveur ne repond plus. Les articles se
+ * trouvent dans une copie du catalogue gardee sur l'appareil, et la vente est gardee elle aussi,
+ * avec ce que le client a paye, jusqu'a ce qu'elle parte (`FileDesVentes`). Le client repart avec
+ * un ticket provisoire ; la facture est emise quand la vente arrive au serveur.
+ *
+ * Une vente qui perd le reseau en cours de route — la vente est passee, la facture non, ou la
+ * facture est emise et l'encaissement non — bascule de la meme facon. C'est sans risque : elle
+ * porte la reference tiree ici, et le serveur reprend ce qui est deja fait au lieu de le refaire.
  *
  * <b>La douchette.</b> Un lecteur de code-barres USB est un clavier : il tape le code dans le
  * champ qui a le point, puis envoie Entree. Il n'y a donc rien a brancher — ni camera, ni
@@ -55,6 +99,7 @@ interface LignePanier {
 @Component({
   selector: 'app-vente-au-comptoir',
   imports: [
+    DatePipe,
     DecimalPipe,
     FormsModule,
     MatButtonModule,
@@ -70,8 +115,19 @@ export class VenteAuComptoir {
   private readonly service = inject(Comptoir);
   private readonly magasinService = inject(Entreprise);
   private readonly snack = inject(MatSnackBar);
+  private readonly reseau = inject(Reseau);
+  private readonly catalogueLocal = inject(CatalogueLocal);
+  private readonly file = inject(FileDesVentes);
   private readonly frappe = new Subject<string>();
   private readonly frappeClient = new Subject<string>();
+
+  /** Le serveur repond-il ? Faux : on vend avec ce que l'appareil a garde. */
+  protected readonly joignable = this.reseau.joignable;
+  /** Le nombre d'articles gardes sur l'appareil, et de quand ils datent. */
+  protected readonly articlesGardes = this.catalogueLocal.taille;
+  protected readonly dateDuCatalogue = this.catalogueLocal.date;
+  /** Les ventes faites ici et pas encore parties. */
+  protected readonly enAttente = computed(() => this.file.aEnvoyer().length);
 
   protected readonly recherche = signal('');
   protected readonly resultats = signal<ArticleDto[]>([]);
@@ -128,6 +184,8 @@ export class VenteAuComptoir {
   protected readonly aImprimer = signal<{
     facture: FactureDto;
     paiement: PaiementDuTicket;
+    /** Vendu hors ligne : sans numero, la facture suivra. */
+    provisoire: boolean;
   } | null>(null);
   private readonly zoneTicket = viewChild<ElementRef<HTMLElement>>('zoneTicket');
 
@@ -196,15 +254,31 @@ export class VenteAuComptoir {
         error: () => this.magasin.set(null),
       });
 
+    // La copie du catalogue : relue de l'appareil tout de suite, recopiee du serveur des qu'il
+    // repond, puis toutes les dix minutes tant que le comptoir est ouvert.
+    void this.catalogueLocal.charger();
+    effect(() => {
+      if (this.reseau.joignable()) {
+        untracked(() => this.rafraichirLeCatalogue());
+      }
+    });
+    interval(60_000)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        if (this.reseau.joignable()) {
+          this.rafraichirLeCatalogue();
+        }
+      });
+
     this.frappe
       .pipe(
         debounceTime(300),
         distinctUntilChanged(),
-        switchMap((q) => this.service.articles(q)),
+        switchMap((q) => this.articlesPour(q)),
         takeUntilDestroyed(),
       )
       .subscribe({
-        next: (page) => {
+        next: (articles) => {
           this.cherche.set(false);
           // Une recherche partie pendant la frappe repond apres que le scan a pose l'article et
           // vide le champ. Sans ce garde, la tuile du produit deja au panier restait affichee,
@@ -212,7 +286,7 @@ export class VenteAuComptoir {
           if (!this.recherche().trim()) {
             return;
           }
-          this.resultats.set(page.content ?? []);
+          this.resultats.set(articles);
         },
         error: () => this.cherche.set(false),
       });
@@ -228,6 +302,31 @@ export class VenteAuComptoir {
         next: (page) => this.clientsTrouves.set(page.content ?? []),
         error: () => this.clientsTrouves.set([]),
       });
+  }
+
+  private rafraichirLeCatalogue(): void {
+    // Un echec ici ne gene personne : on garde la copie d'avant, et l'on retentera.
+    this.catalogueLocal.rafraichirSiAncien().catch(() => undefined);
+  }
+
+  /**
+   * Les articles qui repondent a une recherche : ceux du serveur s'il repond, sinon ceux de la
+   * copie gardee sur l'appareil.
+   *
+   * Le serveur d'abord, tant qu'il est la : il a les prix du moment. Mais la bascule se fait des
+   * la premiere coupure constatee, sans attendre l'expiration de chaque recherche — vingt
+   * secondes par frappe rendraient le comptoir inutilisable.
+   */
+  private articlesPour(q: string): Observable<ArticleDto[]> {
+    if (!this.reseau.joignable()) {
+      return of(this.catalogueLocal.chercher(q));
+    }
+    return this.service.articles(q).pipe(
+      map((page) => page.content ?? []),
+      catchError((echec: unknown) =>
+        estUneCoupure(echec) ? of(this.catalogueLocal.chercher(q)) : throwError(() => echec),
+      ),
+    );
   }
 
   protected chercher(q: string): void {
@@ -259,18 +358,41 @@ export class VenteAuComptoir {
     this.resolution.set(true);
     this.codeInconnu.set(null);
 
+    if (!this.reseau.joignable()) {
+      this.resoudreSurLAppareil(saisi);
+      return;
+    }
     this.service.parCode(saisi).subscribe({
       next: (article) => {
         this.resolution.set(false);
         this.ajouter(article);
       },
-      error: () => {
-        this.resolution.set(false);
-        // La saisie reste : elle sert de point de depart a une recherche par le nom.
-        this.codeInconnu.set(saisi);
-        this.rendreLePoint();
+      error: (echec: unknown) => {
+        if (estUneCoupure(echec)) {
+          this.resoudreSurLAppareil(saisi);
+          return;
+        }
+        this.codeRefuse(saisi);
       },
     });
+  }
+
+  /** Le code cherche dans la copie du catalogue, quand le serveur ne repond pas. */
+  private resoudreSurLAppareil(code: string): void {
+    const article = this.catalogueLocal.parCode(code);
+    if (article) {
+      this.resolution.set(false);
+      this.ajouter(article);
+    } else {
+      this.codeRefuse(code);
+    }
+  }
+
+  private codeRefuse(code: string): void {
+    this.resolution.set(false);
+    // La saisie reste : elle sert de point de depart a une recherche par le nom.
+    this.codeInconnu.set(code);
+    this.rendreLePoint();
   }
 
   /** Remet le point au champ, pour que le scan suivant parte sans un clic. */
@@ -393,6 +515,9 @@ export class VenteAuComptoir {
    * L'encaissement enfin. S'il echoue, la vente et la facture existent toujours : le ticket sort
    * quand meme, avec son reste a payer, et la facture se retrouve dans « a encaisser ». Rien n'est
    * perdu, et le caissier le sait.
+   *
+   * Une coupure, a n'importe laquelle des trois etapes, fait basculer la vente hors ligne avec ce
+   * que le client a paye (`garderHorsLigne`). Le serveur reprendra la ou il en etait.
    */
   protected encaisser(): void {
     if (this.envoiEnCours() || this.panier().length === 0) {
@@ -401,6 +526,13 @@ export class VenteAuComptoir {
     this.envoiEnCours.set(true);
     this.erreur.set(null);
 
+    const instantane: Instantane = {
+      lignes: this.panier(),
+      client: this.client(),
+      totalHt: this.total(),
+      totalTva: this.totalTva(),
+      totalTtc: this.totalTtc(),
+    };
     const vente: VenteDto = {
       code: `V-${Date.now()}`,
       // Rejouable sans risque : reposter la meme reference rend la vente deja enregistree au lieu
@@ -418,12 +550,26 @@ export class VenteAuComptoir {
     };
     const tendu = this.recu();
     const mode = this.mode();
+    const horsLigne = () => this.garderHorsLigne(vente, instantane, tendu, mode);
+
+    // Le serveur ne repondait deja plus : inutile de lui laisser vingt secondes pour le redire,
+    // pendant que le client attend.
+    if (!this.reseau.joignable()) {
+      horsLigne();
+      return;
+    }
 
     this.service.vendre(vente).subscribe({
       next: (enregistree) => {
         this.service.facturer(enregistree.id!).subscribe({
-          next: (facture) => this.encaisserLaFacture(facture, tendu, mode),
-          error: () => {
+          next: (facture) => this.encaisserLaFacture(facture, tendu, mode, vente),
+          error: (echec: unknown) => {
+            if (estUneCoupure(echec)) {
+              // La vente est passee, la facture non : la synchronisation l'emettra et encaissera,
+              // en retrouvant la vente par sa reference.
+              horsLigne();
+              return;
+            }
             // La vente est passee : c'est ce qui compte, la marchandise est partie.
             this.terminer();
             this.snack.open(
@@ -435,6 +581,12 @@ export class VenteAuComptoir {
         });
       },
       error: (echec: unknown) => {
+        if (estUneCoupure(echec)) {
+          // Peut-etre passee, peut-etre pas : on ne le saura qu'a la synchronisation, et c'est
+          // sans risque — la reference fera retrouver la vente au lieu d'en creer une seconde.
+          horsLigne();
+          return;
+        }
         this.envoiEnCours.set(false);
         // Le message de l'API dit quel article manque et combien il en reste : le remplacer par
         // un texte generique effacerait la seule information utile au comptoir.
@@ -443,10 +595,100 @@ export class VenteAuComptoir {
     });
   }
 
+  /**
+   * Garde la vente sur l'appareil, avec ce que le client a paye, et sort un ticket provisoire.
+   *
+   * Le ticket ne sort qu'une fois la vente ecrite sur le disque : si l'appareil ne peut pas la
+   * garder, le caissier doit le savoir avant de rendre la monnaie, pas apres.
+   *
+   * Ce qui est encaisse part tel que le client l'a tendu : le serveur le plafonne au total de la
+   * facture qu'il emettra, le surplus etant la monnaie rendue.
+   */
+  private garderHorsLigne(
+    vente: VenteDto,
+    instantane: Instantane,
+    tendu: number | null,
+    mode: ModeReglement,
+  ): void {
+    const du = instantane.totalTtc;
+    const aEnvoyer: VenteSynchronisee = {
+      ...vente,
+      // L'heure de la vente, celle du tiroir. Si la vente etait deja passee avant la coupure, le
+      // serveur garde la sienne.
+      datevente: new Date().toISOString(),
+      encaissement: { montant: tendu ?? du, mode },
+    };
+
+    this.file.garder(aEnvoyer, du).then(
+      () => {
+        const encaisse = Math.min(tendu ?? du, du);
+        const paiement: PaiementDuTicket = {
+          mode,
+          recu: tendu ?? du,
+          monnaie: Math.max(0, arrondi((tendu ?? du) - du)),
+        };
+        this.presenterLeTicket(
+          this.factureProvisoire(instantane, encaisse),
+          paiement,
+          paiement.monnaie > 0
+            ? `Hors ligne — vente gardée sur l’appareil. Rendre ${paiement.monnaie.toLocaleString()} F`
+            : 'Hors ligne — vente gardée sur l’appareil, elle partira au retour du réseau.',
+          true,
+        );
+      },
+      () => {
+        this.envoiEnCours.set(false);
+        this.erreur.set(
+          'Le serveur ne répond pas, et cet appareil n’a pas pu garder la vente : elle n’est pas enregistrée.',
+        );
+      },
+    );
+  }
+
+  /**
+   * Le ticket d'une vente faite hors ligne, calcule au comptoir.
+   *
+   * Avec les memes regles que la facture du serveur — prix de la ligne, taux de l'article ou a
+   * defaut du magasin, arrondi par ligne — pour que le papier du client et la facture qui suivra
+   * disent le meme montant.
+   */
+  private factureProvisoire(instantane: Instantane, encaisse: number): FactureDto {
+    const magasin = this.magasin();
+    return {
+      dateEmission: new Date().toISOString(),
+      nomClient: instantane.client ? this.nomDuClient(instantane.client) : undefined,
+      // Meme regle que le serveur : sans magasin connu, la TVA s'applique.
+      tvaApplicable: magasin?.assujettieTva !== false,
+      lignes: instantane.lignes.map((l, rang) => {
+        const prix = l.article.prixUnitaireHt ?? 0;
+        const taux = this.taux(l.article);
+        const ht = arrondi(prix * l.quantite);
+        const tva = arrondi((ht * taux) / 100);
+        return {
+          id: rang,
+          codeArticle: l.article.codeArticle,
+          designation: l.article.designation,
+          quantite: l.quantite,
+          prixUnitaireHt: prix,
+          tauxTva: taux,
+          montantHt: ht,
+          montantTva: tva,
+          montantTtc: arrondi(ht + tva),
+        };
+      }),
+      totalHt: instantane.totalHt,
+      totalTva: instantane.totalTva,
+      totalTtc: instantane.totalTtc,
+      montantRegle: encaisse,
+      resteAPayer: arrondi(instantane.totalTtc - encaisse),
+    };
+  }
+
   private encaisserLaFacture(
     facture: FactureDto,
     tendu: number | null,
     mode: ModeReglement,
+    vente: VenteDto,
   ): void {
     const du = facture.totalTtc ?? 0;
     // Ce qui entre en caisse est plafonne a ce qui est du : le surplus n'est pas une recette,
@@ -477,6 +719,31 @@ export class VenteAuComptoir {
         );
       },
       error: (echec: unknown) => {
+        if (estUneCoupure(echec)) {
+          // La facture existe, l'encaissement est peut-etre passe. Il part avec la vente : le
+          // serveur n'encaisse pas une facture qui porte deja un reglement, et date celui-ci de
+          // la vente. Le client, lui, a paye : son ticket le dit.
+          const aEnvoyer: VenteSynchronisee = {
+            ...vente,
+            datevente: new Date().toISOString(),
+            encaissement: { montant: tendu ?? du, mode },
+          };
+          this.file.garder(aEnvoyer, du).then(
+            () =>
+              this.presenterLeTicket(
+                { ...facture, montantRegle: encaisse, resteAPayer: arrondi(du - encaisse) },
+                paiement,
+                'Hors ligne — l’encaissement est gardé sur l’appareil, il partira au retour du réseau.',
+              ),
+            () => {
+              this.presenterLeTicket({ ...facture }, { ...paiement, recu: 0, monnaie: 0 }, null);
+              this.erreur.set(
+                'L’encaissement n’a pas pu être enregistré : la facture reste due.',
+              );
+            },
+          );
+          return;
+        }
         // La vente et la facture existent : le ticket sort avec son reste a payer, et la facture
         // attend dans « a encaisser ».
         this.presenterLeTicket({ ...facture }, { ...paiement, recu: 0, monnaie: 0 }, null);
@@ -492,8 +759,9 @@ export class VenteAuComptoir {
     facture: FactureDto,
     paiement: PaiementDuTicket,
     message: string | null,
+    provisoire = false,
   ): void {
-    this.aImprimer.set({ facture, paiement });
+    this.aImprimer.set({ facture, paiement, provisoire });
     this.terminer();
     if (message) {
       this.snack.open(message, 'Fermer', { duration: 5000 });

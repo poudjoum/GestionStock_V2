@@ -6,7 +6,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Session } from '../noyau/session';
+import { Reseau } from '../noyau/reseau';
+import { FileDesVentes } from '../comptoir/file-des-ventes';
 import { Notifications } from '../notifications/notifications.service';
 import { LIBELLE_DES_ROLES, MENU, menuPour } from '../noyau/roles';
 
@@ -27,6 +30,8 @@ import { LIBELLE_DES_ROLES, MENU, menuPour } from '../noyau/roles';
 @Component({
   selector: 'app-coque',
   imports: [
+    DatePipe,
+    DecimalPipe,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
@@ -41,9 +46,23 @@ export class Coque implements OnInit {
   private readonly session = inject(Session);
   private readonly notifications = inject(Notifications);
   private readonly router = inject(Router);
+  private readonly reseau = inject(Reseau);
+  private readonly file = inject(FileDesVentes);
 
   protected readonly username = this.session.username;
   protected readonly nonLues = this.notifications.nonLues;
+
+  /**
+   * L'etat du reseau et des ventes faites hors ligne, visibles de partout.
+   *
+   * Pas seulement au comptoir : le gerant qui consulte l'etat de caisse doit savoir que des ventes
+   * de l'appareil ne sont pas encore arrivees — sans quoi le total qu'il lit est faux, et il ne
+   * le sait pas.
+   */
+  protected readonly joignable = this.reseau.joignable;
+  protected readonly aEnvoyer = computed(() => this.file.aEnvoyer().length);
+  protected readonly refusees = this.file.refusees;
+  protected readonly envoiEnCours = this.file.enCours;
   protected readonly entrees = computed(() => menuPour(this.session.roles()));
   protected readonly principales = computed(() => this.entrees().filter((e) => e.principal));
   protected readonly metier = computed(() => {
@@ -89,6 +108,14 @@ export class Coque implements OnInit {
       error: () => undefined,
     });
     this.notifications.rafraichirLeCompte();
+  }
+
+  protected envoyerMaintenant(): void {
+    void this.file.envoyer();
+  }
+
+  protected reessayer(referenceClient: string): void {
+    void this.file.reessayer(referenceClient);
   }
 
   protected seDeconnecter(): void {

@@ -8,6 +8,57 @@
 <div class="mx-auto grid max-w-6xl gap-4 lg:grid-cols-[1fr_380px]">
   <!-- Volet gauche : chercher et ajouter -->
   <section class="min-w-0">
+    @if (!joignable()) {
+      <!--
+        Hors ligne, on vend quand meme — et le caissier doit le savoir, parce que deux choses
+        changent pour lui : le ticket sera provisoire, et les prix sont ceux de la copie gardee.
+        Sans copie, rien ne se trouve : il faut le dire, plutot que de laisser croire que les
+        articles n'existent pas.
+      -->
+      <div
+        class="mb-3 flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm"
+        [style.background]="
+          articlesGardes() > 0 ? 'var(--mat-sys-tertiary-container)' : 'var(--mat-sys-error-container)'
+        "
+        [style.color]="
+          articlesGardes() > 0
+            ? 'var(--mat-sys-on-tertiary-container)'
+            : 'var(--mat-sys-on-error-container)'
+        "
+        role="status"
+      >
+        <mat-icon class="!h-5 !w-5 shrink-0 !text-xl">cloud_off</mat-icon>
+        @if (articlesGardes() > 0) {
+          <span class="flex-1">
+            <span class="font-medium">Hors ligne — la vente continue.</span>
+            Les ventes restent sur cet appareil et partiront au retour du réseau.
+            <span class="block text-xs opacity-80">
+              Catalogue de {{ articlesGardes() }} article{{ articlesGardes() > 1 ? 's' : '' }},
+              copié le {{ dateDuCatalogue() | date: 'dd/MM à HH:mm' }}.
+            </span>
+          </span>
+        } @else {
+          <span class="flex-1">
+            <span class="font-medium">Hors ligne, et aucun catalogue sur cet appareil.</span>
+            Il se copie à l’ouverture du comptoir quand le réseau est là : ouvrez-le une fois en
+            ligne pour pouvoir vendre sans réseau ensuite.
+          </span>
+        }
+      </div>
+    } @else if (enAttente() > 0) {
+      <div
+        class="mb-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm"
+        style="background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container)"
+        role="status"
+      >
+        <mat-icon class="!h-5 !w-5 shrink-0 !text-xl">cloud_upload</mat-icon>
+        <span class="flex-1">
+          {{ enAttente() }} vente{{ enAttente() > 1 ? 's' : '' }} faite{{ enAttente() > 1 ? 's' : '' }}
+          hors ligne en cours d’envoi.
+        </span>
+      </div>
+    }
+
     <!--
       Un seul champ pour scanner et pour chercher. La douchette tape ici comme un clavier et
       termine par Entree ; le caissier tape ici aussi quand il cherche par le nom. `autofocus`
@@ -181,6 +232,12 @@
                 <mat-icon>close</mat-icon>
               </button>
             </div>
+          } @else if (choixDuClient() && !joignable()) {
+            <!-- Le repertoire des clients n'est pas garde sur l'appareil : la vente reste anonyme. -->
+            <p class="m-0 px-2 py-1.5 text-sm opacity-70">
+              La recherche de client n’est pas disponible hors ligne : la vente sera anonyme.
+            </p>
+            <button mat-button class="w-full" (click)="choixDuClient.set(false)">Fermer</button>
           } @else if (choixDuClient()) {
             <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
               <mat-label>Chercher un client</mat-label>
@@ -426,6 +483,7 @@
           [facture]="sortie.facture"
           [entreprise]="magasin()"
           [paiement]="sortie.paiement"
+          [provisoire]="sortie.provisoire"
         />
       </div>
       <div class="flex gap-2 pb-2">

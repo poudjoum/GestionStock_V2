@@ -44,6 +44,16 @@ export class Ticket {
    */
   readonly duplicata = input(false);
 
+  /**
+   * Un ticket sorti hors ligne le dit.
+   *
+   * La facture n'existe pas encore : elle sera emise quand la vente parviendra au serveur, et
+   * c'est elle qui portera le numero. Le ticket donne au client montre donc les montants calcules
+   * au comptoir, sans numero, et annonce que la facture suivra — plutot qu'un numero invente
+   * qu'aucune facture ne porterait jamais.
+   */
+  readonly provisoire = input(false);
+
   /** L'adresse en une ligne, sans les vides : un magasin ne renseigne pas toujours tout. */
   protected readonly adresse = computed(() => {
     const a = this.entreprise()?.adresse;

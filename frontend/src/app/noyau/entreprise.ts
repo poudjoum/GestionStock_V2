@@ -1,10 +1,18 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of, shareReplay, tap } from 'rxjs';
+import { Observable, catchError, from, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import { environnement } from '../../environnements/environnement';
+import { ecrire, lire } from './base-locale';
+import { Session } from './session';
 import type { EntrepriseDto } from './api';
 
 const API = `${environnement.api}/gestiondestock/v1`;
+
+/** L'identite gardee sur l'appareil, avec le compte a qui elle appartient. */
+interface CopieDuMagasin {
+  proprietaire: string;
+  entreprise: EntrepriseDto;
+}
 
 /**
  * L'identite du magasin : ce que le ticket de caisse imprime en en-tete.
@@ -16,6 +24,7 @@ const API = `${environnement.api}/gestiondestock/v1`;
 @Injectable({ providedIn: 'root' })
 export class Entreprise {
   private readonly http = inject(HttpClient);
+  private readonly session = inject(Session);
 
   private readonly connue = signal<EntrepriseDto | null>(null);
   /** L'identite, si elle a deja ete chargee. Nulle avant le premier chargement. */
@@ -29,14 +38,39 @@ export class Entreprise {
    */
   private enCours?: Observable<EntrepriseDto>;
 
-  /** Charge l'identite si elle ne l'est pas deja. */
+  /**
+   * Charge l'identite si elle ne l'est pas deja.
+   *
+   * Une copie en est gardee sur l'appareil, et sert quand le serveur ne repond pas : hors ligne,
+   * le comptoir en a encore besoin pour le regime de TVA — qui decide du montant annonce au
+   * client — et pour l'en-tete du ticket.
+   */
   charger(): Observable<EntrepriseDto> {
     const deja = this.connue();
     if (deja) {
       return of(deja);
     }
+    const proprietaire = this.session.username() ?? '';
     this.enCours ??= this.http.get<EntrepriseDto>(`${API}/entreprises/mienne`).pipe(
-      tap((entreprise) => this.connue.set(entreprise)),
+      tap((entreprise) => {
+        this.connue.set(entreprise);
+        ecrire<CopieDuMagasin>('reglages', { proprietaire, entreprise }, 'magasin').catch(
+          () => undefined,
+        );
+      }),
+      catchError((echec: unknown) =>
+        from(lire<CopieDuMagasin>('reglages', 'magasin').catch(() => undefined)).pipe(
+          switchMap((copie) => {
+            // Une copie laissee par un autre compte n'est pas celle de ce magasin.
+            if (copie && copie.proprietaire === proprietaire) {
+              this.connue.set(copie.entreprise);
+              return of(copie.entreprise);
+            }
+            this.enCours = undefined;
+            return throwError(() => echec);
+          }),
+        ),
+      ),
       shareReplay({ bufferSize: 1, refCount: false }),
     );
     return this.enCours;
