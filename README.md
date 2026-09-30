@@ -1440,7 +1440,7 @@ Pour la recreer sur un autre poste (PowerShell, sans droits d'administrateur) :
 ```powershell
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File <depot>\deploy\copier-sauvegardes.ps1'
 $session = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME; $session.Delay = 'PT5M'
-$reglages = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 30)
+$reglages = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
 Register-ScheduledTask -TaskName 'Sauvegardes GestionStock' -Action $action -Trigger (New-ScheduledTaskTrigger -Daily -At 10:00), $session -Settings $reglages
 ```
 

@@ -40,7 +40,11 @@ param(
 $ErrorActionPreference = 'Stop'
 $ssh = "$env:WINDIR\System32\OpenSSH\ssh.exe"
 $scp = "$env:WINDIR\System32\OpenSSH\scp.exe"
-$optionsSsh = @('-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15')
+# ConnectTimeout ne couvre que l'etablissement de la connexion. Une liaison qui gele ensuite — le
+# cas s'est produit, et le ssh est reste pendu deux heures — n'est detectee que par les
+# ServerAlive : sans reponse du serveur pendant une minute, ssh abandonne.
+$optionsSsh = @('-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15',
+                '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=4')
 
 New-Item -ItemType Directory -Force -Path $Local | Out-Null
 $journalFichier = Join-Path $Local 'journal.log'
