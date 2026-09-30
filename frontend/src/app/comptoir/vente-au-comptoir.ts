@@ -36,6 +36,7 @@ import { messageDErreur } from '../noyau/erreurs';
 import { Reseau, estUneCoupure } from '../noyau/reseau';
 import { Entreprise } from '../noyau/entreprise';
 import { identifiantDeVente } from '../noyau/identifiants';
+import { nouveauCodeDeTicket } from '../noyau/code-ticket';
 import { imprimerLeTicket } from '../noyau/impression';
 import { PaiementDuTicket, Ticket } from '../ticket/ticket';
 import { MODES_DE_REGLEMENT } from '../noyau/reglements';
@@ -541,6 +542,9 @@ export class VenteAuComptoir {
       // `identifiantDeVente` et non `crypto.randomUUID` : cette derniere n'existe qu'en contexte
       // securise, et le magasin sert l'application en clair sur son reseau local.
       referenceClient: identifiantDeVente(),
+      // Le code du QR imprime sur le ticket, tire ici pour qu'un ticket hors ligne porte deja le
+      // sien : le serveur le garde tel quel.
+      codeTicket: nouveauCodeDeTicket(),
       client: this.client() ?? undefined,
       ligneVente: this.panier().map((l) => ({
         article: { id: l.article.id },
@@ -628,7 +632,7 @@ export class VenteAuComptoir {
           monnaie: Math.max(0, arrondi((tendu ?? du) - du)),
         };
         this.presenterLeTicket(
-          this.factureProvisoire(instantane, encaisse),
+          { ...this.factureProvisoire(instantane, encaisse), codeTicket: vente.codeTicket },
           paiement,
           paiement.monnaie > 0
             ? `Hors ligne — vente gardée sur l’appareil. Rendre ${paiement.monnaie.toLocaleString()} F`

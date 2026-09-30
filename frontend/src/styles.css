@@ -240,6 +240,33 @@ body {
 }
 
 /*
+ * Le QR du ticket. 24 mm : une trentaine de modules a 0,7 mm environ, ce qu'un telephone lit de
+ * pres sans peine, et ce que la tete d'une thermique rend sans baver. La marge blanche de deux
+ * modules est dans le dessin lui-meme — sans elle, un lecteur ne trouve pas le bord du code.
+ */
+.ticket__fidelite {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1mm;
+  margin: 1.5mm 0;
+}
+
+.ticket__qr {
+  display: block;
+  width: 24mm;
+  height: 24mm;
+}
+
+.ticket__points {
+  font-weight: 700;
+}
+
+.ticket__code {
+  letter-spacing: 0.5mm;
+}
+
+/*
  * Le support d'impression.
  *
  * Il n'existe que le temps d'un `window.print()` : le ticket y est copie, sous `body`, pour

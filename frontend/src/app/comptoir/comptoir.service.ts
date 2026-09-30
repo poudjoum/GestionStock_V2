@@ -6,8 +6,12 @@ import type { components } from '../api/schema';
 import type { ArticleDto, ClientDto, Page } from '../noyau/api';
 import type { ReglementDto } from '../noyau/reglements';
 
-export type VenteDto = components['schemas']['VenteDto'];
-export type FactureDto = components['schemas']['FactureDto'];
+/**
+ * `codeTicket` est ajoute a la main, et c'est provisoire : `npm run api:types` lit l'API deployee,
+ * qui ne le connait pas encore. Il descendra de lui-meme a la prochaine regeneration.
+ */
+export type VenteDto = components['schemas']['VenteDto'] & { codeTicket?: string };
+export type FactureDto = components['schemas']['FactureDto'] & { codeTicket?: string };
 export type { ModeReglement, ReglementDto } from '../noyau/reglements';
 
 const API = `${environnement.api}/gestiondestock/v1`;

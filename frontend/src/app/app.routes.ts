@@ -19,6 +19,12 @@ export const routes: Routes = [
       import('./connexion/premier-mot-de-passe').then((m) => m.PremierMotDePasse),
   },
   {
+    // Le ticket d'un client, ouvert par le QR : sans compte, hors de la coque. Aucune garde — le
+    // client qui scanne n'est pas connecte, et ne doit pas etre renvoye vers une page de connexion.
+    path: 't/:code',
+    loadComponent: () => import('./ticket/ticket-public').then((m) => m.TicketPublicPage),
+  },
+  {
     path: '',
     canActivate: [gardeConnecte],
     loadComponent: () => import('./coque/coque').then((m) => m.Coque),

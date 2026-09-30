@@ -1,0 +1,83 @@
+<!--
+  La page du QR, sur le telephone du client. Une seule colonne etroite, lisible d'une main, et rien
+  a toucher : il vient voir son achat et ses points, pas se servir d'une application.
+-->
+<main class="mx-auto flex min-h-dvh max-w-md flex-col px-4 py-6" style="background: var(--mat-sys-surface)">
+  @if (chargement()) {
+    <div class="flex flex-1 items-center justify-center">
+      <mat-spinner diameter="36" />
+    </div>
+  } @else if (introuvable(); as message) {
+    <div class="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+      <mat-icon class="!h-12 !w-12 !text-5xl opacity-50">receipt_long</mat-icon>
+      <p class="m-0 text-base font-medium">Ticket {{ lisible(code()) }}</p>
+      <p class="m-0 max-w-72 text-sm opacity-70">{{ message }}</p>
+    </div>
+  } @else if (ticket(); as t) {
+    <header class="mb-5 text-center">
+      <p class="m-0 text-xl font-medium">{{ t.magasin || 'Votre ticket' }}</p>
+      @if (t.ville) {
+        <p class="m-0 text-sm opacity-70">{{ t.ville }}</p>
+      }
+      <p class="m-0 mt-1 text-sm opacity-70">{{ t.date | date: 'dd/MM/yyyy à HH:mm' }}</p>
+    </header>
+
+    @if (t.annulee) {
+      <p
+        class="mb-4 rounded-lg px-4 py-3 text-center text-sm font-medium"
+        style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)"
+        role="status"
+      >
+        Cette vente a été annulée : elle ne rapporte pas de points.
+      </p>
+    } @else if (t.fideliteActive) {
+      <!-- Ce que le client vient chercher : en gros, en tete, avec ce que cela veut dire. -->
+      <section
+        class="mb-5 rounded-2xl px-5 py-5 text-center"
+        style="background: var(--mat-sys-primary-container); color: var(--mat-sys-on-primary-container)"
+      >
+        <p class="m-0 text-5xl font-medium">{{ t.points }}</p>
+        <p class="m-0 text-base">point{{ t.points > 1 ? 's' : '' }} fidélité</p>
+        <p class="m-0 mt-3 text-xs opacity-80">
+          1 point par tranche de {{ t.montantParPoint | number: '1.0-0' }} F d’achat sur un ticket.
+          @if (t.points > 0) {
+            Gardez ce ticket : vos points pourront bientôt être réclamés.
+          }
+        </p>
+      </section>
+    }
+
+    <section class="rounded-2xl px-4 py-3" style="background: var(--mat-sys-surface-container)">
+      <h2 class="m-0 mb-2 text-xs uppercase tracking-wide opacity-60">Vos articles</h2>
+      <ul class="m-0 list-none p-0">
+        @for (article of t.articles; track $index) {
+          <li
+            class="flex items-baseline gap-3 border-b py-2 last:border-b-0"
+            style="border-color: var(--mat-sys-outline-variant)"
+          >
+            <span class="min-w-0 flex-1 text-sm">
+              {{ article.designation || 'Article' }}
+              <span class="block text-xs opacity-60">× {{ article.quantite | number: '1.0-2' }}</span>
+            </span>
+            @if (article.montant != null) {
+              <!--
+                Avec ses decimales quand elle en a : a 19,25 %, une ligne tombe souvent sur un
+                demi-franc. Arrondies a l'affichage, les lignes ne tombaient plus sur le total, et
+                un client attentif y voyait une erreur de calcul.
+              -->
+              <span class="nombre shrink-0 text-sm">{{ article.montant | number: '1.0-2' }} F</span>
+            }
+          </li>
+        }
+      </ul>
+      @if (t.totalTtc != null) {
+        <div class="mt-2 flex items-baseline justify-between border-t pt-3" style="border-color: var(--mat-sys-outline-variant)">
+          <span class="text-sm font-medium">Total</span>
+          <span class="nombre text-xl font-medium">{{ t.totalTtc | number: '1.0-0' }} F</span>
+        </div>
+      }
+    </section>
+
+    <p class="mt-auto pt-6 text-center text-xs opacity-50">Ticket {{ lisible(t.code) }}</p>
+  }
+</main>

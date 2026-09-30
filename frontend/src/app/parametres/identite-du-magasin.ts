@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -30,6 +31,8 @@ const VENTE_POUR_VOIR: FactureDto = {
   montantRegle: 25_639,
   tvaApplicable: true,
   annulee: false,
+  // Un code d'exemple, pour que l'apercu montre le QR et les points tels qu'ils s'imprimeront.
+  codeTicket: '7K3M9P2QA4TZ',
   lignes: [
     {
       id: 1,
@@ -63,6 +66,7 @@ const VENTE_POUR_VOIR: FactureDto = {
 @Component({
   selector: 'app-identite-du-magasin',
   imports: [
+    DecimalPipe,
     FormsModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -94,6 +98,13 @@ export class IdentiteDuMagasin implements OnInit {
    * malgre `OnPush` : c'est un signal, pas une mutation en place.
    */
   protected readonly magasin = computed(() => this.brouillon());
+
+  /** Un exemple chiffre sous le reglage : le montant seul ne dit pas ce qu'il donne. */
+  protected readonly exempleDeTicket = computed(() => 25_000);
+  protected readonly exempleDePoints = computed(() => {
+    const parPoint = Number(this.brouillon().montantParPoint) || 10_000;
+    return parPoint > 0 ? Math.floor(this.exempleDeTicket() / parPoint) : 0;
+  });
 
   ngOnInit(): void {
     this.entreprise.charger().subscribe({

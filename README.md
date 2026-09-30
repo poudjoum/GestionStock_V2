@@ -229,6 +229,50 @@ le poste pour toujours.
 La facture, elle, porte la date de la synchronisation : elle n'existait pas avant, et son numero
 suit l'ordre d'emission.
 
+## Le QR du ticket et la fidelite
+
+Chaque ticket porte un QR. Le client le scanne avec son telephone, sans compte, et retrouve son
+achat : le magasin, la date, **les articles**, le total — et les points que ce ticket lui vaut. Un
+jeu viendra s'y brancher pour favoriser les ventes ; ces tickets-la seront deja imprimes, et
+vaudront deja leurs points.
+
+```
+GET /gestiondestock/v1/tickets/{code}        sans compte : le ticket du client
+```
+
+**Le code.** Douze caracteres de l'alphabet de Crockford — sans I, L, O ni U —, soit soixante bits
+tires au hasard : on ne devine pas le ticket d'un autre, et il se recopie a la main si le QR est
+abime (`7K3M-9P2Q-A4TZ`, imprime sous le QR). La lecture tolere minuscules, tirets et les lettres
+qu'une thermique rend ambigues (O pour 0, I ou L pour 1).
+
+- **Tire au comptoir**, et non par le serveur : un ticket imprime hors ligne porte deja le sien, et
+  le serveur le garde tel quel a la synchronisation. Une vente arrivee sans code — une commande
+  servie, un appel d'API — en recoit un du serveur.
+- **Distinct de `referenceClient`**, qui sert a rejouer un envoi sans vendre deux fois et n'a rien a
+  faire sur un papier qui circule.
+- Un code mal forme est **refuse, pas remplace** : remplace, il ne serait plus celui du papier.
+
+**Ce que la page montre, et rien de plus.** Ni le nom du client, ni le caissier, ni le numero de
+facture : quelqu'un qui ramasse le ticket d'un autre n'apprend que ce que le papier disait deja. Un
+code inconnu et un code mal forme rendent la meme reponse. Les articles viennent de la facture, qui
+les a figes a la vente : un article renomme depuis ne change pas le ticket du client. Un ticket
+imprime hors ligne et pas encore arrive le dit, au lieu de passer pour un faux.
+
+**L'adresse du QR** est `ADRESSE_PUBLIQUE` (renvoyee au front par `/entreprises/mienne`), et non
+celle de la page : ouvert sur le reseau du magasin, le front ne connait que `http://192.168.1.100:9093`,
+qui ne mene nulle part depuis le telephone d'un client. Sans adresse publique connue, le ticket
+imprime le code sans QR plutot qu'un QR qui ne mene nulle part.
+
+**Les points** : un par tranche entiere de `montantParPoint` payee TTC, sur un seul ticket — 25 000 F
+donnent 2 points a 10 000 F le point, 9 000 F n'en donnent aucun. Chaque commerce regle son montant
+et peut couper le programme, dans l'ecran de son magasin. Une vente annulee ne vaut rien, et la page
+le dit. La regle est ecrite une fois de chaque cote (`PointsFidelite`, et le composant du ticket).
+
+Le QR est dessine en SVG — net a toute taille sur une thermique — avec une correction de niveau Q, qui
+tolere un quart de modules illisibles : un ticket passe dans une poche. Le codage est confie a
+`qrcode-generator`, sans dependance ; chaque QR produit est relu dans les tests par un decodeur
+independant (`jsqr`), et le QR affiche par le comptoir l'a ete lui aussi a l'essai.
+
 ## TVA
 
 Le regime de TVA se parametre **sur l'entreprise**, a son enregistrement :

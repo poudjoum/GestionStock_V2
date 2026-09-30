@@ -113,6 +113,38 @@
     <!-- Enregistre hors ligne : la facture, et son numero, suivront a la reconnexion. -->
     <div class="ticket__mention">Vente enregistrée hors ligne.<br />La facture suivra.</div>
   }
+
+  <!--
+    Le QR : il mene le client a son achat — le magasin, la date, les articles, les points. Hors
+    ligne aussi : le code est tire au comptoir, et la page le trouvera des que la vente sera arrivee.
+    Le code en clair dessous, pour le recopier si le papier est abime.
+  -->
+  @if (code()) {
+    <div class="ticket__fidelite">
+      @if (fideliteActive() && points() > 0) {
+        <div class="ticket__points">
+          +{{ points() }} point{{ points() > 1 ? 's' : '' }} fidélité
+        </div>
+      }
+      @if (qr(); as dessin) {
+        <svg
+          class="ticket__qr"
+          [attr.viewBox]="'-2 -2 ' + (dessin.modules + 4) + ' ' + (dessin.modules + 4)"
+          shape-rendering="crispEdges"
+          role="img"
+          aria-label="QR du ticket"
+        >
+          <rect x="-2" y="-2" [attr.width]="dessin.modules + 4" [attr.height]="dessin.modules + 4" fill="#fff" />
+          <path [attr.d]="dessin.chemin" fill="#000" />
+        </svg>
+      }
+      <div class="ticket__mention">
+        {{ fideliteActive() ? 'Scannez pour retrouver votre achat et vos points' : 'Scannez pour retrouver votre achat' }}
+      </div>
+      <div class="ticket__code">{{ code() }}</div>
+    </div>
+    <div class="ticket__filet"></div>
+  }
   <footer class="ticket__pied">
     <div>Merci de votre visite</div>
     @if (facture().annulee) {

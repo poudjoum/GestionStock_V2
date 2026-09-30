@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { libelleDuMode } from '../noyau/reglements';
+import { dessinerQr } from '../noyau/qr';
+import { adresseDuTicket, codeLisible } from '../noyau/code-ticket';
 import type { EntrepriseDto } from '../noyau/api';
 import type { FactureDto } from '../comptoir/comptoir.service';
 
@@ -80,4 +82,44 @@ export class Ticket {
 
   /** Vrai quand le client repart sans rien devoir — ce que le ticket doit dire clairement. */
   protected readonly solde = computed(() => (this.facture().resteAPayer ?? 0) <= 0);
+
+  /** Le code du ticket, lisible : trois groupes de quatre, a recopier si le QR est abime. */
+  protected readonly code = computed(() => {
+    const code = this.facture().codeTicket;
+    return code ? codeLisible(code) : null;
+  });
+
+  /**
+   * Le QR qui mene le client a son achat : le magasin, la date, les articles, les points.
+   *
+   * L'adresse est celle que le serveur declare publique, et non celle de la page : ouvert sur le
+   * reseau du magasin, le front ne connait que `http://192.168.1.100:9093`, qui ne mene nulle part
+   * depuis le telephone d'un client. A defaut, l'origine de la page si elle est en HTTPS — c'est
+   * alors deja une adresse publique. Sans l'une ni l'autre, pas de QR : un QR qui ne mene nulle
+   * part est pire que pas de QR ; le code reste imprime.
+   */
+  protected readonly qr = computed(() => {
+    const code = this.facture().codeTicket;
+    const base =
+      this.entreprise()?.adresseTickets ||
+      (typeof location !== 'undefined' && location.protocol === 'https:' ? location.origin : null);
+    return code && base ? dessinerQr(adresseDuTicket(base, code)) : null;
+  });
+
+  /**
+   * Les points que ce ticket rapporte : une tranche entiere de `montantParPoint` payee TTC. La
+   * meme regle que `PointsFidelite` cote serveur, pour que le papier et la page du QR disent le
+   * meme nombre.
+   */
+  protected readonly points = computed(() => {
+    const magasin = this.entreprise();
+    const facture = this.facture();
+    if (!magasin || magasin.fideliteActive === false || facture.annulee) {
+      return 0;
+    }
+    const parPoint = magasin.montantParPoint && magasin.montantParPoint > 0 ? magasin.montantParPoint : 10000;
+    return Math.floor((facture.totalTtc ?? 0) / parPoint);
+  });
+
+  protected readonly fideliteActive = computed(() => this.entreprise()?.fideliteActive !== false);
 }

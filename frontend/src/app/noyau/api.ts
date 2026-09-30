@@ -24,8 +24,18 @@ export type ClientDto = Schemas['ClientDto'];
 export type NotificationDto = Schemas['NotificationDto'];
 export type LigneInventaireDto = Schemas['LigneInventaireDto'];
 
-/** L'identite du magasin, telle qu'elle s'imprime en tete d'un ticket. */
-export type EntrepriseDto = Schemas['EntrepriseDto'];
+/**
+ * L'identite du magasin, telle qu'elle s'imprime en tete d'un ticket.
+ *
+ * Les champs de fidelite sont ajoutes a la main, en attendant la regeneration contre l'API
+ * deployee, comme `motdepasseAChanger` plus haut.
+ */
+export type EntrepriseDto = Schemas['EntrepriseDto'] & {
+  fideliteActive?: boolean;
+  montantParPoint?: number;
+  /** Ou le client consulte son ticket : la base de l'adresse du QR. En lecture seule. */
+  adresseTickets?: string;
+};
 
 /**
  * Une page telle que Spring Data la rend.
