@@ -124,19 +124,28 @@ if ($Drive) {
         Journal "ERREUR : rclone est introuvable, rien n'est envoye vers Google Drive. « winget install Rclone.Rclone »."
         $driveEchoue = $true
     } else {
-        # rclone ecrit son compte rendu sur stderr. Sous PowerShell 5.1, rediriger stderr avec
-        # « Stop » transforme chaque ligne en erreur fatale : c'est son code de sortie qui juge.
-        $ErrorActionPreference = 'Continue'
+        # Le compte rendu de rclone passe par un fichier et non par stderr : sous PowerShell 5.1,
+        # rediriger stderr emballe les lignes dans des erreurs qui les repetent, et le decompte
+        # des fichiers envoyes en etait fausse.
+        $compteRendu = Join-Path $env:TEMP 'copier-sauvegardes-rclone.log'
+        Remove-Item -Force -ErrorAction SilentlyContinue $compteRendu
         $filtres = @('--include', 'gestionstock-*.dump', '--include', 'caddy-*.tar.gz')
-        $sortie = & $rclone copy $Local $Drive @filtres --stats-one-line -v 2>&1 | Out-String
-        if ($LASTEXITCODE -ne 0) {
-            Journal "  ERREUR : l'envoi vers Google Drive a echoue (rclone $LASTEXITCODE)."
-            ($sortie -split "`r?`n" | Where-Object { $_ -match 'ERROR|Failed' } | Select-Object -First 3) |
+        & $rclone copy $Local $Drive @filtres -v --log-file $compteRendu
+        $codeRclone = $LASTEXITCODE
+        $lignes = if (Test-Path $compteRendu) { Get-Content $compteRendu } else { @() }
+        if ($codeRclone -ne 0) {
+            Journal "  ERREUR : l'envoi vers Google Drive a echoue (rclone $codeRclone)."
+            ($lignes | Where-Object { $_ -match 'ERROR|CRITICAL' } | Select-Object -First 3) |
                 ForEach-Object { Journal "    $_" }
             $driveEchoue = $true
         } else {
-            $envoyes = ([regex]::Matches($sortie, ': Copied \(new\)')).Count
-            & $rclone delete $Drive @filtres --exclude '*-??????01-*' --min-age "${RetentionJours}d" 2>&1 | Out-Null
+            $envoyes = @($lignes | Where-Object { $_ -match 'INFO\s+:.*: Copied \(' }).Count
+            # Des --filter, lus dans l'ordre, et non --include avec --exclude : rclone ne garantit
+            # pas l'ordre de ces deux-la entre eux, et la regle qui epargne le 1er du mois pouvait
+            # passer apres celle qui designe le fichier a purger.
+            $purge = @('--filter', '- *-??????01-*', '--filter', '+ gestionstock-*.dump',
+                       '--filter', '+ caddy-*.tar.gz', '--filter', '- *')
+            & $rclone delete $Drive @purge --min-age "${RetentionJours}d" --log-file $compteRendu
             Journal "  Google Drive : $envoyes fichier(s) envoye(s), chiffres."
         }
     }
