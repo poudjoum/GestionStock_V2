@@ -3,6 +3,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.config.security;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.AuthTokenFilter;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.EntryPointJwt;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.JwtUtils;
+import com.jumpy.tech.gestionstock.gestiondestock.config.security.service.UserDetailsImpl;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.service.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +11,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
+import org.springframework.security.authorization.AuthorityAuthorizationManager;
+import org.springframework.security.authorization.AuthorizationManager;
+import org.springframework.security.authorization.AuthorizationManagers;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -18,6 +23,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -40,6 +46,9 @@ public class SecurityConfiguration {
     private static final String CAISSIER = "CAISSIER";
     private static final String COMPTABLE = "COMPTABLE";
     private static final String SUPER_ADMIN = "SUPER_ADMIN";
+    /** Sans le prefixe ROLE_, comme les autres : c'est ce qu'attend `hasRole`. */
+    private static final String CLIENT_FIDELITE =
+            UserDetailsImpl.ROLE_CLIENT_FIDELITE.substring("ROLE_".length());
 
     private final UserDetailsServiceImpl userDetailsService;
     private final EntryPointJwt unauthorizedHandler;
@@ -118,11 +127,22 @@ public class SecurityConfiguration {
      *
      * L'ordre compte : Spring retient la premiere regle dont le motif correspond. Les regles
      * d'ecriture, plus etroites, precedent donc la lecture, qui precede le fourre-tout final.
-     * Ce dernier est `authenticated()` et non `permitAll()` : une route ajoutee demain naitra
-     * fermee, et son auteur aura a decider qui l'ouvre.
+     * Ce dernier exige un compte du personnel et non `permitAll()` : une route ajoutee demain
+     * naitra fermee, et son auteur aura a decider qui l'ouvre. Le client de l'application mobile
+     * n'y entre pas : il n'a que l'espace fidelite.
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // Un compte du personnel, quel que soit son role.
+        //
+        // Le client de l'application mobile est authentifie lui aussi, et s'inscrit sans que
+        // personne ne l'y autorise : toutes les regles « tout compte connecte » de la gestion
+        // l'auraient laisse lire articles, clients et ventes. Il n'a pas d'entreprise, et le
+        // cloisonnement ne l'aurait pas arrete — il le prend pour un compte sans entreprise.
+        AuthorizationManager<RequestAuthorizationContext> personnel = AuthorizationManagers.allOf(
+                AuthenticatedAuthorizationManager.authenticated(),
+                AuthorizationManagers.not(AuthorityAuthorizationManager.hasRole(CLIENT_FIDELITE)));
+
         http.csrf(AbstractHttpConfigurer::disable)
                 // Monte le filtre CORS devant l'autorisation : une requete preliminaire OPTIONS
                 // ne porte pas de jeton, et sans cela elle serait refusee avant d'etre traitee.
@@ -155,14 +175,28 @@ public class SecurityConfiguration {
                         // c'est avoir le ticket en main — et la reponse ne dit rien du client.
                         .requestMatchers(HttpMethod.GET, API + "/tickets/*").permitAll()
 
+                        // L'application mobile de fidelite, pour les clients des magasins abonnes.
+                        //
+                        // S'inscrire et se connecter ne demandent pas de compte, et la vitrine des
+                        // magasins se consulte avant de s'inscrire.
+                        .requestMatchers(API + "/fidelite/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, API + "/fidelite/magasins").permitAll()
+                        // Lire et consommer un bon se fait au comptoir : le personnel du magasin.
+                        .requestMatchers(API + "/fidelite/bons/*/verifier", API + "/fidelite/bons/*/utiliser")
+                            .hasAnyRole(ADMIN, MANAGER, CAISSIER, SUPER_ADMIN)
+                        // Le reste est l'espace du client, et de lui seul : ces routes lisent l'id
+                        // du compte connecte comme un id de client. Un employe qui les appellerait
+                        // lirait le client portant le meme numero que son propre compte.
+                        .requestMatchers(API + "/fidelite/**").hasRole(CLIENT_FIDELITE)
+
                         // Chacun lit son propre compte et change son propre mot de passe : les
                         // seuls points de /users ouverts a tout compte. Ces regles viennent avant
                         // celle des comptes, qui sinon les reserverait a l'administration.
                         //
                         // On ne demande pas a quelqu'un s'il a le droit de savoir qui il est : le
                         // front en a besoin a chaque rechargement de page pour rebatir son menu.
-                        .requestMatchers(HttpMethod.GET, API + "/users/moi").authenticated()
-                        .requestMatchers(HttpMethod.PATCH, API + "/users/moi/motdepasse").authenticated()
+                        .requestMatchers(HttpMethod.GET, API + "/users/moi").access(personnel)
+                        .requestMatchers(HttpMethod.PATCH, API + "/users/moi/motdepasse").access(personnel)
 
                         // Et chacun lit l'entreprise pour laquelle il travaille. C'est le meme
                         // principe : la maison dont on porte le tablier n'est pas un secret.
@@ -170,7 +204,7 @@ public class SecurityConfiguration {
                         // Sans cette ligne, /entreprises/** plus bas la reservait a
                         // l'administration — et le caissier, qui imprime des tickets a l'en-tete
                         // du magasin toute la journee, etait le seul a ne pas pouvoir la lire.
-                        .requestMatchers(HttpMethod.GET, API + "/entreprises/mienne").authenticated()
+                        .requestMatchers(HttpMethod.GET, API + "/entreprises/mienne").access(personnel)
 
                         // La plateforme : tout ce qui regarde au-dessus des entreprises.
                         //
@@ -249,14 +283,14 @@ public class SecurityConfiguration {
                         // Ses propres notifications : chacun lit et marque les siennes. Sans
                         // cette ligne, la regle PATCH generique reserverait la lecture d'une
                         // cloche a trois roles sur six.
-                        .requestMatchers(HttpMethod.PATCH, API + "/notifications/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, API + "/notifications/**").access(personnel)
                         // De meme pour abonner ou desabonner son appareil aux alertes. Sans ces
                         // deux lignes, les regles generiques reservaient l'abonnement a trois
                         // roles et le desabonnement a deux : le magasinier qui se deconnectait
                         // d'une caisse partagee ne pouvait pas en retirer l'appareil, qui
                         // continuait de recevoir ses alertes.
-                        .requestMatchers(HttpMethod.POST, API + "/notifications/push/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, API + "/notifications/push/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, API + "/notifications/push/**").access(personnel)
+                        .requestMatchers(HttpMethod.DELETE, API + "/notifications/push/**").access(personnel)
 
                         // Renoncer a un reliquat n'est pas un constat de magasin mais une
                         // decision : on cesse d'attendre un fournisseur, ou de devoir a un
@@ -316,9 +350,9 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, API + "/**").hasAnyRole(ADMIN, MANAGER, MAGASINIER)
 
                         // Tout compte valide peut consulter.
-                        .requestMatchers(HttpMethod.GET, API + "/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, API + "/**").access(personnel)
 
-                        .anyRequest().authenticated()
+                        .anyRequest().access(personnel)
                 );
         http.authenticationProvider(authenticationProvider());
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);

@@ -27,6 +27,9 @@ import java.util.Date;
 @Slf4j
 public class JwtUtils {
 
+    private static final String TYPE = "typ";
+    private static final String TYPE_CLIENT = "client";
+
     @Value("${app.jwtSecret}")
     private String jwrSecret;
 
@@ -47,6 +50,19 @@ public class JwtUtils {
      */
     public String genererJetonPour(UserDetailsImpl userPrincipal) {
         Date maintenant = new Date();
+        // Le jeton d'un client porte son identifiant et la marque `client` : il se relit dans la
+        // table des clients, jamais dans celle du personnel. Un client qui s'inscrirait avec pour
+        // telephone le nom d'un employe ne doit pas recevoir un jeton qui ouvre le compte de cet
+        // employe.
+        if (userPrincipal.isClientFidelite()) {
+            return Jwts.builder()
+                    .subject(String.valueOf(userPrincipal.getId()))
+                    .claim(TYPE, TYPE_CLIENT)
+                    .issuedAt(maintenant)
+                    .expiration(new Date(maintenant.getTime() + jwtExpirationMs))
+                    .signWith(key())
+                    .compact();
+        }
         return Jwts.builder()
                 .subject(userPrincipal.getUsername())
                 .issuedAt(maintenant)
@@ -57,6 +73,13 @@ public class JwtUtils {
 
     private SecretKey key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwrSecret));
+    }
+
+    /** Le jeton d'un client de l'application mobile : son sujet est alors l'id du client. */
+    public boolean estJetonClient(String token) {
+        Object type = Jwts.parser().verifyWith(key()).build()
+                .parseSignedClaims(token).getPayload().get(TYPE);
+        return TYPE_CLIENT.equals(type);
     }
 
     public String getUserNameFromJwtToken(String token) {

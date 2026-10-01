@@ -38,7 +38,11 @@ public enum ErrorCodes {
     // rendu dans le rapport et non une erreur.
     IMPORT_NOT_VALID(15000),
     INVENTAIRE_NOT_FOUND(16000),
-    INVENTAIRE_NOT_VALID(16100)
+    INVENTAIRE_NOT_VALID(16100),
+    FIDELITE_NOT_FOUND(17000),
+    FIDELITE_NOT_VALID(17100),
+    BON_ACHAT_NOT_FOUND(17200),
+    BON_ACHAT_NOT_VALID(17300)
 
     ;
 
