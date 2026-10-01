@@ -1,9 +1,11 @@
 @let f = ouverte();
 
-<div class="mx-auto grid max-w-7xl gap-4" [class]="f ? 'xl:grid-cols-[1fr_420px]' : ''">
+<div class="page grid gap-4" [class.xl:grid-cols-[1fr_420px]]="!!f">
   <section class="min-w-0">
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <mat-form-field appearance="outline" class="min-w-0 flex-1" subscriptSizing="dynamic">
+    <gs-en-tete-page titre="Factures" sousTitre="Ce qui a été vendu, ce qui est encaissé, et ce qui reste à encaisser." />
+
+    <div class="barre-outils">
+      <mat-form-field appearance="outline" class="recherche" subscriptSizing="dynamic">
         <mat-label>Chercher une facture</mat-label>
         <mat-icon matPrefix>search</mat-icon>
         <input
@@ -14,99 +16,84 @@
           placeholder="numéro ou client"
         />
         @if (recherche()) {
-          <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer">
+          <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer la recherche">
             <mat-icon>close</mat-icon>
           </button>
         }
       </mat-form-field>
 
-      <mat-button-toggle-group
-        [value]="statut()"
-        (change)="changerStatut($event.value)"
-        hideSingleSelectionIndicator
-      >
-        <mat-button-toggle value="DUES">À encaisser</mat-button-toggle>
-        <mat-button-toggle value="REGLEE">Réglées</mat-button-toggle>
-        <mat-button-toggle value="">Toutes</mat-button-toggle>
-      </mat-button-toggle-group>
+      <gs-selecteur aria-label="Factures affichées" [options]="filtres()" [valeur]="statut()" (valeurChange)="changerStatut($event)" />
     </div>
 
     @if (statut() === 'DUES' && lignes().length > 0) {
-      <div
-        class="carte mb-3 flex items-baseline gap-3 p-3"
-        style="background: var(--mat-sys-error-container); border-color: var(--mat-sys-error-container)"
-      >
-        <mat-icon style="color: var(--mat-sys-on-error-container)">account_balance_wallet</mat-icon>
-        <span class="flex-1 text-sm" style="color: var(--mat-sys-on-error-container)">
-          Reste à encaisser sur cette page
+      <!--
+        Avoir des factures a encaisser est le quotidien d'un commerce, pas une alarme : un resume
+        neutre, avec le montant en evidence, et non un bandeau rouge sur toute la largeur.
+      -->
+      <div class="resume-du">
+        <mat-icon aria-hidden="true">account_balance_wallet</mat-icon>
+        <span class="flex-1">
+          <span class="gs-etiquette block">Reste à encaisser</span>
+          <span class="gs-encre-2 text-sm">sur les {{ lignes().length }} factures affichées</span>
         </span>
-        <span class="nombre text-xl font-medium" style="color: var(--mat-sys-on-error-container)">
-          {{ resteTotal() | number: '1.0-0' }} F
-        </span>
+        <span class="montant gs-titre nombre">{{ resteTotal() | number: '1.0-0' }} F</span>
       </div>
     }
 
     @if (chargement()) {
-      <div class="flex flex-col gap-2">
+      <div class="grid gap-2">
         @for (i of [1, 2, 3, 4, 5]; track i) {
           <div class="squelette h-14"></div>
         }
       </div>
     } @else if (erreur(); as message) {
-      <p class="rounded px-3 py-2 text-sm" role="alert"
-         style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
-        {{ message }}
+      <p class="message-erreur" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ message }}</span>
       </p>
     } @else if (lignes().length === 0) {
-      <div class="py-20 text-center opacity-50">
-        <mat-icon class="!h-12 !w-12 !text-5xl">
-          {{ statut() === 'DUES' ? 'task_alt' : 'receipt_long' }}
-        </mat-icon>
-        <p class="mt-2 text-sm">
-          {{ statut() === 'DUES' ? 'Tout est encaissé.' : 'Aucune facture.' }}
-        </p>
-      </div>
+      <gs-section>
+        @if (recherche()) {
+          <gs-etat-vide icone="search_off" [titre]="'Rien ne correspond à « ' + recherche() + ' »'" texte="Cherchez par le numéro de la facture ou le nom du client." [filtre]="true">
+            <button mat-button type="button" (click)="chercher('')">Effacer la recherche</button>
+          </gs-etat-vide>
+        } @else if (statut() === 'DUES') {
+          <gs-etat-vide icone="task_alt" titre="Tout est encaissé" texte="Aucune facture n’attend de règlement." />
+        } @else {
+          <gs-etat-vide icone="receipt_long" titre="Aucune facture" texte="Chaque vente encaissée au comptoir crée sa facture ici." />
+        }
+      </gs-section>
     } @else {
-      <div class="carte overflow-hidden">
-        <table class="w-full border-collapse text-sm">
+      <div class="tableau-cadre hidden md:block">
+        <table class="gs-tableau">
           <thead>
-            <tr style="background: var(--mat-sys-surface-container)">
-              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide opacity-60">Facture</th>
-              <th class="hidden px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide opacity-60 sm:table-cell">Client</th>
-              <th class="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide opacity-60">Statut</th>
-              <th class="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide opacity-60">Total TTC</th>
-              <th class="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wide opacity-60">Reste</th>
+            <tr>
+              <th>Facture</th>
+              <th>Client</th>
+              <th>Statut</th>
+              <th class="gs-num">Total TTC</th>
+              <th class="gs-num">Reste</th>
             </tr>
           </thead>
           <tbody>
             @for (facture of lignes(); track facture.id) {
               <tr
-                class="carte-cliquable border-t"
-                style="border-color: var(--mat-sys-outline-variant)"
-                [style.background]="f?.id === facture.id ? 'var(--mat-sys-secondary-container)' : 'transparent'"
+                class="gs-cliquable"
+                [class.gs-selectionnee]="f?.id === facture.id"
+                tabindex="0"
                 (click)="ouvrir(facture)"
+                (keydown.enter)="ouvrir(facture)"
               >
-                <td class="px-4 py-2.5">
-                  <span class="block font-medium">{{ facture.numero }}</span>
-                  <span class="block text-xs opacity-60">
-                    {{ facture.dateEmission | date: 'dd/MM/yyyy' }}
-                  </span>
+                <td>
+                  <span class="designation gs-code">{{ facture.numero }}</span>
+                  <span class="code">{{ facture.dateEmission | date: 'dd/MM/yyyy' }}</span>
                 </td>
-                <td class="hidden px-4 py-2.5 sm:table-cell">
-                  {{ facture.nomClient || '—' }}
+                <td>{{ facture.nomClient || '—' }}</td>
+                <td>
+                  <gs-statut [ton]="pastille(facture).ton" [icone]="pastille(facture).icone">{{ pastille(facture).libelle }}</gs-statut>
                 </td>
-                <td class="px-4 py-2.5">
-                  <span class="pastille"
-                        [style.background]="pastille(facture).fond"
-                        [style.color]="pastille(facture).texte">
-                    {{ pastille(facture).libelle }}
-                  </span>
-                </td>
-                <td class="nombre px-4 py-2.5 text-right">{{ facture.totalTtc | number: '1.0-0' }} F</td>
-                <td
-                  class="nombre px-4 py-2.5 text-right font-medium"
-                  [style.color]="(facture.resteAPayer ?? 0) > 0 && !facture.annulee ? 'var(--mat-sys-error)' : 'inherit'"
-                >
+                <td class="gs-num">{{ facture.totalTtc | number: '1.0-0' }} F</td>
+                <td class="gs-num valeur" [class.danger]="(facture.resteAPayer ?? 0) > 0 && !facture.annulee">
                   {{ facture.annulee ? '—' : (facture.resteAPayer | number: '1.0-0') + ' F' }}
                 </td>
               </tr>
@@ -115,7 +102,26 @@
         </table>
       </div>
 
-      <p class="mt-3 text-center text-xs opacity-50">
+      <!-- Sur telephone, des cartes : cinq colonnes n'y tiennent pas. -->
+      <ul class="cartes md:hidden">
+        @for (facture of lignes(); track facture.id) {
+          <li class="carte-cliquable" tabindex="0" (click)="ouvrir(facture)" (keydown.enter)="ouvrir(facture)">
+            <span class="infos">
+              <span class="designation gs-code">{{ facture.numero }}</span>
+              <span class="code">{{ facture.nomClient || 'Client de comptoir' }} · {{ facture.dateEmission | date: 'dd/MM' }}</span>
+              <gs-statut [ton]="pastille(facture).ton" [icone]="pastille(facture).icone">{{ pastille(facture).libelle }}</gs-statut>
+            </span>
+            <span class="chiffres">
+              <span class="nombre font-semibold" [class.danger]="(facture.resteAPayer ?? 0) > 0 && !facture.annulee">
+                {{ facture.annulee ? '—' : (facture.resteAPayer | number: '1.0-0') + ' F' }}
+              </span>
+              <span class="gs-encre-3 nombre text-xs">sur {{ facture.totalTtc | number: '1.0-0' }} F</span>
+            </span>
+          </li>
+        }
+      </ul>
+
+      <p class="pied gs-encre-3">
         {{ lignes().length }} facture{{ lignes().length > 1 ? 's' : '' }}
         @if (total() > lignes().length) {
           sur {{ total() }}

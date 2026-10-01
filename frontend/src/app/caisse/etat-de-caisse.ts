@@ -3,7 +3,6 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -11,12 +10,15 @@ import { environnement } from '../../environnements/environnement';
 import { libelleDuMode } from '../factures/factures.service';
 import type { components } from '../api/schema';
 import type { Page } from '../noyau/api';
+import type { ReglementDto as Reglement } from '../noyau/reglements';
+import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut, Tuile } from '../design';
 
 /** `bonsAchat` est ajoute a la main, en attendant la regeneration des types contre l'API deployee. */
 type EtatDeCaisseDto = components['schemas']['EtatDeCaisseDto'] & {
   bonsAchat?: { mode?: string; total?: number; nombre?: number };
 };
-type ReglementDto = components['schemas']['ReglementDto'];
+// Le type commun, qui connait le bon d'achat ; celui du schema genere ne le connait pas encore.
+type ReglementDto = Reglement;
 
 const API = `${environnement.api}/gestiondestock/v1/caisse`;
 
@@ -40,6 +42,7 @@ function ilYA(jours: number): string {
  * semaine », « le mois » couvrent presque tous les cas, et obliger a choisir deux dates pour
  * savoir ce qu'a fait la journee serait deux clics de trop, tous les soirs.
  */
+
 @Component({
   selector: 'app-etat-de-caisse',
   imports: [
@@ -47,12 +50,18 @@ function ilYA(jours: number): string {
     DecimalPipe,
     FormsModule,
     MatButtonModule,
-    MatButtonToggleModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    EnTetePage,
+    EtatVide,
+    Section,
+    Selecteur,
+    Statut,
+    Tuile,
   ],
   templateUrl: './etat-de-caisse.html',
+  styleUrl: './etat-de-caisse.css',
 })
 export class EtatDeCaisse implements OnInit {
   private readonly http = inject(HttpClient);
@@ -68,6 +77,13 @@ export class EtatDeCaisse implements OnInit {
   protected readonly erreur = signal<string | null>(null);
 
   protected readonly libelleDuMode = libelleDuMode;
+
+  /** Les periodes courantes ; une periode choisie aux dates n'en coche aucune. */
+  protected readonly periodes: OptionSelecteur<'jour' | 'semaine' | 'mois' | 'libre'>[] = [
+    { valeur: 'jour', libelle: 'Aujourd’hui' },
+    { valeur: 'semaine', libelle: '7 jours' },
+    { valeur: 'mois', libelle: '30 jours' },
+  ];
 
   ngOnInit(): void {
     this.charger();

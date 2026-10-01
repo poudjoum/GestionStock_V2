@@ -1,198 +1,139 @@
 @let s = stock();
 @let c = caisse();
 
-<div class="mx-auto max-w-6xl">
-  <header class="mb-6">
-    <h1 class="text-2xl font-medium">{{ salutation() }}, {{ prenom() }}</h1>
-    <p class="mt-0.5 text-sm opacity-60">Voici l’état de la maison aujourd’hui.</p>
-  </header>
+<div class="page">
+  <gs-en-tete-page [titre]="titre()" sousTitre="Voici l’état du magasin aujourd’hui.">
+    @for (campagne of campagnes(); track campagne.id) {
+      <a class="rappel-campagne gs-focus" routerLink="/campagnes">
+        <gs-statut ton="promo" icone="campaign">{{ campagne.titre }}</gs-statut>
+        <span>jusqu’au {{ campagne.dateFin | date: 'd MMM' }}</span>
+      </a>
+    }
+  </gs-en-tete-page>
 
   @if (chargement() && !s && !c) {
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="tuiles">
       @for (i of [1, 2, 3, 4]; track i) {
         <div class="squelette h-28"></div>
       }
     </div>
   } @else {
-    <!-- Les quatre chiffres qui comptent -->
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Les chiffres qui comptent : ce qui est entre, ce qui attend, ce qui manque, ce que ca vaut. -->
+    <div class="tuiles">
       @if (peutVoirLaCaisse()) {
-        <div class="carte p-4">
-          <div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide opacity-60">
-            <mat-icon class="!h-4 !w-4 !text-base">payments</mat-icon>
-            Caisse du jour
-          </div>
-          <p class="nombre mt-2 text-3xl font-medium">
-            {{ c?.total ?? 0 | number: '1.0-0' }}
-            <span class="text-base font-normal opacity-60">F</span>
-          </p>
-          <p class="mt-1 text-xs opacity-60">
-            {{ c?.nombreReglements ?? 0 }} règlement{{ (c?.nombreReglements ?? 0) > 1 ? 's' : '' }}
-          </p>
-        </div>
-      }
-
-      @if (peutVoirLeStock()) {
-        <div class="carte p-4">
-          <div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide opacity-60">
-            <mat-icon class="!h-4 !w-4 !text-base">inventory</mat-icon>
-            Valeur du stock
-          </div>
-          <p class="nombre mt-2 text-3xl font-medium">
-            {{ s?.valeurAuCout ?? 0 | number: '1.0-0' }}
-            <span class="text-base font-normal opacity-60">F</span>
-          </p>
-          <p class="mt-1 text-xs opacity-60">
-            au coût d’achat
-            @if ((s?.nombreSansCoutConnu ?? 0) > 0) {
-              · {{ s?.nombreSansCoutConnu }} sans coût connu
-            }
-          </p>
-        </div>
-
-        <div class="carte p-4">
-          <div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide opacity-60">
-            <mat-icon class="!h-4 !w-4 !text-base">category</mat-icon>
-            Articles
-          </div>
-          <p class="nombre mt-2 text-3xl font-medium">{{ s?.nombreArticles ?? 0 }}</p>
-          <p class="mt-1 text-xs opacity-60">au catalogue</p>
-        </div>
-
-        <div
-          class="carte p-4"
-          [style.border-color]="
-            (s?.nombreEnRupture ?? 0) > 0 ? 'var(--mat-sys-error)' : 'var(--mat-sys-outline-variant)'
-          "
+        <gs-tuile
+          libelle="Caisse du jour"
+          icone="point_of_sale"
+          [valeur]="c?.total ?? 0"
+          unite="F"
+          [detail]="(c?.nombreReglements ?? 0) + ' règlement' + ((c?.nombreReglements ?? 0) > 1 ? 's' : '')"
         >
-          <div class="flex items-center gap-2 text-xs font-medium uppercase tracking-wide opacity-60">
-            <mat-icon class="!h-4 !w-4 !text-base">warning</mat-icon>
-            À recommander
-          </div>
-          <p
-            class="nombre mt-2 text-3xl font-medium"
-            [style.color]="(s?.nombreEnRupture ?? 0) > 0 ? 'var(--mat-sys-error)' : 'inherit'"
-          >
-            {{ (s?.nombreEnRupture ?? 0) + (s?.nombreSousSeuil ?? 0) }}
-          </p>
-          <p class="mt-1 text-xs opacity-60">
-            dont {{ s?.nombreEnRupture ?? 0 }} en rupture
-          </p>
-        </div>
+          <a mat-button class="lien-tuile" routerLink="/caisse">Détail de la caisse</a>
+        </gs-tuile>
+        <gs-tuile
+          libelle="Factures à encaisser"
+          icone="receipt_long"
+          [valeur]="facturesDues()"
+          manquant="…"
+          [detail]="facturesDues() === 0 ? 'Tout est réglé' : 'impayées ou réglées en partie'"
+        >
+          <a mat-button class="lien-tuile" routerLink="/factures">Encaisser</a>
+        </gs-tuile>
+      }
+      @if (peutVoirLeStock()) {
+        <gs-tuile
+          libelle="À recommander"
+          icone="inventory"
+          [valeur]="aRecommander()"
+          [ton]="(s?.nombreEnRupture ?? 0) > 0 ? 'danger' : (aRecommander() ?? 0) > 0 ? 'attention' : 'normal'"
+          [detail]="(s?.nombreEnRupture ?? 0) > 0 ? 'dont ' + s?.nombreEnRupture + ' en rupture' : 'sous le seuil d’alerte'"
+        >
+          <a mat-button class="lien-tuile" routerLink="/stock">Voir le stock</a>
+        </gs-tuile>
+        <gs-tuile
+          libelle="Valeur du stock"
+          icone="inventory_2"
+          [valeur]="valeurDuStock()"
+          unite="F"
+          manquant="Coûts à saisir"
+          [detail]="
+            (s?.nombreSansCoutConnu ?? 0) > 0
+              ? s?.nombreSansCoutConnu + ' article' + ((s?.nombreSansCoutConnu ?? 0) > 1 ? 's' : '') + ' sans coût d’achat'
+              : 'au coût d’achat, ' + (s?.nombreArticles ?? 0) + ' articles'
+          "
+        />
       }
     </div>
 
-    <div class="mt-4 grid gap-4 lg:grid-cols-2">
-      <!-- Ce qu'il faut recommander -->
+    <div class="blocs">
       @if (peutVoirLeStock()) {
-        <section class="carte p-4">
-          <div class="mb-3 flex items-center gap-2">
-            <h2 class="flex-1 text-sm font-medium uppercase tracking-wide opacity-70">
-              Ce qui manque
-            </h2>
-            <a mat-button routerLink="/stock">Tout voir</a>
-          </div>
-
+        <gs-section titre="Ce qui manque en rayon" description="Les articles en rupture ou sous leur seuil d’alerte.">
+          <a gs-section-action mat-button routerLink="/stock">Tout voir</a>
           @if (alertes().length === 0) {
-            <p class="py-8 text-center text-sm opacity-50">
-              <mat-icon class="!h-8 !w-8 !text-3xl">task_alt</mat-icon><br />
-              Rien à recommander.
-            </p>
+            <gs-etat-vide icone="task_alt" titre="Rien à recommander" texte="Tous les articles surveillés sont au-dessus de leur seuil." />
           } @else {
-            <ul class="flex list-none flex-col gap-0 p-0">
+            <ul class="liste">
               @for (ligne of alertes(); track ligne.idArticle) {
-                <li
-                  class="flex items-center gap-3 border-b py-2 last:border-b-0"
-                  style="border-color: var(--mat-sys-outline-variant)"
-                >
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm">{{ ligne.designation }}</span>
-                    <span class="pastille mt-0.5"
-                          [style.background]="pastille[ligne.statut ?? 'SANS_SEUIL'].fond"
-                          [style.color]="pastille[ligne.statut ?? 'SANS_SEUIL'].texte">
-                      {{ pastille[ligne.statut ?? 'SANS_SEUIL'].libelle }}
-                    </span>
+                <li>
+                  <span class="nom">
+                    <span class="designation">{{ ligne.designation }}</span>
+                    <gs-statut [ton]="statutDuStock(ligne).ton" [icone]="statutDuStock(ligne).icone">
+                      {{ statutDuStock(ligne).libelle }}
+                    </gs-statut>
                   </span>
-                  <span
-                    class="nombre shrink-0 text-lg font-medium"
-                    [style.color]="ligne.statut === 'NEGATIF' ? 'var(--mat-sys-error)' : 'inherit'"
-                  >
+                  <span class="quantite nombre" [class.danger]="ligne.statut === 'NEGATIF' || ligne.statut === 'RUPTURE'">
                     {{ ligne.quantite | number: '1.0-2' }}
+                    @if (ligne.seuilAlerte) {
+                      <small>/ {{ ligne.seuilAlerte | number: '1.0-0' }}</small>
+                    }
                   </span>
                 </li>
               }
             </ul>
           }
-        </section>
+        </gs-section>
       }
 
-      <!-- La caisse, par moyen de paiement -->
       @if (peutVoirLaCaisse()) {
-        <section class="carte p-4">
-          <div class="mb-3 flex items-center gap-2">
-            <h2 class="flex-1 text-sm font-medium uppercase tracking-wide opacity-70">
-              Encaissé aujourd’hui
-            </h2>
-            <a mat-button routerLink="/caisse">Détail</a>
-          </div>
-
+        <gs-section titre="Encaissé aujourd’hui" description="La recette du jour, par moyen de paiement.">
+          <a gs-section-action mat-button routerLink="/caisse">Détail</a>
           @if (!c || c.nombreReglements === 0) {
-            <p class="py-8 text-center text-sm opacity-50">
-              <mat-icon class="!h-8 !w-8 !text-3xl">point_of_sale</mat-icon><br />
-              Aucun encaissement pour l’instant.
-            </p>
+            <gs-etat-vide icone="point_of_sale" titre="Aucun encaissement pour l’instant" texte="Les ventes encaissées au comptoir s’additionnent ici." />
           } @else {
-            <ul class="flex list-none flex-col gap-2 p-0">
+            <ul class="modes">
               @for (mode of c.parMode ?? []; track mode.mode) {
                 <li>
-                  <div class="flex items-baseline gap-2 text-sm">
-                    <span class="flex-1">{{ modes[mode.mode ?? ''] ?? mode.mode }}</span>
-                    <span class="text-xs opacity-60">{{ mode.nombre }}×</span>
-                    <span class="nombre font-medium">{{ mode.total | number: '1.0-0' }} F</span>
+                  <div class="mode-ligne">
+                    <span class="mode-nom">{{ libelleDuMode(mode.mode) }}</span>
+                    <span class="gs-encre-3 text-xs">{{ mode.nombre }}×</span>
+                    <span class="nombre font-semibold">{{ mode.total | number: '1.0-0' }} F</span>
                   </div>
-                  <!-- La part de chaque mode, lisible sans lire les chiffres. -->
-                  <div class="mt-1 h-1.5 overflow-hidden rounded-full"
-                       style="background: var(--mat-sys-surface-container-high)">
-                    <div
-                      class="h-full rounded-full"
-                      style="background: var(--mat-sys-primary)"
-                      [style.width.%]="((mode.total ?? 0) / (c.total || 1)) * 100"
-                    ></div>
-                  </div>
+                  <div class="barre" aria-hidden="true"><i [style.width.%]="part(mode.total)"></i></div>
                 </li>
               }
             </ul>
           }
 
           @if (factures().length > 0) {
-            <h3 class="mb-2 mt-5 text-xs font-medium uppercase tracking-wide opacity-60">
-              Dernières factures
-            </h3>
-            <ul class="flex list-none flex-col gap-0 p-0">
+            <p class="gs-etiquette sous-titre">Dernières factures</p>
+            <ul class="liste">
               @for (f of factures(); track f.id) {
-                <li
-                  class="flex items-center gap-2 border-b py-2 text-sm last:border-b-0"
-                  style="border-color: var(--mat-sys-outline-variant)"
-                >
-                  <span class="min-w-0 flex-1 truncate">
-                    {{ f.numero }}
+                <li>
+                  <span class="nom">
+                    <span class="designation gs-code">{{ f.numero }}</span>
                     @if (f.nomClient) {
-                      <span class="opacity-60">· {{ f.nomClient }}</span>
+                      <span class="gs-encre-3 text-sm">{{ f.nomClient }}</span>
                     }
                   </span>
-                  <span class="pastille shrink-0"
-                        [style.background]="statutFacture(f).fond"
-                        [style.color]="statutFacture(f).texte">
-                    {{ statutFacture(f).libelle }}
-                  </span>
-                  <span class="nombre w-24 shrink-0 text-right font-medium">
-                    {{ f.totalTtc | number: '1.0-0' }} F
-                  </span>
+                  <gs-statut [ton]="statutDeFacture(f).ton" [icone]="statutDeFacture(f).icone">
+                    {{ statutDeFacture(f).libelle }}
+                  </gs-statut>
+                  <span class="montant nombre">{{ f.totalTtc | number: '1.0-0' }} F</span>
                 </li>
               }
             </ul>
           }
-        </section>
+        </gs-section>
       }
     </div>
   }

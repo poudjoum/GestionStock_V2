@@ -1,0 +1,21 @@
+/* Le resume de ce qui reste a encaisser : neutre, le montant en evidence. */
+.resume-du {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--gs-esp-3);
+  padding: 12px 16px;
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-trait);
+  border-left: 4px solid var(--gs-danger);
+  border-radius: var(--gs-r-carte);
+}
+
+.resume-du mat-icon {
+  color: var(--gs-encre-3);
+}
+
+.resume-du .montant {
+  font-size: 1.5rem;
+  color: var(--gs-danger);
+}

@@ -1,0 +1,131 @@
+/* L'accueil : des tuiles en tete, puis deux blocs cote a cote sur grand ecran. */
+
+.tuiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gs-esp-3);
+}
+
+.lien-tuile {
+  justify-self: start;
+  margin: 2px 0 -6px -12px;
+}
+
+.blocs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: var(--gs-esp-4);
+  margin-top: var(--gs-esp-4);
+  align-items: start;
+}
+
+.rappel-campagne {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 6px 6px;
+  border: 1px solid color-mix(in srgb, var(--gs-petrole-700) 35%, transparent);
+  border-radius: var(--gs-r-pilule);
+  color: var(--gs-encre-2);
+  font-size: var(--gs-texte-sm);
+  text-decoration: none;
+}
+
+.rappel-campagne:hover {
+  background: var(--gs-petrole-100);
+}
+
+.liste {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.liste li {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-esp-3);
+  min-height: 52px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--gs-trait);
+}
+
+.liste li:last-child {
+  border-bottom: 0;
+}
+
+.liste .nom {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.liste .designation {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--gs-texte-md);
+  font-weight: 500;
+}
+
+.liste .quantite {
+  font: 700 1.25rem / 1 var(--gs-police-titre);
+  white-space: nowrap;
+}
+
+.liste .quantite small {
+  font: 500 var(--gs-texte-sm) var(--gs-police-texte);
+  color: var(--gs-encre-3);
+}
+
+.liste .quantite.danger {
+  color: var(--gs-danger);
+}
+
+.liste .montant {
+  min-width: 90px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.modes {
+  display: grid;
+  gap: var(--gs-esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mode-ligne {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--gs-texte-md);
+}
+
+.mode-nom {
+  flex: 1;
+}
+
+.barre {
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: var(--gs-surface-2);
+  overflow: hidden;
+}
+
+.barre i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--gs-vert-600);
+}
+
+.sous-titre {
+  margin: var(--gs-esp-5) 0 var(--gs-esp-1);
+}

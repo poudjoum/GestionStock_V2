@@ -36,6 +36,7 @@
 /* Les jetons de design, puis les classes utilitaires qui les emploient. */
 @import './design/jetons.css';
 @import './design/utilitaires.css';
+@import './design/ecrans.css';
 
 /*
  * Ce que la feuille de Google posait avec la fonte, et qu'elle seule posait.
