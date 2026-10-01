@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.jumpy.tech.gestionstock.gestiondestock.promotion.Calendrier;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -42,6 +44,8 @@ public class FideliteClientServiceImpl implements FideliteClientService {
     private final FactureRepository factureRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final CampagneRepository campagneRepository;
+    private final Calendrier calendrier;
 
     public FideliteClientServiceImpl(CompteClientFideliteRepository clientRepository,
                                      SoldePointsMagasinRepository soldeRepository,
@@ -51,7 +55,11 @@ public class FideliteClientServiceImpl implements FideliteClientService {
                                      VenteRepository venteRepository,
                                      FactureRepository factureRepository,
                                      PasswordEncoder passwordEncoder,
-                                     JwtUtils jwtUtils) {
+                                     JwtUtils jwtUtils,
+                                     CampagneRepository campagneRepository,
+                                     Calendrier calendrier) {
+        this.campagneRepository = campagneRepository;
+        this.calendrier = calendrier;
         this.clientRepository = clientRepository;
         this.soldeRepository = soldeRepository;
         this.ticketReclameRepository = ticketReclameRepository;
@@ -265,6 +273,18 @@ public class FideliteClientServiceImpl implements FideliteClientService {
         if (!entreprise.isFideliteActive()) {
             throw new InvalidEntityException("Ce commerce ne participe pas au programme de fidélité.",
                     ErrorCodes.FIDELITE_NOT_VALID, List.of("Fidélité inactive"));
+        }
+
+        // Les points sont ceux des campagnes : un achat fait pendant l'une d'elles, scanne avant
+        // qu'elle ne finisse. Hors campagne, le ticket ne rapporte rien.
+        if (!campagneRepository.ticketScannable(entreprise.getId(), calendrier.jourDe(vente.getDatevente()),
+                calendrier.aujourdhui())) {
+            throw new InvalidEntityException(
+                    campagneRepository.achatEnCampagne(entreprise.getId(), calendrier.jourDe(vente.getDatevente()))
+                            ? "La campagne de cet achat est terminée : ses tickets ne se scannent plus."
+                            : "Cet achat n'a pas été fait pendant une campagne de " + entreprise.getNom()
+                                    + " : il ne rapporte pas de points.",
+                    ErrorCodes.FIDELITE_NOT_VALID, List.of("Hors campagne"));
         }
 
         Facture facture = factureRepository.findByVenteId(vente.getId()).orElse(null);

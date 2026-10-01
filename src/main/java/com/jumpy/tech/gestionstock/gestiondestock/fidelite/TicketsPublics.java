@@ -6,6 +6,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.entities.Facture;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Vente;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
+import com.jumpy.tech.gestionstock.gestiondestock.promotion.Calendrier;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.CampagneRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.FactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneFactureRepository;
@@ -32,10 +34,15 @@ public class TicketsPublics {
     private final LigneFactureRepository lignesFacture;
     private final LigneVenteRepository lignesVente;
     private final EntrepriseRepository entreprises;
+    private final CampagneRepository campagnes;
+    private final Calendrier calendrier;
 
     public TicketsPublics(VenteRepository ventes, FactureRepository factures,
                           LigneFactureRepository lignesFacture, LigneVenteRepository lignesVente,
-                          EntrepriseRepository entreprises) {
+                          EntrepriseRepository entreprises, CampagneRepository campagnes,
+                          Calendrier calendrier) {
+        this.campagnes = campagnes;
+        this.calendrier = calendrier;
         this.ventes = ventes;
         this.factures = factures;
         this.lignesFacture = lignesFacture;
@@ -56,7 +63,9 @@ public class TicketsPublics {
 
         Entreprise entreprise = vente.getIdEntreprise() == null ? null
                 : entreprises.findById(vente.getIdEntreprise()).orElse(null);
-        boolean fideliteActive = entreprise != null && entreprise.isFideliteActive();
+        // Un ticket ne rapporte des points que s'il a ete achete pendant une campagne.
+        boolean fideliteActive = entreprise != null && entreprise.isFideliteActive()
+                && campagnes.achatEnCampagne(entreprise.getId(), calendrier.jourDe(vente.getDatevente()));
         BigDecimal montantParPoint = entreprise == null ? null : entreprise.getMontantParPoint();
 
         Facture facture = factures.findByVenteId(vente.getId()).orElse(null);

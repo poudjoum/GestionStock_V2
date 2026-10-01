@@ -1,5 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.entities.PromotionArticle;
+import com.jumpy.tech.gestionstock.gestiondestock.promotion.PrixDuJour;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
@@ -70,6 +72,7 @@ public class VenteServiceImpl implements VenteService {
     private final Cloisonnement cloisonnement;
     private final MvtStkService mvtStkService;
     private final FactureService factureService;
+    private final PrixDuJour prixDuJour;
 
     public VenteServiceImpl(VenteRepository venteRepository, ArticleRepository articleRepository,
                             LigneVenteRepository ligneVenteRepository,
@@ -79,8 +82,10 @@ public class VenteServiceImpl implements VenteService {
                             ClientRepository clientRepository,
                             Cloisonnement cloisonnement,
                             MvtStkService mvtStkService,
-                            FactureService factureService) {
+                            FactureService factureService,
+                            PrixDuJour prixDuJour) {
         this.factureService = factureService;
+        this.prixDuJour = prixDuJour;
         this.clientRepository = clientRepository;
         this.cloisonnement = cloisonnement;
         this.venteRepository = venteRepository;
@@ -249,14 +254,26 @@ public class VenteServiceImpl implements VenteService {
             throw collision;
         }
 
+        Map<Long, PromotionArticle> promotions = prixDuJour.promotions(savedVente.getIdEntreprise(),
+                savedVente.getDatevente());
         for (LigneVenteDto ligneDto : lignes) {
             LigneVente ligne = LigneVenteDto.toEntity(ligneDto);
+            Article article = articlesCharges.get(ligneDto.getArticle().getId());
+            PromotionArticle promotion = promotions.get(article.getId());
+            if (quand == null) {
+                // Au comptoir, maintenant : le prix de la promotion, meme si la caisse l'ignorait.
+                ligne.setPrixUnitaire(PrixDuJour.pourLigne(ligne.getPrixUnitaire(), article.getPrixUnitaire(), promotion));
+            } else if (ligne.getPrixUnitaire() == null) {
+                // Une vente faite hors ligne garde le prix que le client a paye et que son ticket
+                // imprime. Le serveur ne le complete que s'il manque.
+                ligne.setPrixUnitaire(PrixDuJour.pourLigne(null, article.getPrixUnitaire(), promotion));
+            }
             // L'article charge, et non celui que construit le DTO, qui ne porte que son
             // identifiant. Quand la facture est emise dans la meme transaction — une vente
             // synchronisee avec son encaissement —, elle lit la ligne telle qu'elle est en memoire :
             // avec l'article du DTO, elle figeait une designation et un code vides, et perdait le
             // taux de TVA propre a l'article.
-            ligne.setArticles(articlesCharges.get(ligneDto.getArticle().getId()));
+            ligne.setArticles(article);
             ligne.setVente(savedVente);
             ligneVenteRepository.save(ligne);
             sortirDuStock(ligneDto, savedVente, quand);
@@ -364,8 +381,8 @@ public class VenteServiceImpl implements VenteService {
         nouvelle.setVente(vente);
         nouvelle.setArticles(article);
         nouvelle.setQuantite(quantite);
-        nouvelle.setPrixUnitaire(ligne.getPrixUnitaire() != null
-                ? ligne.getPrixUnitaire() : article.getPrixUnitaire());
+        nouvelle.setPrixUnitaire(PrixDuJour.pourLigne(ligne.getPrixUnitaire(), article.getPrixUnitaire(),
+                prixDuJour.promotions(vente.getIdEntreprise(), null).get(article.getId())));
         nouvelle.setIdEntreprise(vente.getIdEntreprise());
 
         return LigneVenteDto.fromEntity(ligneVenteRepository.save(nouvelle));

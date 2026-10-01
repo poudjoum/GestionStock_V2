@@ -4,6 +4,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.JwtUtils;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.*;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.*;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
+import com.jumpy.tech.gestionstock.gestiondestock.promotion.Calendrier;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,8 @@ class FideliteClientServiceImplTest {
     private PasswordEncoder passwordEncoder;
     @Mock
     private JwtUtils jwtUtils;
+    @Mock
+    private CampagneRepository campagneRepository;
 
     private FideliteClientServiceImpl service;
 
@@ -60,8 +63,12 @@ class FideliteClientServiceImplTest {
                 venteRepository,
                 factureRepository,
                 passwordEncoder,
-                jwtUtils
+                jwtUtils,
+                campagneRepository,
+                Calendrier.fixe(Instant.now(), java.time.ZoneId.of("Africa/Douala"))
         );
+        // Par defaut, l'achat a eu lieu pendant une campagne encore en cours.
+        lenient().when(campagneRepository.ticketScannable(any(), any(), any())).thenReturn(true);
     }
 
     @Test
@@ -441,6 +448,45 @@ class FideliteClientServiceImplTest {
                 .hasMessageContaining("au moins 1000 points");
         assertThat(solde.getSoldePoints()).isEqualTo(5000);
         verify(bonDAchatRepository, never()).save(any());
+    }
+
+    @Test
+    void un_achat_hors_campagne_ne_rapporte_rien() {
+        Long idClient = 1L;
+        String codeTicket = "7K3M9P2QA4TZ";
+        CompteClientFidelite client = new CompteClientFidelite();
+        client.setId(idClient);
+
+        when(clientRepository.verrouiller(idClient)).thenReturn(Optional.of(client));
+        when(ticketReclameRepository.existsByCodeTicket(codeTicket)).thenReturn(false);
+        when(venteRepository.findByCodeTicket(codeTicket)).thenReturn(Optional.of(venteDe(codeTicket)));
+        when(entrepriseRepository.findById(5L)).thenReturn(Optional.of(magasinFidele()));
+        when(campagneRepository.ticketScannable(any(), any(), any())).thenReturn(false);
+        when(campagneRepository.achatEnCampagne(any(), any())).thenReturn(false);
+
+        assertThatThrownBy(() -> service.reclamerTicket(idClient, codeTicket))
+                .isInstanceOf(InvalidEntityException.class)
+                .hasMessageContaining("pendant une campagne");
+        verify(soldeRepository, never()).save(any());
+    }
+
+    @Test
+    void apres_la_fin_de_sa_campagne_un_ticket_ne_se_scanne_plus() {
+        Long idClient = 1L;
+        String codeTicket = "7K3M9P2QA4TZ";
+        CompteClientFidelite client = new CompteClientFidelite();
+        client.setId(idClient);
+
+        when(clientRepository.verrouiller(idClient)).thenReturn(Optional.of(client));
+        when(ticketReclameRepository.existsByCodeTicket(codeTicket)).thenReturn(false);
+        when(venteRepository.findByCodeTicket(codeTicket)).thenReturn(Optional.of(venteDe(codeTicket)));
+        when(entrepriseRepository.findById(5L)).thenReturn(Optional.of(magasinFidele()));
+        when(campagneRepository.ticketScannable(any(), any(), any())).thenReturn(false);
+        when(campagneRepository.achatEnCampagne(any(), any())).thenReturn(true);
+
+        assertThatThrownBy(() -> service.reclamerTicket(idClient, codeTicket))
+                .isInstanceOf(InvalidEntityException.class)
+                .hasMessageContaining("campagne de cet achat est terminée");
     }
 
     private static Vente venteDe(String codeTicket) {

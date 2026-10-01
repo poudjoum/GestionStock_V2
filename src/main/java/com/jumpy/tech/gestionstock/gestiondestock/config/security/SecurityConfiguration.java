@@ -180,7 +180,12 @@ public class SecurityConfiguration {
                         // S'inscrire et se connecter ne demandent pas de compte, et la vitrine des
                         // magasins se consulte avant de s'inscrire.
                         .requestMatchers(API + "/fidelite/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, API + "/fidelite/magasins").permitAll()
+                        .requestMatchers(HttpMethod.GET, API + "/fidelite/magasins", API + "/fidelite/campagnes").permitAll()
+                        // Les promotions du jour : la caisse en a besoin pour vendre au bon prix.
+                        .requestMatchers(HttpMethod.GET, API + "/campagnes/promotions-en-cours")
+                            .hasAnyRole(ADMIN, MANAGER, CAISSIER)
+                        // Les campagnes elles-memes : une decision commerciale, celle du gerant.
+                        .requestMatchers(API + "/campagnes/**", API + "/campagnes").hasAnyRole(ADMIN, MANAGER)
                         // Lire et consommer un bon se fait au comptoir : le personnel du magasin.
                         .requestMatchers(API + "/fidelite/bons/*/verifier", API + "/fidelite/bons/*/utiliser")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER, SUPER_ADMIN)

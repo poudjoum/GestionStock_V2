@@ -248,6 +248,29 @@ class SecuriteApiTest extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void la_vitrine_des_campagnes_se_lit_sans_compte() throws Exception {
+        mockMvc.perform(get(API + "/fidelite/campagnes"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAISSIER")
+    void la_caisse_lit_les_promotions_du_jour_mais_pas_les_campagnes() throws Exception {
+        // 404 : ce compte de test n'a pas d'entreprise, et c'est bien la route qui a ete atteinte.
+        mockMvc.perform(get(API + "/campagnes/promotions-en-cours"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get(API + "/campagnes"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "MAGASINIER")
+    void le_magasinier_ne_prepare_pas_de_campagne() throws Exception {
+        mockMvc.perform(post(API + "/campagnes").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
     private String inscrireClient(String telephone) throws Exception {
         String reponse = mockMvc.perform(post(API + "/fidelite/auth/inscription")
                         .contentType(MediaType.APPLICATION_JSON)
