@@ -1,6 +1,10 @@
 {
-  "name": "frontend",
-  "short_name": "frontend",
+  "name": "GestionStock",
+  "short_name": "GestionStock",
+  "description": "La gestion de stock, la caisse et la fidélité des magasins.",
+  "lang": "fr",
+  "theme_color": "#1d6b43",
+  "background_color": "#f6f7f3",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",

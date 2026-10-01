@@ -78,7 +78,7 @@ export class Coque implements OnInit {
   );
 
   /** Le titre de la page courante, lu dans le menu plutot que redeclare par chaque ecran. */
-  protected readonly titre = signal('Gestion de stock');
+  protected readonly titre = signal('GestionStock');
 
   constructor() {
     this.router.events
@@ -144,5 +144,7 @@ function titrePour(url: string): string {
   if (chemin === '/categories') return 'Catégories';
   if (chemin === '/fournisseurs') return 'Répertoire';
   if (chemin === '/accueil' || chemin === '/') return 'Accueil';
-  return 'Gestion de stock';
+  // La vitrine du design system, hors menu.
+  if (chemin === '/design') return 'Design system';
+  return 'GestionStock';
 }

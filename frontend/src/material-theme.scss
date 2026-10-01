@@ -19,7 +19,13 @@ html {
         primary: mat.$green-palette,
         tertiary: mat.$orange-palette,
       ),
-      typography: Roboto,
+      // Public Sans pour le texte, Bricolage Grotesque pour les titres que Material compose
+      // lui-meme. Les deux viennent de `design/jetons.css` ; la palette, elle, reste celle de
+      // Material jusqu'au lot 2, qui branche les composants sur les jetons.
+      typography: (
+        plain-family: 'Public Sans',
+        brand-family: 'Bricolage Grotesque Variable',
+      ),
       density: -2,
     )
   );

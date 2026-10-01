@@ -140,6 +140,13 @@ export const routes: Routes = [
           import('./parametres/identite-du-magasin').then((m) => m.IdentiteDuMagasin),
       },
       {
+        // La vitrine du design system : les composants communs dans tous leurs etats. Hors du
+        // menu ; on y vient en tapant l'adresse, pour juger un composant ou un changement de jeton.
+        path: 'design',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')],
+        loadComponent: () => import('./design/vitrine').then((m) => m.Vitrine),
+      },
+      {
         // Les campagnes de promotion : le gerant met des articles en promotion sur une periode.
         path: 'campagnes',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],
