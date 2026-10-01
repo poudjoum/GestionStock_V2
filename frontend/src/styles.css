@@ -25,10 +25,17 @@
  * Les deux fontes pesent quelques centaines de kilo-octets, servies par le meme nginx que le
  * reste. C'est le prix d'une application qui ne depend de personne pour s'afficher.
  */
-@import '@fontsource/roboto/300.css';
-@import '@fontsource/roboto/400.css';
-@import '@fontsource/roboto/500.css';
+@import '@fontsource/public-sans/400.css';
+@import '@fontsource/public-sans/500.css';
+@import '@fontsource/public-sans/600.css';
+@import '@fontsource/public-sans/700.css';
+@import '@fontsource-variable/bricolage-grotesque/index.css';
+@import '@fontsource/jetbrains-mono/500.css';
 @import '@fontsource/material-icons/index.css';
+
+/* Les jetons de design, puis les classes utilitaires qui les emploient. */
+@import './design/jetons.css';
+@import './design/utilitaires.css';
 
 /*
  * Ce que la feuille de Google posait avec la fonte, et qu'elle seule posait.

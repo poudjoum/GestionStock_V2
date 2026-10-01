@@ -1,0 +1,129 @@
+/*
+ * Les jetons de GestionStock : la seule source des couleurs, des polices, des rayons et des
+ * espacements.
+ *
+ * Un ecran ne porte plus de couleur en dur : il prend `var(--gs-…)`, ou mieux, un composant de
+ * `app/design` qui les prend pour lui. Changer le vert de la marque, c'est changer une ligne ici.
+ *
+ * L'application suit le reglage clair ou sombre de l'appareil (`color-scheme: light dark` sur
+ * `body`) : les valeurs claires sont posees sur `:root`, le bloc `prefers-color-scheme: dark` ne
+ * fait que les redefinir. Aucun jeton n'existe dans un seul des deux themes.
+ *
+ * Les valeurs sont celles de l'audit de refonte valide le 1er octobre 2026. Les contrastes des
+ * trois encres sur le fond ont ete mesures : 15:1, 7:1 et 4,8:1 en clair, autant en sombre.
+ */
+:root {
+  /* La marque : le vert des enseignes de quincaillerie. */
+  --gs-vert-900: #0f3d26;
+  --gs-vert-800: #155133;
+  --gs-vert-700: #1d6b43;
+  --gs-vert-600: #24804f;
+  --gs-vert-200: #b9dfc6;
+  --gs-vert-100: #ddefe3;
+  --gs-vert-50: #f0f7f2;
+
+  /* Le second ton : le bleu-petrole du logo, reserve a ce qui parle au client — fidelite,
+     campagnes, promotions. Il ne sert jamais a un bouton de gestion. */
+  --gs-petrole-700: #0b6a80;
+  --gs-petrole-100: #d7eef3;
+
+  /* Le sens, separe de la marque : un statut ne doit pas se confondre avec un bouton. */
+  --gs-succes: #1e7a45;
+  --gs-succes-fond: #e3f3e8;
+  --gs-alerte: #9a5b06;
+  --gs-alerte-fond: #fdf1dc;
+  --gs-danger: #b42318;
+  --gs-danger-fond: #fdeceb;
+
+  /* Les neutres, teintes de vert : un gris neutre aurait l'air d'un reglage par defaut. */
+  --gs-fond: #f6f7f3;
+  --gs-surface: #ffffff;
+  --gs-surface-2: #eef1ec;
+  --gs-trait: #d9dfd9;
+  --gs-trait-fort: #b8c2bb;
+
+  /* Trois encres opaques, et non du noir rendu transparent : la transparence donne un contraste
+     different sur chaque fond, et personne ne le mesure. */
+  --gs-encre: #17211b;
+  --gs-encre-2: #47544c;
+  --gs-encre-3: #66736b;
+
+  /* Les roles : ce que les composants emploient, plutot que les teintes. */
+  --gs-accent: var(--gs-vert-700);
+  --gs-sur-accent: #ffffff;
+  --gs-accent-doux: var(--gs-vert-100);
+  --gs-sur-accent-doux: var(--gs-vert-900);
+  --gs-menu-fond: var(--gs-vert-900);
+  --gs-menu-encre: #e8f3ec;
+  --gs-focus: #6fbf8f;
+
+  /* Les polices, toutes hebergees avec l'application : une caisse sans reseau garde les siennes. */
+  --gs-police-titre: 'Bricolage Grotesque Variable', 'Segoe UI', system-ui, sans-serif;
+  --gs-police-texte: 'Public Sans', 'Segoe UI', system-ui, sans-serif;
+  --gs-police-code: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
+
+  /* L'echelle typographique : cinq niveaux, pas un de plus. 12 px est le plancher. */
+  --gs-texte-xs: 0.75rem;   /* 12 — etiquettes, pastilles */
+  --gs-texte-sm: 0.8125rem; /* 13 — tout ce qui se lit en entier, en petit */
+  --gs-texte-md: 0.875rem;  /* 14 — le texte courant du back-office */
+  --gs-texte-lg: 1rem;      /* 16 — titres de bloc */
+  --gs-titre-page: 1.75rem; /* 28 */
+  --gs-chiffre: 2rem;       /* 32 — le chiffre qu'on vient chercher */
+
+  /* Rayons et espacements : une grille de 4 px. */
+  --gs-r-champ: 8px;
+  --gs-r-carte: 12px;
+  --gs-r-pilule: 999px;
+  --gs-esp-1: 4px;
+  --gs-esp-2: 8px;
+  --gs-esp-3: 12px;
+  --gs-esp-4: 16px;
+  --gs-esp-5: 24px;
+  --gs-esp-6: 32px;
+
+  /* Ce qui se touche au comptoir : 44 px, la taille d'un doigt. */
+  --gs-cible: 44px;
+
+  --gs-ombre-1: 0 1px 2px rgb(15 61 38 / 0.12);
+  --gs-ombre-2: 0 8px 24px rgb(15 61 38 / 0.14);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gs-vert-900: #c9ecd6;
+    --gs-vert-800: #a5dcb9;
+    --gs-vert-700: #5cc489;
+    --gs-vert-600: #4fb57b;
+    --gs-vert-200: #2b5d40;
+    --gs-vert-100: #173a27;
+    --gs-vert-50: #12261b;
+
+    --gs-petrole-700: #58c4d8;
+    --gs-petrole-100: #123a44;
+
+    --gs-succes: #6fd29a;
+    --gs-succes-fond: #133523;
+    --gs-alerte: #f2b45a;
+    --gs-alerte-fond: #3a2a10;
+    --gs-danger: #ff8a7d;
+    --gs-danger-fond: #3d1714;
+
+    --gs-fond: #0f1512;
+    --gs-surface: #161e19;
+    --gs-surface-2: #1d2721;
+    --gs-trait: #2c3830;
+    --gs-trait-fort: #435249;
+
+    --gs-encre: #e6ece7;
+    --gs-encre-2: #b3c0b7;
+    --gs-encre-3: #8f9d94;
+
+    --gs-sur-accent: #08200f;
+    --gs-menu-fond: #12301f;
+    --gs-menu-encre: #e6ece7;
+    --gs-focus: #3f8f63;
+
+    --gs-ombre-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --gs-ombre-2: 0 8px 24px rgb(0 0 0 / 0.5);
+  }
+}

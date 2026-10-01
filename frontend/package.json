@@ -21,8 +21,10 @@
     "@angular/platform-browser": "^22.1.0",
     "@angular/router": "^22.1.0",
     "@angular/service-worker": "^22.1.0",
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/material-icons": "^5.3.0",
-    "@fontsource/roboto": "^5.3.0",
+    "@fontsource/public-sans": "^5.3.0",
     "qrcode-generator": "2.0.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"

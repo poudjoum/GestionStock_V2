@@ -1,0 +1,108 @@
+<div class="page">
+  <gs-en-tete-page titre="Design system" sousTitre="Les jetons et les composants communs de GestionStock, dans tous leurs états. Basculez le téléphone ou l’ordinateur en mode sombre pour vérifier l’autre thème.">
+    <button mat-stroked-button type="button">Action secondaire</button>
+    <button mat-flat-button type="button">Action principale</button>
+  </gs-en-tete-page>
+
+  <gs-section titre="Couleurs" description="Les jetons de `src/design/jetons.css`. Le vert pour la marque, le bleu-pétrole pour la fidélité, et le sens à part.">
+    <div class="grille">
+      @for (t of teintes; track t.jeton) {
+        <div class="teinte">
+          <div class="echantillon" [style.background]="'var(' + t.jeton + ')'"></div>
+          <div class="info">
+            <b>{{ t.nom }}</b>
+            <span class="gs-code gs-encre-3">{{ t.jeton }}</span>
+            <span class="gs-encre-2">{{ t.role }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  </gs-section>
+
+  <gs-section titre="Typographie" description="Bricolage Grotesque pour les titres et les grands chiffres, Public Sans pour le reste, JetBrains Mono pour les codes.">
+    <div class="specimen">
+      <div><span class="gs-etiquette">Titre de page · 28</span><span class="gs-titre" style="font-size: var(--gs-titre-page)">Caisse du jour</span></div>
+      <div><span class="gs-etiquette">Grand chiffre · 32</span><span class="gs-titre nombre" style="font-size: var(--gs-chiffre)">333 739 F</span></div>
+      <div><span class="gs-etiquette">Titre de bloc · 16</span><span style="font-size: var(--gs-texte-lg); font-weight: 600">Ce qui manque en rayon</span></div>
+      <div><span class="gs-etiquette">Texte · 14</span><span>Barre de fer HA 8 mm — 12 m · 14 en stock, seuil 30</span></div>
+      <div><span class="gs-etiquette">Secondaire · 13</span><span class="gs-encre-2" style="font-size: var(--gs-texte-sm)">Dernière commande le 28 septembre</span></div>
+      <div><span class="gs-etiquette">Étiquette · 12</span><span class="gs-etiquette">Encaissé aujourd’hui</span></div>
+      <div><span class="gs-etiquette">Code</span><span class="gs-code">BON-958K-5FMW · TH6N-PR3Z-7DHG</span></div>
+    </div>
+  </gs-section>
+
+  <gs-section titre="Tuiles chiffre" description="La donnée manquante s’annonce en grand au lieu d’un zéro trompeur.">
+    <div class="grille">
+      <gs-tuile libelle="Caisse du jour" icone="point_of_sale" [valeur]="333739" unite="F" detail="11 règlements" />
+      <gs-tuile libelle="À encaisser" icone="receipt_long" [valeur]="66977" unite="F" detail="2 factures" />
+      <gs-tuile libelle="À recommander" icone="warning" [valeur]="6" detail="dont 1 en rupture" ton="attention" />
+      <gs-tuile libelle="Valeur du stock" icone="inventory_2" [valeur]="null" manquant="Coûts à saisir" detail="16 articles sans coût d’achat" />
+    </div>
+  </gs-section>
+
+  <gs-section titre="Pastilles de statut" description="Toujours une icône et un mot : le sens ne repose jamais sur la seule couleur.">
+    <div class="rang">
+      <gs-statut ton="ok" icone="check">Réglée</gs-statut>
+      <gs-statut ton="alerte" icone="trending_down">Sous le seuil</gs-statut>
+      <gs-statut ton="alerte" icone="hourglass_bottom">Partielle</gs-statut>
+      <gs-statut ton="danger" icone="remove_shopping_cart">Rupture</gs-statut>
+      <gs-statut ton="danger" icone="error">Impayée</gs-statut>
+      <gs-statut ton="promo" icone="campaign">En campagne</gs-statut>
+      <gs-statut ton="neutre" icone="edit_note">Brouillon</gs-statut>
+    </div>
+  </gs-section>
+
+  <gs-section titre="Sélecteur à onglets" description="Une tabulation pour y entrer, les flèches pour changer. Le compteur évite d’ouvrir un onglet vide.">
+    <div class="rang">
+      <gs-selecteur aria-label="Période" [options]="periodes" [(valeur)]="periode" />
+      <span class="gs-encre-3">Choisi : {{ periode() }}</span>
+    </div>
+    <div class="rang" style="margin-top: var(--gs-esp-3)">
+      <gs-selecteur aria-label="Commandes" [options]="etatsCommande" [(valeur)]="commandes" />
+      <span class="gs-encre-3">Choisi : {{ commandes() }}</span>
+    </div>
+  </gs-section>
+
+  <gs-section titre="Tableau de données" description="Dense, l’en-tête collé en haut, les chiffres alignés à droite.">
+    <div class="tableau">
+      <table class="gs-tableau">
+        <thead>
+          <tr><th>Article</th><th>Statut</th><th class="gs-num">En stock</th><th class="gs-num">Seuil</th><th class="gs-num">Prix HT</th></tr>
+        </thead>
+        <tbody>
+          @for (a of articles; track a.code) {
+            <tr class="gs-cliquable">
+              <td>
+                <span style="display: block; font-weight: 500">{{ a.designation }}</span>
+                <span class="gs-code gs-encre-3" style="font-size: var(--gs-texte-xs)">{{ a.code }}</span>
+              </td>
+              <td>
+                @switch (statutDe(a.stock, a.seuil)) {
+                  @case ('danger') { <gs-statut ton="danger" icone="remove_shopping_cart">Rupture</gs-statut> }
+                  @case ('alerte') { <gs-statut ton="alerte" icone="trending_down">Sous le seuil</gs-statut> }
+                  @default { <gs-statut ton="ok" icone="check">Suffisant</gs-statut> }
+                }
+              </td>
+              <td class="gs-num">{{ a.stock | number }}</td>
+              <td class="gs-num gs-encre-3">{{ a.seuil | number }}</td>
+              <td class="gs-num">{{ a.prix | number }} F</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </gs-section>
+
+  <div class="grille" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))">
+    <gs-section titre="État vide" description="Ce que la page contiendra, et comment commencer.">
+      <gs-etat-vide icone="campaign" titre="Aucune campagne pour l’instant" texte="Une campagne met des articles en promotion sur une période. Pendant ce temps, la caisse les vend moins cher et vos clients la voient dans l’application.">
+        <button mat-flat-button type="button"><mat-icon>add</mat-icon>Créer une campagne</button>
+      </gs-etat-vide>
+    </gs-section>
+    <gs-section titre="Vide après filtre" description="Le filtre est rappelé : on ne croit pas qu’il n’y a rien.">
+      <gs-etat-vide icone="search_off" titre="Rien ne correspond à « ciment blanc »" texte="Essayez un autre mot, ou cherchez par le code de l’article." [filtre]="true">
+        <button mat-button type="button">Effacer la recherche</button>
+      </gs-etat-vide>
+    </gs-section>
+  </div>
+</div>

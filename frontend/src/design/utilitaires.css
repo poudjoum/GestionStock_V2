@@ -1,0 +1,105 @@
+/*
+ * Les classes globales du design system : ce qui ne merite pas un composant parce que c'est du
+ * HTML ordinaire — un tableau, un code, un titre. Tout vient des jetons.
+ */
+
+/* Un titre en police de marque, avec retenue : titres de page et grands chiffres seulement. */
+.gs-titre {
+  font-family: var(--gs-police-titre);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+/* Les codes qu'on recopie ou qu'on lit a voix haute : tickets, bons, references. */
+.gs-code {
+  font-family: var(--gs-police-code);
+  font-size: 0.92em;
+  letter-spacing: 0.04em;
+}
+
+/* L'etiquette au-dessus d'un bloc : elle nomme, elle ne crie pas. */
+.gs-etiquette {
+  font-size: var(--gs-texte-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gs-encre-3);
+}
+
+.gs-encre-2 {
+  color: var(--gs-encre-2);
+}
+
+.gs-encre-3 {
+  color: var(--gs-encre-3);
+}
+
+/*
+ * L'anneau de focus commun. Les controles de Material ont le leur ; tout bouton fait main prend
+ * celui-ci, sans quoi on ne sait pas ou l'on est au clavier.
+ */
+.gs-focus:focus-visible {
+  outline: 3px solid var(--gs-focus);
+  outline-offset: 2px;
+}
+
+/*
+ * Le tableau de donnees.
+ *
+ * Dense — dix lignes a l'ecran au moins —, l'en-tete colle en haut quand la liste defile, les
+ * chiffres a droite et alignes. L'espace separe les colonnes ; un trait fin seulement entre les
+ * lignes.
+ */
+.gs-tableau {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--gs-texte-md);
+  color: var(--gs-encre);
+}
+
+.gs-tableau th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--gs-surface-2);
+  color: var(--gs-encre-3);
+  font-size: var(--gs-texte-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gs-trait);
+  white-space: nowrap;
+}
+
+.gs-tableau td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--gs-trait);
+  vertical-align: middle;
+}
+
+.gs-tableau tr:last-child td {
+  border-bottom: 0;
+}
+
+.gs-tableau .gs-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.gs-tableau tbody tr.gs-cliquable {
+  cursor: pointer;
+}
+
+.gs-tableau tbody tr.gs-cliquable:hover td {
+  background: var(--gs-vert-50);
+}
+
+.gs-tableau tbody tr.gs-selectionnee td {
+  background: var(--gs-accent-doux);
+}
