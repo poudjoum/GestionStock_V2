@@ -84,6 +84,11 @@ app:
   # 30 jours. Le jeton de rafraichissement, lui, vit en base : il se revoque, et c'est ce qui
   # permet de rendre le jeton d'acces court sans obliger un caissier a se reconnecter chaque heure.
   jwtRefreshExpirationMS: ${JWT_REFRESH_EXPIRATION_MS:2592000000}
+  # 30 jours pour le jeton d'un client de l'application mobile. Il n'a pas de jeton de
+  # rafraichissement, et l'obliger a se reconnecter chaque heure ferait abandonner l'application.
+  # Ce n'est pas la duree qui le revoque : son compte est relu a chaque requete, et un compte
+  # desactive est refuse aussitot.
+  jwtClientExpirationMS: ${JWT_CLIENT_EXPIRATION_MS:2592000000}
   # Les origines autorisees a appeler l'API depuis un navigateur, separees par des virgules.
   #
   # Jamais « * » : l'etoile etait posee sur la seule route de connexion, ce qui laissait le front

@@ -38,6 +38,10 @@ public class JwtUtils {
     @Value("${app.jwtExpirationMS}")
     private long jwtExpirationMs;
 
+    /** Le jeton d'un client de l'application mobile : voir `app.jwtClientExpirationMS`. */
+    @Value("${app.jwtClientExpirationMS:2592000000}")
+    private long jwtClientExpirationMs;
+
     public String generateJwtToken(Authentication authentication) {
         return genererJetonPour((UserDetailsImpl) authentication.getPrincipal());
     }
@@ -59,7 +63,7 @@ public class JwtUtils {
                     .subject(String.valueOf(userPrincipal.getId()))
                     .claim(TYPE, TYPE_CLIENT)
                     .issuedAt(maintenant)
-                    .expiration(new Date(maintenant.getTime() + jwtExpirationMs))
+                    .expiration(new Date(maintenant.getTime() + jwtClientExpirationMs))
                     .signWith(key())
                     .compact();
         }
