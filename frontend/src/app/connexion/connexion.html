@@ -1,13 +1,9 @@
 @let charge = enCours();
 
-<div class="flex min-h-dvh items-center justify-center px-4 py-8">
-  <div class="w-full max-w-sm">
-    <div class="mb-8 text-center">
-      <mat-icon class="!h-12 !w-12 !text-5xl" style="color: var(--mat-sys-primary)">inventory</mat-icon>
-      <h1 class="mt-2 text-2xl font-medium">Gestion de stock</h1>
-      <p class="mt-1 text-sm opacity-70">Connectez-vous pour continuer</p>
-    </div>
-
+<gs-cadre-connexion
+  titre="Connexion"
+  texte="Avec l’identifiant et le mot de passe que vous a remis votre magasin."
+>
     <form class="flex flex-col gap-2" (ngSubmit)="soumettre()">
       <mat-form-field appearance="outline">
         <mat-label>Identifiant</mat-label>
@@ -39,9 +35,9 @@
       </mat-form-field>
 
       @if (erreur(); as message) {
-        <p class="rounded px-3 py-2 text-sm" role="alert"
-           style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
-          {{ message }}
+        <p class="message-erreur" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ message }}</span>
         </p>
       }
 
@@ -53,5 +49,4 @@
         <mat-progress-bar mode="indeterminate" />
       }
     </form>
-  </div>
-</div>
+</gs-cadre-connexion>

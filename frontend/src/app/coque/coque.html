@@ -4,65 +4,66 @@
     Elle porte l'identite en haut et le compte en bas : ce qui est rare en bas, ce qui sert tout
     le temps au milieu.
   -->
-  <nav
-    class="hidden w-60 shrink-0 flex-col border-r md:flex"
-    style="background: var(--mat-sys-surface-container); border-color: var(--mat-sys-outline-variant)"
-  >
-    <div class="flex items-center gap-2 px-5" style="height: 64px">
-      <mat-icon style="color: var(--mat-sys-primary)">inventory</mat-icon>
-      <span class="text-sm font-medium leading-tight">Gestion<br />de stock</span>
+  <nav class="menu hidden w-60 shrink-0 flex-col md:flex" aria-label="Menu principal">
+    <a class="menu-marque" [routerLink]="accueil()" aria-label="GestionStock, accueil">
+      <gs-logo />
+    </a>
+
+    <div class="menu-groupes flex-1 overflow-y-auto">
+      <ng-container *ngTemplateOutlet="listeDuMenu" />
     </div>
 
-    <div class="flex-1 overflow-y-auto px-2 py-2">
-      @for (entree of entrees(); track entree.chemin) {
-        <a
-          [routerLink]="entree.chemin"
-          routerLinkActive="font-medium"
-          #actif="routerLinkActive"
-          class="mb-0.5 flex items-center gap-3 rounded-full px-4 py-2.5 text-sm no-underline"
-          [style.background]="actif.isActive ? 'var(--mat-sys-secondary-container)' : 'transparent'"
-          [style.color]="actif.isActive ? 'var(--mat-sys-on-secondary-container)' : 'var(--mat-sys-on-surface-variant)'"
-        >
-          <mat-icon class="!h-5 !w-5 !text-xl">{{ entree.icone }}</mat-icon>
-          {{ entree.libelle }}
-        </a>
-      }
-    </div>
-
-    <div class="border-t p-2" style="border-color: var(--mat-sys-outline-variant)">
-      <button
-        class="flex w-full cursor-pointer items-center gap-3 rounded-full border-0 bg-transparent px-3 py-2 text-left"
-        style="color: var(--mat-sys-on-surface)"
-        [matMenuTriggerFor]="compte"
-      >
-        <span
-          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium"
-          style="background: var(--mat-sys-primary); color: var(--mat-sys-on-primary)"
-        >
-          {{ initiales() }}
-        </span>
+    <div class="menu-pied">
+      <button class="menu-compte" [matMenuTriggerFor]="compte">
+        <span class="initiales">{{ initiales() }}</span>
         <span class="min-w-0 flex-1">
-          <span class="block truncate text-sm">{{ username() }}</span>
-          <span class="block truncate text-xs opacity-60">{{ metier() }}</span>
+          <span class="block truncate text-sm font-medium">{{ username() }}</span>
+          <span class="secondaire block truncate text-xs">{{ metier() }}</span>
         </span>
-        <mat-icon class="!h-5 !w-5 !text-xl opacity-50">more_vert</mat-icon>
+        <mat-icon class="!h-5 !w-5 !text-xl opacity-70">more_vert</mat-icon>
       </button>
     </div>
   </nav>
 
+  <!--
+    Les groupes du menu, ecrits une fois : la colonne de gauche et le menu complet du telephone
+    les affichent tous les deux.
+  -->
+  <ng-template #listeDuMenu>
+    @for (groupe of groupes(); track groupe.id) {
+      <div class="menu-groupe">
+        @if (groupe.libelle) {
+          <span class="menu-groupe-nom">{{ groupe.libelle }}</span>
+        }
+        @for (entree of groupe.entrees; track entree.chemin) {
+          <a
+            class="menu-entree"
+            [routerLink]="entree.chemin"
+            routerLinkActive="actif"
+            ariaCurrentWhenActive="page"
+            (click)="feuilleOuverte.set(false)"
+          >
+            <mat-icon aria-hidden="true">{{ entree.icone }}</mat-icon>
+            {{ entree.libelle }}
+          </a>
+        }
+      </div>
+    }
+  </ng-template>
+
   <div class="flex min-w-0 flex-1 flex-col">
     <!-- La barre du haut : le titre de la page a gauche, la cloche et le compte a droite. -->
     <header
-      class="z-20 flex shrink-0 items-center gap-2 border-b px-4"
-      style="
-        background: var(--mat-sys-surface);
-        border-color: var(--mat-sys-outline-variant);
-        padding-top: var(--marge-haut);
-        height: calc(64px + var(--marge-haut));
-      "
+      class="barre-haut z-20 flex shrink-0 items-center gap-3 px-4"
+      style="padding-top: var(--marge-haut); height: calc(64px + var(--marge-haut))"
     >
-      <mat-icon class="md:hidden" style="color: var(--mat-sys-primary)">inventory</mat-icon>
-      <span class="flex-1 truncate text-base font-medium">{{ titre() }}</span>
+      <gs-logo class="seulement-telephone" [nom]="false" [taille]="28" />
+      <span class="grid min-w-0 flex-1">
+        @if (groupeCourant(); as groupe) {
+          <span class="titre-groupe truncate">{{ groupe }}</span>
+        }
+        <span class="titre-page truncate">{{ titre() }}</span>
+      </span>
 
       @if (!joignable()) {
         <!-- Le mot sur ecran large, l'icone seule sur telephone : la barre n'a pas la place. -->
@@ -105,8 +106,7 @@
       </a>
 
       <button
-        class="md:hidden flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-0 text-xs font-medium"
-        style="background: var(--mat-sys-primary); color: var(--mat-sys-on-primary)"
+        class="initiales seulement-telephone cursor-pointer border-0"
         [matMenuTriggerFor]="compte"
         aria-label="Mon compte"
       >
@@ -182,33 +182,47 @@
     </main>
   </div>
 
-  <!-- Barre du bas : les gestes de tous les jours, sous le pouce, et seulement sur telephone. -->
-  @if (principales().length > 1) {
-    <nav
-      class="fixed inset-x-0 bottom-0 z-30 flex border-t md:hidden"
-      style="
-        background: var(--mat-sys-surface-container);
-        border-color: var(--mat-sys-outline-variant);
-        padding-bottom: var(--marge-bas);
-      "
+  <!--
+    Barre du bas, sur telephone : les gestes de tous les jours sous le pouce, et « Menu » pour
+    tout le reste. Sans ce dernier, un gerant sur telephone n'avait aucun moyen d'ouvrir les
+    factures, la caisse ou les campagnes : la colonne de gauche est cachee a cette taille.
+  -->
+  <nav class="barre-bas fixed inset-x-0 bottom-0 z-30 flex md:hidden" aria-label="Raccourcis">
+    @for (entree of principales(); track entree.chemin) {
+      <a
+        class="onglet"
+        [routerLink]="entree.chemin"
+        routerLinkActive="actif"
+        ariaCurrentWhenActive="page"
+      >
+        <span class="pastille-onglet"><mat-icon aria-hidden="true">{{ entree.icone }}</mat-icon></span>
+        {{ entree.libelle }}
+      </a>
+    }
+    <button
+      type="button"
+      class="onglet"
+      [class.actif]="feuilleOuverte()"
+      [attr.aria-expanded]="feuilleOuverte()"
+      aria-controls="menu-complet"
+      (click)="feuilleOuverte.set(!feuilleOuverte())"
     >
-      @for (entree of principales(); track entree.chemin) {
-        <a
-          [routerLink]="entree.chemin"
-          routerLinkActive
-          #actif="routerLinkActive"
-          class="flex flex-1 flex-col items-center gap-0.5 py-2 text-xs no-underline"
-          [style.color]="actif.isActive ? 'var(--mat-sys-primary)' : 'var(--mat-sys-on-surface-variant)'"
-        >
-          <span
-            class="flex h-7 w-14 items-center justify-center rounded-full"
-            [style.background]="actif.isActive ? 'var(--mat-sys-secondary-container)' : 'transparent'"
-          >
-            <mat-icon class="!h-5 !w-5 !text-xl">{{ entree.icone }}</mat-icon>
-          </span>
-          {{ entree.libelle }}
-        </a>
-      }
-    </nav>
+      <span class="pastille-onglet"><mat-icon aria-hidden="true">menu</mat-icon></span>
+      Menu
+    </button>
+  </nav>
+
+  @if (feuilleOuverte()) {
+    <div class="feuille-voile md:hidden" (click)="feuilleOuverte.set(false)"></div>
+    <div
+      id="menu-complet"
+      class="feuille menu-groupes md:hidden"
+      role="dialog"
+      aria-label="Menu"
+      (keydown.escape)="feuilleOuverte.set(false)"
+    >
+      <div class="feuille-poignee"></div>
+      <ng-container *ngTemplateOutlet="listeDuMenu" />
+    </div>
   }
 </div>

@@ -1,3 +1,4 @@
+import { CadreConnexion } from '../design/cadre-connexion';
 import { Component, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -34,6 +35,7 @@ const LONGUEUR_MINIMALE = 8;
 @Component({
   selector: 'app-premier-mot-de-passe',
   imports: [
+    CadreConnexion,
     FormsModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -42,6 +44,7 @@ const LONGUEUR_MINIMALE = 8;
     MatProgressBarModule,
   ],
   templateUrl: './premier-mot-de-passe.html',
+  styleUrl: '../design/message-erreur.css',
 })
 export class PremierMotDePasse {
   private readonly http = inject(HttpClient);

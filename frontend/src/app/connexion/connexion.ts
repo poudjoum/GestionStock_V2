@@ -9,10 +9,12 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Session } from '../noyau/session';
 import { accueilPour } from '../noyau/roles';
+import { CadreConnexion } from '../design/cadre-connexion';
 
 @Component({
   selector: 'app-connexion',
   imports: [
+    CadreConnexion,
     FormsModule,
     MatButtonModule,
     MatFormFieldModule,
@@ -21,6 +23,7 @@ import { accueilPour } from '../noyau/roles';
     MatProgressBarModule,
   ],
   templateUrl: './connexion.html',
+  styleUrl: '../design/message-erreur.css',
 })
 export class Connexion {
   private readonly session = inject(Session);

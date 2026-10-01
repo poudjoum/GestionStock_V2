@@ -1,0 +1,29 @@
+/*
+ * Le message d'erreur d'un formulaire : le texte du serveur, tel quel, avec une icone pour qu'il
+ * ne repose pas sur la seule couleur.
+ */
+.message-erreur {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--gs-r-champ);
+  background: var(--gs-danger-fond);
+  color: var(--gs-danger);
+  font-size: var(--gs-texte-sm);
+  line-height: 1.45;
+}
+
+.message-erreur mat-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.connecte {
+  margin: 0;
+  font-size: var(--gs-texte-sm);
+  color: var(--gs-encre-2);
+}
