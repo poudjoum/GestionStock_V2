@@ -62,6 +62,15 @@ public class Entreprise extends AbstractEntity{
     /** Ce qu'il faut payer, TTC et sur un seul ticket, pour gagner un point. */
     @Column(name="montant_par_point", nullable = false)
     private BigDecimal montantParPoint = new BigDecimal("10000");
+    /** Ce que vaut un point, en francs, quand le client l'echange contre un bon d'achat. */
+    @Column(name="valeur_point_fcfa", nullable = false)
+    private BigDecimal valeurPointFcfa = BigDecimal.ONE;
+    /** Le moins de points qu'on puisse echanger d'un coup : un bon de trois francs n'a pas de sens. */
+    @Column(name="points_minimum_bon", nullable = false)
+    private int pointsMinimumBon = 1000;
+    /** Combien de jours un bon reste valable apres son emission. */
+    @Column(name="duree_validite_bon_jours", nullable = false)
+    private int dureeValiditeBonJours = 90;
     /**
      * L'echeance de l'abonnement annuel. Nulle pour un commerce qui n'en a pas encore.
      *

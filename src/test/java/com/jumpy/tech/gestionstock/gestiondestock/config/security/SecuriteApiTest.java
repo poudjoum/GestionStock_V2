@@ -174,6 +174,117 @@ class SecuriteApiTest extends AbstractIntegrationTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // --- Fidelite client mobile & bons d'achat ------------------------------------------------
+
+    @Test
+    void les_magasins_en_promotion_sont_accessibles_sans_compte() throws Exception {
+        mockMvc.perform(get(API + "/fidelite/magasins"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void le_profil_fidelite_exige_un_compte() throws Exception {
+        mockMvc.perform(get(API + "/fidelite/profil"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAISSIER")
+    void l_espace_client_n_est_pas_ouvert_au_personnel() throws Exception {
+        // Ces routes lisent l'id du compte connecte comme un id de client : un employe y lirait
+        // le client qui porte le meme numero que lui.
+        mockMvc.perform(get(API + "/fidelite/profil"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void le_client_mobile_ne_lit_pas_la_gestion() throws Exception {
+        // L'inscription est libre : sans cette regle, n'importe qui obtenait un jeton ouvrant
+        // toutes les lectures « tout compte connecte » du back-office.
+        String jeton = inscrireClient(telephoneNeuf());
+
+        mockMvc.perform(get(API + "/articles/all").header("Authorization", "Bearer " + jeton))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get(API + "/users/moi").header("Authorization", "Bearer " + jeton))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get(API + "/fidelite/profil").header("Authorization", "Bearer " + jeton))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void un_client_ne_prend_pas_le_compte_d_un_employe_au_meme_nom() throws Exception {
+        // Un employe dont l'identifiant a la forme d'un numero de telephone. Le jeton du client
+        // inscrit avec ce numero portait ce nom, et se relisait d'abord parmi le personnel.
+        String numero = telephoneNeuf();
+        utilisateurRepository.save(new Utilisateur(numero, numero + "@exemple.test", "peu-importe"));
+
+        String jeton = inscrireClient(numero);
+
+        mockMvc.perform(get(API + "/users/moi").header("Authorization", "Bearer " + jeton))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void un_identifiant_qui_n_est_pas_un_telephone_est_refuse() throws Exception {
+        mockMvc.perform(post(API + "/fidelite/auth/inscription")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"telephone\":\"compte-existant\",\"motDePasse\":\"secret123\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void le_gerant_regle_la_politique_de_fidelite() throws Exception {
+        // 404 et non 403 : ce compte de test n'a pas d'entreprise, et c'est bien la route qui
+        // a ete atteinte.
+        mockMvc.perform(get(API + "/fidelite/politique"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAISSIER")
+    void le_caissier_ne_regle_pas_la_politique_de_fidelite() throws Exception {
+        mockMvc.perform(get(API + "/fidelite/politique"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void la_vitrine_des_campagnes_se_lit_sans_compte() throws Exception {
+        mockMvc.perform(get(API + "/fidelite/campagnes"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAISSIER")
+    void la_caisse_lit_les_promotions_du_jour_mais_pas_les_campagnes() throws Exception {
+        // 404 : ce compte de test n'a pas d'entreprise, et c'est bien la route qui a ete atteinte.
+        mockMvc.perform(get(API + "/campagnes/promotions-en-cours"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get(API + "/campagnes"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "MAGASINIER")
+    void le_magasinier_ne_prepare_pas_de_campagne() throws Exception {
+        mockMvc.perform(post(API + "/campagnes").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    private String inscrireClient(String telephone) throws Exception {
+        String reponse = mockMvc.perform(post(API + "/fidelite/auth/inscription")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"telephone\":\"" + telephone + "\",\"motDePasse\":\"secret123\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return com.jayway.jsonpath.JsonPath.read(reponse, "$.jeton");
+    }
+
+    /** Les tests partagent une base : chaque inscription prend un numero qu'aucune autre n'a pris. */
+    private static String telephoneNeuf() {
+        return "6" + String.format("%08d", (System.nanoTime() / 1000) % 100_000_000L);
+    }
+
     private static ResultMatcher pasRefuse() {
         return resultat -> org.assertj.core.api.Assertions
                 .assertThat(resultat.getResponse().getStatus())

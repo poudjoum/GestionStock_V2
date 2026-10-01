@@ -13,6 +13,8 @@ export interface PaiementDuTicket {
   recu: number;
   /** Ce qu'on lui rend. Zero ailleurs que pour les especes. */
   monnaie: number;
+  /** Le bon d'achat donne en paiement, s'il y en a un : il vient en deduction avant le reste. */
+  bon?: { code: string; montant: number };
 }
 
 /**
@@ -55,6 +57,12 @@ export class Ticket {
    * qu'aucune facture ne porterait jamais.
    */
   readonly provisoire = input(false);
+  /**
+   * Si l'achat a lieu pendant une campagne du magasin. Les points ne s'annoncent qu'alors : hors
+   * campagne, le client qui scannerait le ticket serait refuse. Faux par defaut — un duplicata
+   * ne sait pas si sa vente en etait, et la page du QR, elle, le dit juste.
+   */
+  readonly enCampagne = input(false);
 
   /** L'adresse en une ligne, sans les vides : un magasin ne renseigne pas toujours tout. */
   protected readonly adresse = computed(() => {
@@ -114,12 +122,17 @@ export class Ticket {
   protected readonly points = computed(() => {
     const magasin = this.entreprise();
     const facture = this.facture();
-    if (!magasin || magasin.fideliteActive === false || facture.annulee) {
+    if (!magasin || magasin.fideliteActive === false || facture.annulee || !this.enCampagne()) {
       return 0;
     }
     const parPoint = magasin.montantParPoint && magasin.montantParPoint > 0 ? magasin.montantParPoint : 10000;
-    return Math.floor((facture.totalTtc ?? 0) / parPoint);
+    // Sur ce que le client a paye : la part reglee par bon d'achat ne rapporte rien, comme cote
+    // serveur — sinon le ticket promettrait des points que le scan refuserait.
+    const paye = (facture.totalTtc ?? 0) - (this.paiement()?.bon?.montant ?? 0);
+    return Math.max(0, Math.floor(paye / parPoint));
   });
 
-  protected readonly fideliteActive = computed(() => this.entreprise()?.fideliteActive !== false);
+  protected readonly fideliteActive = computed(
+    () => this.entreprise()?.fideliteActive !== false && this.enCampagne(),
+  );
 }

@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.config.security.service;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.CompteClientFidelite;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Utilisateur;
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
@@ -70,6 +71,36 @@ public class UserDetailsImpl implements UserDetails {
                 authorities
         );
     }
+
+    /** Le role d'un client de l'application mobile. Il n'ouvre que l'espace fidelite. */
+    public static final String ROLE_CLIENT_FIDELITE = "ROLE_CLIENT_FIDELITE";
+
+    /**
+     * Un client de l'application mobile.
+     *
+     * Son nom d'utilisateur n'est pas son telephone mais `client:<id>`. Un telephone est choisi par
+     * qui s'inscrit, et un compte du personnel pourrait porter le meme : tout ce qui retrouve un
+     * compte par son nom — `authentication.getName()` dans les services — doit tomber a cote, et
+     * non sur l'employe.
+     */
+    public static UserDetailsImpl buildClient(CompteClientFidelite client) {
+        return new UserDetailsImpl(
+                client.getId(),
+                "client:" + client.getId(),
+                null,
+                client.getMotDePasse(),
+                null,
+                client.isActif(),
+                List.of(new SimpleGrantedAuthority(ROLE_CLIENT_FIDELITE))
+        );
+    }
+
+    @JsonIgnore
+    public boolean isClientFidelite() {
+        return authorities != null && authorities.stream()
+                .anyMatch(a -> ROLE_CLIENT_FIDELITE.equals(a.getAuthority()));
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;

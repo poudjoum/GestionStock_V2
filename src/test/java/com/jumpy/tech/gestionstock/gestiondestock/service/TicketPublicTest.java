@@ -3,6 +3,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.service;
 import com.jumpy.tech.gestionstock.gestiondestock.AbstractIntegrationTest;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.service.UserDetailsImpl;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.CampagneDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CategoryDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.EntrepriseDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
@@ -16,6 +17,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundExcept
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.fidelite.CodeTicket;
 import com.jumpy.tech.gestionstock.gestiondestock.fidelite.TicketsPublics;
+import com.jumpy.tech.gestionstock.gestiondestock.promotion.Calendrier;
+import com.jumpy.tech.gestionstock.gestiondestock.promotion.Campagnes;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +59,10 @@ class TicketPublicTest extends AbstractIntegrationTest {
     private EntrepriseRepository entrepriseRepository;
     @Autowired
     private TicketsPublics tickets;
+    @Autowired
+    private Campagnes campagnes;
+    @Autowired
+    private Calendrier calendrier;
 
     private Long idEntreprise;
     private Long ciment;
@@ -153,6 +160,7 @@ class TicketPublicTest extends AbstractIntegrationTest {
 
     @Test
     void le_qr_retrouve_les_articles_le_total_et_les_points() {
+        uneCampagneEnCours();
         String code = venteEncaissee(null).getCodeTicket();
         SecurityContextHolder.clearContext();   // le client n'a pas de compte
 
@@ -185,6 +193,7 @@ class TicketPublicTest extends AbstractIntegrationTest {
 
     @Test
     void le_montant_pour_un_point_est_celui_du_commerce() {
+        uneCampagneEnCours();
         var entreprise = entrepriseRepository.findById(idEntreprise).orElseThrow();
         entreprise.setMontantParPoint(new BigDecimal("5000"));
         entrepriseRepository.save(entreprise);
@@ -192,6 +201,24 @@ class TicketPublicTest extends AbstractIntegrationTest {
         String code = venteEncaissee(null).getCodeTicket();
 
         assertThat(tickets.parCode(code).getPoints()).isEqualTo(3);
+    }
+
+    @Test
+    void hors_campagne_le_ticket_ne_rapporte_pas_de_points() {
+        String code = venteEncaissee(null).getCodeTicket();
+
+        TicketPublicDto ticket = tickets.parCode(code);
+        assertThat(ticket.getPoints()).isZero();
+        assertThat(ticket.getArticles()).hasSize(2);
+    }
+
+    /** Les points sont ceux des campagnes : sans campagne, un ticket ne rapporte rien. */
+    private void uneCampagneEnCours() {
+        campagnes.creer(CampagneDto.builder()
+                .titre("Rentrée")
+                .dateDebut(calendrier.aujourdhui())
+                .dateFin(calendrier.aujourdhui().plusDays(7))
+                .build());
     }
 
     @Test

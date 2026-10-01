@@ -14,6 +14,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.entities.Vente;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.ModeReglement;
+import com.jumpy.tech.gestionstock.gestiondestock.fidelite.PaiementParBon;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.FactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneFactureRepository;
@@ -59,6 +61,7 @@ public class FactureServiceImpl implements FactureService {
     private final ReglementRepository reglementRepository;
     private final Cloisonnement cloisonnement;
     private final NotificationService notifications;
+    private final PaiementParBon paiementParBon;
 
     public FactureServiceImpl(FactureRepository factureRepository,
                               LigneFactureRepository ligneFactureRepository,
@@ -67,8 +70,10 @@ public class FactureServiceImpl implements FactureService {
                               EntrepriseRepository entrepriseRepository,
                               ReglementRepository reglementRepository,
                               Cloisonnement cloisonnement,
-                              NotificationService notifications) {
+                              NotificationService notifications,
+                              PaiementParBon paiementParBon) {
         this.notifications = notifications;
+        this.paiementParBon = paiementParBon;
         this.entrepriseRepository = entrepriseRepository;
         this.reglementRepository = reglementRepository;
         this.cloisonnement = cloisonnement;
@@ -397,7 +402,9 @@ public class FactureServiceImpl implements FactureService {
                     ErrorCodes.VENTE_NOT_VALID,
                     List.of("La facture " + facture.getNumero() + " a été annulée"));
         }
-        if (demande == null || demande.getMontant() == null || demande.getMontant().signum() <= 0) {
+        boolean parBon = demande != null && demande.getMode() == ModeReglement.BON_ACHAT;
+        // Un bon regle sa propre valeur : son montant ne se saisit pas, il se lit sur le bon.
+        if (!parBon && (demande == null || demande.getMontant() == null || demande.getMontant().signum() <= 0)) {
             throw new InvalidEntityException("Le montant d'un règlement doit être strictement positif",
                     ErrorCodes.VENTE_NOT_VALID);
         }
@@ -412,28 +419,34 @@ public class FactureServiceImpl implements FactureService {
             throw new InvalidEntityException("Cette facture est déjà réglée",
                     ErrorCodes.VENTE_NOT_VALID);
         }
-        // Un trop-percu est une erreur de saisie, pas une situation a enregistrer : le refuser
-        // evite d'avoir a inventer plus tard une notion de rendu de monnaie.
-        if (demande.getMontant().compareTo(reste) > 0) {
-            throw new InvalidEntityException(
-                    "Le règlement dépasse le reste à payer : " + reste + " attendus, "
-                            + demande.getMontant() + " présentés",
-                    ErrorCodes.VENTE_NOT_VALID,
-                    List.of("Reste à payer sur " + facture.getNumero() + " : " + reste));
-        }
-
         Reglement reglement = new Reglement();
+        if (parBon) {
+            // Le bon regle au plus le reste a payer, et se consomme en entier.
+            PaiementParBon.Paiement paiement = paiementParBon.consommer(demande.getReference(), facture, reste);
+            reglement.setMontant(paiement.montant());
+            reglement.setReference(paiement.codeBon());
+        } else {
+            // Un trop-percu est une erreur de saisie, pas une situation a enregistrer : le refuser
+            // evite d'avoir a inventer plus tard une notion de rendu de monnaie.
+            if (demande.getMontant().compareTo(reste) > 0) {
+                throw new InvalidEntityException(
+                        "Le règlement dépasse le reste à payer : " + reste + " attendus, "
+                                + demande.getMontant() + " présentés",
+                        ErrorCodes.VENTE_NOT_VALID,
+                        List.of("Reste à payer sur " + facture.getNumero() + " : " + reste));
+            }
+            reglement.setMontant(demande.getMontant());
+            reglement.setReference(demande.getReference());
+        }
         reglement.setFacture(facture);
-        reglement.setMontant(demande.getMontant());
         reglement.setMode(demande.getMode());
-        reglement.setReference(demande.getReference());
         // La date est celle de l'encaissement, pas celle que l'appelant declare : antidater un
         // reglement deplacerait une recette d'un exercice a l'autre.
         reglement.setDateReglement(Instant.now());
         reglement.setIdEntreprise(facture.getIdEntreprise());
 
         log.info("Reglement de {} sur la facture {} ({})",
-                demande.getMontant(), facture.getNumero(), demande.getMode());
+                reglement.getMontant(), facture.getNumero(), demande.getMode());
         return ReglementDto.fromEntity(reglementRepository.save(reglement));
     }
 
@@ -458,6 +471,13 @@ public class FactureServiceImpl implements FactureService {
             if (encaissement.getMode() == null) {
                 throw new InvalidEntityException("Un règlement dit par quel moyen il a été reçu",
                         ErrorCodes.VENTE_NOT_VALID);
+            }
+            // Un bon ne se verifie qu'en ligne : la caisse ne le propose pas sans reseau. S'il en
+            // arrive un quand meme, la vente passe sans son reglement — refuser l'envoi le
+            // bloquerait pour toujours dans la file du poste — et la facture reste a encaisser.
+            if (encaissement.getMode() == ModeReglement.BON_ACHAT) {
+                log.warn("Vente synchronisee {} : reglement par bon ignore, a encaisser en caisse", idVente);
+                return findByVente(idVente);
             }
             Reglement reglement = new Reglement();
             reglement.setFacture(facture);
@@ -500,6 +520,11 @@ public class FactureServiceImpl implements FactureService {
             throw new InvalidEntityException(
                     "Le règlement " + idReglement + " ne porte pas sur la facture " + idFacture,
                     ErrorCodes.VENTE_NOT_VALID);
+        }
+        // Reprendre un reglement par bon rend le bon : sinon le client aurait paye avec un bon
+        // que le magasin a garde sans rien en deduire.
+        if (reglement.getMode() == ModeReglement.BON_ACHAT) {
+            paiementParBon.rendre(reglement.getReference());
         }
         reglementRepository.delete(reglement);
     }

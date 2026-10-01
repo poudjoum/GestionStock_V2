@@ -28,6 +28,12 @@ public class EtatDeCaisseDto {
     private long nombreReglements;
 
     private List<TotalParModeDto> parMode;
+    /**
+     * Les bons d'achat recus en paiement, a part : ils diminuent ce que le client doit, mais
+     * aucun argent n'entre. Les compter dans la recette ferait chercher au tiroir des billets
+     * qui n'y sont jamais entres.
+     */
+    private TotalParModeDto bonsAchat;
 
     @Builder
     @Data

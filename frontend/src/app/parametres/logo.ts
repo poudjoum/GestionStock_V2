@@ -23,9 +23,21 @@ const LARGEUR_MAX = 384;
 const TROP_LOURD = 120_000;
 
 /** Lit le fichier choisi et rend l'image reduite, encodee, prete a etre enregistree. */
-export async function preparerLeLogo(fichier: File): Promise<string> {
+export function preparerLeLogo(fichier: File): Promise<string> {
+  return preparerUneImage(fichier, LARGEUR_MAX, TROP_LOURD);
+}
+
+/**
+ * Une image reduite a une largeur donnee : le logo du ticket, ou l'affiche d'une campagne que les
+ * clients verront sur leur telephone — 800 pixels y suffisent, et pesent dix fois moins.
+ */
+export async function preparerUneImage(
+  fichier: File,
+  largeurMax: number,
+  tropLourd: number,
+): Promise<string> {
   const image = await lire(fichier);
-  const echelle = Math.min(1, LARGEUR_MAX / image.width);
+  const echelle = Math.min(1, largeurMax / image.width);
   const largeur = Math.max(1, Math.round(image.width * echelle));
   const hauteur = Math.max(1, Math.round(image.height * echelle));
 
@@ -43,7 +55,7 @@ export async function preparerLeLogo(fichier: File): Promise<string> {
   pinceau.drawImage(image, 0, 0, largeur, hauteur);
 
   const png = toile.toDataURL('image/png');
-  return png.length <= TROP_LOURD ? png : toile.toDataURL('image/jpeg', 0.85);
+  return png.length <= tropLourd ? png : toile.toDataURL('image/jpeg', 0.85);
 }
 
 function lire(fichier: File): Promise<HTMLImageElement> {

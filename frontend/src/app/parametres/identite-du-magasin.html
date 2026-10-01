@@ -192,39 +192,18 @@
           }
         </section>
 
-        <section class="carte p-5">
-          <h2 class="mb-4 text-xs uppercase tracking-wide opacity-60">Fidélité</h2>
-
-          <mat-slide-toggle
-            [ngModel]="brouillon().fideliteActive !== false"
-            (ngModelChange)="changer('fideliteActive', $event)"
-            name="fidelite"
-          >
-            Les tickets rapportent des points
-          </mat-slide-toggle>
-
-          <p class="mb-4 mt-2 text-sm opacity-70">
-            Chaque ticket porte un QR : le client le scanne pour retrouver son achat — les articles,
-            le total — et les points qu’il lui vaut. Un point par tranche entière du montant
-            ci-dessous, payée TTC sur un même ticket.
-          </p>
-
-          @if (brouillon().fideliteActive !== false) {
-            <mat-form-field class="w-full sm:w-64">
-              <mat-label>Montant pour 1 point</mat-label>
-              <input
-                matInput
-                type="number"
-                min="1"
-                step="500"
-                [ngModel]="brouillon().montantParPoint ?? 10000"
-                (ngModelChange)="changer('montantParPoint', $event)"
-                name="montantParPoint"
-              />
-              <span matTextSuffix>F</span>
-              <mat-hint>Un ticket de {{ exempleDeTicket() | number: '1.0-0' }} F vaut {{ exempleDePoints() }} point{{ exempleDePoints() > 1 ? 's' : '' }}</mat-hint>
-            </mat-form-field>
-          }
+        <section class="carte flex flex-wrap items-center justify-between gap-3 p-5">
+          <div>
+            <h2 class="mb-1 text-xs uppercase tracking-wide opacity-60">Fidélité</h2>
+            <p class="text-sm opacity-70">
+              Ce que rapportent les tickets et ce que valent les points se règlent dans le
+              programme de fidélité.
+            </p>
+          </div>
+          <a mat-stroked-button routerLink="/fidelite">
+            <mat-icon>loyalty</mat-icon>
+            Programme de fidélité
+          </a>
         </section>
 
         @if (erreur()) {
@@ -269,7 +248,7 @@
       <aside class="lg:sticky lg:top-4">
         <h2 class="mb-2 text-xs uppercase tracking-wide opacity-60">Aperçu du ticket</h2>
         <div class="inline-block rounded-lg p-2 shadow-lg" style="background: #fff">
-          <app-ticket [facture]="apercu" [entreprise]="magasin()" />
+          <app-ticket [facture]="apercu" [entreprise]="magasin()" [enCampagne]="true" />
         </div>
         <p class="mt-2 max-w-72 text-xs opacity-60">
           Une vente d’exemple, sur une bande de 72 mm — la largeur réellement imprimée d’un

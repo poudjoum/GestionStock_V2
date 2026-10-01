@@ -132,8 +132,17 @@
               <span class="block truncate text-sm font-medium">{{ article.designation }}</span>
               <span class="block truncate text-xs opacity-60">{{ article.codeArticle }}</span>
             </span>
-            <span class="nombre shrink-0 text-sm font-medium">
-              {{ article.prixUnitaireHt | number: '1.0-0' }} F
+            <span class="nombre shrink-0 text-right text-sm font-medium">
+              @if (promotion(article)) {
+                <span class="block text-xs line-through opacity-60">
+                  {{ article.prixUnitaireHt | number: '1.0-0' }} F
+                </span>
+                <span class="block" style="color: var(--mat-sys-primary)">
+                  {{ prix(article) | number: '1.0-0' }} F
+                </span>
+              } @else {
+                {{ article.prixUnitaireHt | number: '1.0-0' }} F
+              }
             </span>
           </button>
         }
@@ -191,11 +200,23 @@
                 <span class="min-w-0 flex-1">
                   <span class="block truncate text-sm font-medium">{{ ligne.article.designation }}</span>
                   <span class="nombre block text-xs opacity-60">
-                    {{ ligne.article.prixUnitaireHt | number: '1.0-0' }} F l’unité
+                    @if (promotion(ligne.article)) {
+                      <span class="line-through">{{ ligne.article.prixUnitaireHt | number: '1.0-0' }} F</span>
+                    }
+                    {{ prix(ligne.article) | number: '1.0-0' }} F l’unité
                   </span>
+                  @if (promotion(ligne.article); as promo) {
+                    <span
+                      class="mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"
+                      style="background: var(--mat-sys-primary-container); color: var(--mat-sys-on-primary-container)"
+                    >
+                      <mat-icon class="!h-3.5 !w-3.5 !text-sm">sell</mat-icon>
+                      {{ promo.titreCampagne || 'Promotion' }}
+                    </span>
+                  }
                 </span>
                 <span class="nombre shrink-0 text-sm font-medium">
-                  {{ (ligne.article.prixUnitaireHt ?? 0) * ligne.quantite | number: '1.0-0' }} F
+                  {{ prix(ligne.article) * ligne.quantite | number: '1.0-0' }} F
                 </span>
               </div>
 
@@ -339,14 +360,102 @@
         </button>
       </div>
 
-      <!-- Le chiffre qu'on vient chercher : le plus gros de l'ecran, et rien autour. -->
+      <!--
+        Le chiffre qu'on vient chercher : le plus gros de l'ecran, et rien autour. Avec un bon, c'est
+        ce qui reste a payer — le total et la deduction passent dessous, en petit.
+      -->
       <div class="px-4 pb-2 text-center">
-        <span class="nombre text-5xl font-medium">{{ totalTtc() | number: '1.0-0' }}</span>
+        <span class="nombre text-5xl font-medium">{{ aPayer() | number: '1.0-0' }}</span>
         <span class="ml-1 text-2xl opacity-60">F</span>
+        @if (bon()) {
+          <div class="nombre mt-1 text-sm opacity-70">
+            {{ totalTtc() | number: '1.0-0' }} F − bon {{ deductionDuBon() | number: '1.0-0' }} F
+          </div>
+        }
       </div>
 
       <div class="p-4 pt-2">
-        <div class="mb-1 text-xs uppercase tracking-wide opacity-60">Moyen de paiement</div>
+        <!--
+          Le bon d'achat, avant le moyen de paiement : il se deduit d'abord, et le client paie le
+          reste. Il ne se lit qu'en ligne.
+        -->
+        @if (bon(); as lu) {
+          <div
+            class="mb-4 flex items-center gap-3 rounded-lg px-3 py-2"
+            style="background: var(--mat-sys-primary-container); color: var(--mat-sys-on-primary-container)"
+          >
+            <mat-icon>redeem</mat-icon>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-medium">Bon {{ lu.codeBon }}</span>
+              <span class="nombre block text-xs">{{ lu.montantFcfa | number: '1.0-0' }} F</span>
+            </span>
+            <button mat-icon-button type="button" (click)="oublierLeBon()" aria-label="Retirer le bon">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+          @if (bonPerdu() > 0) {
+            <!-- Un bon ne rend pas la monnaie : le client doit l'entendre avant qu'on valide. -->
+            <p
+              class="mb-4 flex items-start gap-2 rounded px-3 py-2 text-sm"
+              style="background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container)"
+            >
+              <mat-icon class="!h-5 !w-5 shrink-0 !text-xl">info</mat-icon>
+              Le bon vaut plus que l’achat : {{ bonPerdu() | number: '1.0-0' }} F seront perdus — un bon
+              ne rend pas la monnaie.
+            </p>
+          }
+        } @else if (saisieDuBon()) {
+          <div class="mb-1 text-xs uppercase tracking-wide opacity-60">Bon d’achat</div>
+          <div class="flex items-start gap-2">
+            <mat-form-field class="flex-1">
+              <mat-label>Code du bon</mat-label>
+              <input
+                matInput
+                autocomplete="off"
+                autocapitalize="characters"
+                placeholder="BON-XXXX-XXXX"
+                [ngModel]="codeDuBon()"
+                (ngModelChange)="codeDuBon.set($event)"
+                (keydown.enter)="lireLeBon()"
+                name="codeDuBon"
+              />
+            </mat-form-field>
+            <button
+              mat-stroked-button
+              type="button"
+              class="!h-14"
+              [disabled]="!codeDuBon().trim() || lectureDuBon()"
+              (click)="lireLeBon()"
+            >
+              {{ lectureDuBon() ? 'Lecture…' : 'Vérifier' }}
+            </button>
+          </div>
+          @if (erreurDuBon(); as message) {
+            <p
+              class="-mt-2 mb-3 rounded px-3 py-2 text-sm"
+              role="alert"
+              style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)"
+            >
+              {{ message }}
+            </p>
+          }
+        } @else {
+          <button
+            mat-button
+            type="button"
+            class="mb-3"
+            [disabled]="!enLigne()"
+            (click)="saisieDuBon.set(true)"
+          >
+            <mat-icon>redeem</mat-icon>
+            {{ enLigne() ? 'Le client a un bon d’achat' : 'Bon d’achat : réseau requis' }}
+          </button>
+        }
+
+        @if (aPayer() > 0) {
+        <div class="mb-1 text-xs uppercase tracking-wide opacity-60">
+          {{ bon() ? 'Le reste, payé en' : 'Moyen de paiement' }}
+        </div>
         <div class="mb-4 flex flex-wrap gap-2">
           @for (m of modes; track m.valeur) {
             <button
@@ -436,6 +545,7 @@
             </div>
           }
         }
+        }
 
         @if (erreur(); as message) {
           <p
@@ -484,6 +594,7 @@
           [entreprise]="magasin()"
           [paiement]="sortie.paiement"
           [provisoire]="sortie.provisoire"
+          [enCampagne]="sortie.enCampagne"
         />
       </div>
       <div class="flex gap-2 pb-2">

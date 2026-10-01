@@ -79,10 +79,18 @@
 
   @if (paiement()) {
     <div class="ticket__filet"></div>
-    <div class="ticket__ligne">
-      <span>Reçu ({{ modeLisible() }})</span>
-      <span>{{ paiement()!.recu | number: '1.0-0' }}</span>
-    </div>
+    @if (paiement()!.bon; as bon) {
+      <div class="ticket__ligne">
+        <span>Bon d’achat {{ bon.code }}</span>
+        <span>{{ bon.montant | number: '1.0-0' }}</span>
+      </div>
+    }
+    @if (paiement()!.recu > 0 || !paiement()!.bon) {
+      <div class="ticket__ligne">
+        <span>Reçu ({{ modeLisible() }})</span>
+        <span>{{ paiement()!.recu | number: '1.0-0' }}</span>
+      </div>
+    }
     @if (paiement()!.monnaie > 0) {
       <div class="ticket__ligne">
         <span>Monnaie rendue</span>

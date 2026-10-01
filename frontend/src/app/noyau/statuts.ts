@@ -55,3 +55,36 @@ export const PASTILLES_STOCK: Record<StatutStock, Pastille> = {
 export function pastilleDe(ligne: LigneInventaireDto): Pastille {
   return PASTILLES_STOCK[ligne.statut ?? 'SANS_SEUIL'];
 }
+
+export type StatutCampagne = 'A_VENIR' | 'EN_COURS' | 'TERMINEE' | 'ARRETEE';
+
+/**
+ * Les statuts d'une campagne. Le vert pour celle qui tourne : c'est elle qui fait vendre, et
+ * celle qu'on cherche des yeux dans la liste.
+ */
+export const PASTILLES_CAMPAGNE: Record<StatutCampagne, Pastille> = {
+  EN_COURS: {
+    libelle: 'En cours',
+    fond: 'var(--mat-sys-primary-container)',
+    texte: 'var(--mat-sys-on-primary-container)',
+    icone: 'campaign',
+  },
+  A_VENIR: {
+    libelle: 'À venir',
+    fond: 'var(--mat-sys-tertiary-container)',
+    texte: 'var(--mat-sys-on-tertiary-container)',
+    icone: 'schedule',
+  },
+  TERMINEE: {
+    libelle: 'Terminée',
+    fond: 'var(--mat-sys-surface-container-high)',
+    texte: 'var(--mat-sys-on-surface-variant)',
+    icone: 'done',
+  },
+  ARRETEE: {
+    libelle: 'Arrêtée',
+    fond: 'var(--mat-sys-error-container)',
+    texte: 'var(--mat-sys-on-error-container)',
+    icone: 'block',
+  },
+};
