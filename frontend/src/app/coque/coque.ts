@@ -6,13 +6,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { Session } from '../noyau/session';
 import { Reseau } from '../noyau/reseau';
 import { FileDesVentes } from '../comptoir/file-des-ventes';
 import { Notifications } from '../notifications/notifications.service';
 import { NotificationsPush } from '../notifications/push.service';
-import { LIBELLE_DES_ROLES, MENU, menuPour } from '../noyau/roles';
+import { GROUPES, LIBELLE_DES_ROLES, MENU, accueilPour, groupesPour, menuPour } from '../noyau/roles';
+import { Logo } from '../design/logo';
 
 /**
  * La coque : ce qui entoure chaque ecran.
@@ -33,6 +34,7 @@ import { LIBELLE_DES_ROLES, MENU, menuPour } from '../noyau/roles';
   imports: [
     DatePipe,
     DecimalPipe,
+    NgTemplateOutlet,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
@@ -40,8 +42,10 @@ import { LIBELLE_DES_ROLES, MENU, menuPour } from '../noyau/roles';
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
+    Logo,
   ],
   templateUrl: './coque.html',
+  styleUrl: './coque.css',
 })
 export class Coque implements OnInit {
   private readonly session = inject(Session);
@@ -67,6 +71,11 @@ export class Coque implements OnInit {
   protected readonly envoiEnCours = this.file.enCours;
   protected readonly entrees = computed(() => menuPour(this.session.roles()));
   protected readonly principales = computed(() => this.entrees().filter((e) => e.principal));
+  protected readonly groupes = computed(() => groupesPour(this.session.roles()));
+  /** La page d'arrivee du role : le logo y ramene. */
+  protected readonly accueil = computed(() => accueilPour(this.session.roles()));
+  /** Le menu complet du telephone, ouvert par le bouton « Menu » de la barre du bas. */
+  protected readonly feuilleOuverte = signal(false);
   protected readonly metier = computed(() => {
     const roles = this.session.roles().filter((role) => role !== 'ROLE_USER');
     return roles.map((role) => LIBELLE_DES_ROLES[role]).join(', ') || 'Utilisateur';
@@ -77,6 +86,9 @@ export class Coque implements OnInit {
     (this.session.username() ?? '?').slice(0, 2).toUpperCase(),
   );
 
+  /** Le groupe de la page courante, au-dessus du titre : « Ventes », « Stock »… */
+  protected readonly groupeCourant = signal<string | null>(null);
+
   /** Le titre de la page courante, lu dans le menu plutot que redeclare par chaque ecran. */
   protected readonly titre = signal('GestionStock');
 
@@ -86,8 +98,14 @@ export class Coque implements OnInit {
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntilDestroyed(),
       )
-      .subscribe((e) => this.titre.set(titrePour(e.urlAfterRedirects)));
+      .subscribe((e) => {
+        this.titre.set(titrePour(e.urlAfterRedirects));
+        this.groupeCourant.set(groupePour(e.urlAfterRedirects));
+        // Une page choisie dans le menu complet du telephone le referme.
+        this.feuilleOuverte.set(false);
+      });
     this.titre.set(titrePour(this.router.url));
+    this.groupeCourant.set(groupePour(this.router.url));
   }
 
   ngOnInit(): void {
@@ -142,9 +160,15 @@ function titrePour(url: string): string {
   if (chemin === '/notifications') return 'Notifications';
   // Les categories n'ont pas d'entree de menu : on y arrive depuis le catalogue.
   if (chemin === '/categories') return 'Catégories';
-  if (chemin === '/fournisseurs') return 'Répertoire';
   if (chemin === '/accueil' || chemin === '/') return 'Accueil';
   // La vitrine du design system, hors menu.
   if (chemin === '/design') return 'Design system';
   return 'GestionStock';
+}
+
+/** Le nom du groupe de la page, pour la ligne au-dessus du titre. Rien pour l'accueil. */
+function groupePour(url: string): string | null {
+  const chemin = '/' + (url.split('?')[0].split('/')[1] ?? '');
+  const entree = MENU.find((e) => e.chemin === chemin);
+  return GROUPES.find((g) => g.id === entree?.groupe)?.libelle ?? null;
 }

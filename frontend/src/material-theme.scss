@@ -43,3 +43,54 @@ body {
   margin: 0;
   height: 100%;
 }
+
+/*
+ * Les composants de Material, branches sur les jetons de GestionStock.
+ *
+ * `mat.theme` calcule ses couleurs a partir de sa propre palette verte ; on les remplace ici par
+ * celles du design system. Tous les boutons, champs, interrupteurs et menus prennent ainsi la
+ * nouvelle palette d'un coup, sans toucher aux ecrans — et ceux qui lisent `--mat-sys-…` en ligne
+ * aussi. Les jetons basculent d'eux-memes en mode sombre : ce bloc n'a pas a le faire.
+ */
+html {
+  --mat-sys-primary: var(--gs-accent);
+  --mat-sys-on-primary: var(--gs-sur-accent);
+  --mat-sys-primary-container: var(--gs-vert-100);
+  --mat-sys-on-primary-container: var(--gs-vert-900);
+  --mat-sys-inverse-primary: var(--gs-vert-200);
+
+  --mat-sys-secondary: var(--gs-vert-600);
+  --mat-sys-on-secondary: var(--gs-sur-accent);
+  --mat-sys-secondary-container: var(--gs-vert-100);
+  --mat-sys-on-secondary-container: var(--gs-vert-900);
+
+  // Le tertiaire servait d'alerte (ambre) dans toute l'application : il prend le ton « attention ».
+  --mat-sys-tertiary: var(--gs-alerte);
+  --mat-sys-on-tertiary: var(--gs-surface);
+  --mat-sys-tertiary-container: var(--gs-alerte-fond);
+  --mat-sys-on-tertiary-container: var(--gs-alerte);
+
+  --mat-sys-error: var(--gs-danger);
+  --mat-sys-on-error: var(--gs-surface);
+  --mat-sys-error-container: var(--gs-danger-fond);
+  --mat-sys-on-error-container: var(--gs-danger);
+
+  --mat-sys-background: var(--gs-fond);
+  --mat-sys-on-background: var(--gs-encre);
+  --mat-sys-surface: var(--gs-fond);
+  --mat-sys-surface-dim: var(--gs-surface-2);
+  --mat-sys-surface-bright: var(--gs-surface);
+  --mat-sys-surface-container-lowest: var(--gs-surface);
+  --mat-sys-surface-container-low: var(--gs-surface);
+  --mat-sys-surface-container: var(--gs-surface-2);
+  --mat-sys-surface-container-high: var(--gs-surface-2);
+  --mat-sys-surface-container-highest: var(--gs-trait);
+  --mat-sys-on-surface: var(--gs-encre);
+  --mat-sys-on-surface-variant: var(--gs-encre-2);
+  --mat-sys-surface-variant: var(--gs-surface-2);
+  --mat-sys-outline: var(--gs-trait-fort);
+  --mat-sys-outline-variant: var(--gs-trait);
+
+  --mat-sys-inverse-surface: var(--gs-encre);
+  --mat-sys-inverse-on-surface: var(--gs-fond);
+}

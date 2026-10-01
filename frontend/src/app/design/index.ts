@@ -6,6 +6,7 @@
  */
 export { EnTetePage } from './en-tete-page';
 export { EtatVide } from './etat-vide';
+export { Logo } from './logo';
 export { Section } from './section';
 export { Selecteur, type OptionSelecteur } from './selecteur';
 export { Statut, type TonStatut } from './statut';
