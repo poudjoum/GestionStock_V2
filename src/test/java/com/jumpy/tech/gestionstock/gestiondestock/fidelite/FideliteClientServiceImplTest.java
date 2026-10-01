@@ -394,6 +394,55 @@ class FideliteClientServiceImplTest {
         verify(bonDAchatRepository, never()).save(any());
     }
 
+    @Test
+    void la_conversion_suit_la_politique_du_magasin() {
+        Long idClient = 1L;
+        CompteClientFidelite client = new CompteClientFidelite();
+        client.setId(idClient);
+        Entreprise entreprise = magasinFidele();
+        entreprise.setValeurPointFcfa(new BigDecimal("2.5"));
+        entreprise.setPointsMinimumBon(500);
+        entreprise.setDureeValiditeBonJours(30);
+        SoldePointsMagasin solde = new SoldePointsMagasin();
+        solde.setSoldePoints(1000);
+
+        when(clientRepository.verrouiller(idClient)).thenReturn(Optional.of(client));
+        when(entrepriseRepository.findById(5L)).thenReturn(Optional.of(entreprise));
+        when(soldeRepository.findByClientIdAndEntrepriseId(idClient, 5L)).thenReturn(Optional.of(solde));
+        when(bonDAchatRepository.findByCodeBon(anyString())).thenReturn(Optional.empty());
+        when(bonDAchatRepository.save(any(BonDAchat.class))).thenAnswer(i -> i.getArgument(0));
+
+        BonDAchatDto bon = service.convertirPointsEnBon(idClient,
+                ConversionPointsDto.builder().idEntreprise(5L).pointsAConvertir(601).build());
+
+        // 601 points a 2,50 F : 1502,50 F, arrondis au franc inferieur.
+        assertThat(bon.getMontantFcfa()).isEqualByComparingTo("1502");
+        assertThat(ChronoUnit.DAYS.between(bon.getDateEmission(), bon.getDateExpiration())).isEqualTo(30);
+        assertThat(solde.getSoldePoints()).isEqualTo(399);
+    }
+
+    @Test
+    void sous_le_minimum_du_magasin_la_conversion_est_refusee() {
+        Long idClient = 1L;
+        CompteClientFidelite client = new CompteClientFidelite();
+        client.setId(idClient);
+        Entreprise entreprise = magasinFidele();
+        entreprise.setPointsMinimumBon(1000);
+        SoldePointsMagasin solde = new SoldePointsMagasin();
+        solde.setSoldePoints(5000);
+
+        when(clientRepository.verrouiller(idClient)).thenReturn(Optional.of(client));
+        when(entrepriseRepository.findById(5L)).thenReturn(Optional.of(entreprise));
+        when(soldeRepository.findByClientIdAndEntrepriseId(idClient, 5L)).thenReturn(Optional.of(solde));
+
+        assertThatThrownBy(() -> service.convertirPointsEnBon(idClient,
+                ConversionPointsDto.builder().idEntreprise(5L).pointsAConvertir(999).build()))
+                .isInstanceOf(InvalidEntityException.class)
+                .hasMessageContaining("au moins 1000 points");
+        assertThat(solde.getSoldePoints()).isEqualTo(5000);
+        verify(bonDAchatRepository, never()).save(any());
+    }
+
     private static Vente venteDe(String codeTicket) {
         Vente vente = new Vente();
         vente.setId(100L);

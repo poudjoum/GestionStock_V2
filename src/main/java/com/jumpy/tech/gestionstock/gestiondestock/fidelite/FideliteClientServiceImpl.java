@@ -169,6 +169,8 @@ public class FideliteClientServiceImpl implements FideliteClientService {
                         .soldePoints(s.getSoldePoints())
                         .pointsCumulesTotal(s.getPointsCumulesTotal())
                         .montantParPoint(s.getEntreprise().getMontantParPoint())
+                        .valeurPointFcfa(s.getEntreprise().getValeurPointFcfa())
+                        .pointsMinimumBon(s.getEntreprise().getPointsMinimumBon())
                         .fideliteActive(s.getEntreprise().isFideliteActive())
                         .build())
                 .toList();
@@ -216,6 +218,9 @@ public class FideliteClientServiceImpl implements FideliteClientService {
                         .telephone(ent.getTel())
                         .logo(ent.getLogo())
                         .montantParPoint(ent.getMontantParPoint())
+                        .valeurPointFcfa(ent.getValeurPointFcfa())
+                        .pointsMinimumBon(ent.getPointsMinimumBon())
+                        .dureeValiditeBonJours(ent.getDureeValiditeBonJours())
                         .fideliteActive(ent.isFideliteActive())
                         .pointsClient(pointsParMagasin.getOrDefault(ent.getId(), 0))
                         .build());
@@ -359,8 +364,18 @@ public class FideliteClientServiceImpl implements FideliteClientService {
                     ErrorCodes.BON_ACHAT_NOT_VALID, List.of("Points insuffisants"));
         }
 
-        // Taux de conversion : 1 point = 1 FCFA (ex: 1000 points = 1000 FCFA)
-        BigDecimal montantBon = BigDecimal.valueOf(dto.getPointsAConvertir());
+        // La politique du magasin, telle qu'elle est le jour de l'echange.
+        if (dto.getPointsAConvertir() < entreprise.getPointsMinimumBon()) {
+            throw new InvalidEntityException(
+                    "Il faut échanger au moins " + entreprise.getPointsMinimumBon() + " points chez "
+                            + entreprise.getNom() + ".",
+                    ErrorCodes.BON_ACHAT_NOT_VALID, List.of("Sous le minimum du magasin"));
+        }
+        BigDecimal montantBon = PolitiqueFidelite.montantDuBon(dto.getPointsAConvertir(), entreprise.getValeurPointFcfa());
+        if (montantBon.signum() <= 0) {
+            throw new InvalidEntityException("Ces points ne valent pas encore un franc.",
+                    ErrorCodes.BON_ACHAT_NOT_VALID, List.of("Bon de montant nul"));
+        }
 
         // Debiter les points du solde
         solde.setSoldePoints(solde.getSoldePoints() - dto.getPointsAConvertir());
@@ -373,7 +388,7 @@ public class FideliteClientServiceImpl implements FideliteClientService {
         } while (bonDAchatRepository.findByCodeBon(codeBon).isPresent());
 
         Instant emission = Instant.now();
-        Instant expiration = emission.plus(90, ChronoUnit.DAYS); // Valable 90 jours
+        Instant expiration = emission.plus(entreprise.getDureeValiditeBonJours(), ChronoUnit.DAYS);
 
         BonDAchat bon = new BonDAchat();
         bon.setCodeBon(codeBon);

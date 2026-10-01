@@ -184,6 +184,10 @@ public class SecurityConfiguration {
                         // Lire et consommer un bon se fait au comptoir : le personnel du magasin.
                         .requestMatchers(API + "/fidelite/bons/*/verifier", API + "/fidelite/bons/*/utiliser")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER, SUPER_ADMIN)
+                        // La politique de fidelite du magasin : une decision commerciale, celle
+                        // du gerant — et de l'administrateur, qui peut tout ce que peut le gerant.
+                        .requestMatchers(API + "/fidelite/politique")
+                            .hasAnyRole(ADMIN, MANAGER)
                         // Le reste est l'espace du client, et de lui seul : ces routes lisent l'id
                         // du compte connecte comme un id de client. Un employe qui les appellerait
                         // lirait le client portant le meme numero que son propre compte.

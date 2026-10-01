@@ -20,6 +20,10 @@ public class MagasinPromotionDto {
     private String telephone;
     private String logo;
     private BigDecimal montantParPoint;
+    /** Ce que vaut un point une fois echange, et le moins qu'on puisse echanger. */
+    private BigDecimal valeurPointFcfa;
+    private int pointsMinimumBon;
+    private int dureeValiditeBonJours;
     private boolean fideliteActive;
     private int pointsClient;
 }

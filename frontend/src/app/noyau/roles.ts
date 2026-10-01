@@ -113,6 +113,13 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CAISSIER', 'ROLE_COMPTABLE'],
   },
   {
+    chemin: '/fidelite',
+    libelle: 'Fidélité',
+    icone: 'loyalty',
+    // Le gerant regle ce que rapportent les achats : c'est une decision commerciale, comme un prix.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER'],
+  },
+  {
     chemin: '/comptes',
     libelle: 'Comptes',
     icone: 'group',

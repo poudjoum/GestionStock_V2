@@ -19,5 +19,8 @@ public class SoldePointsMagasinDto {
     private int soldePoints;
     private int pointsCumulesTotal;
     private BigDecimal montantParPoint;
+    /** Ce que vaut un point une fois echange, et le moins qu'on puisse echanger. */
+    private BigDecimal valeurPointFcfa;
+    private int pointsMinimumBon;
     private boolean fideliteActive;
 }

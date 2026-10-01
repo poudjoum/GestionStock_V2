@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -7,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { RouterLink } from '@angular/router';
 import { Entreprise } from '../noyau/entreprise';
 import { messageDErreur } from '../noyau/erreurs';
 import { preparerLeLogo } from './logo';
@@ -66,13 +66,13 @@ const VENTE_POUR_VOIR: FactureDto = {
 @Component({
   selector: 'app-identite-du-magasin',
   imports: [
-    DecimalPipe,
     FormsModule,
     MatButtonModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
     MatSlideToggleModule,
+    RouterLink,
     Ticket,
   ],
   templateUrl: './identite-du-magasin.html',
@@ -98,13 +98,6 @@ export class IdentiteDuMagasin implements OnInit {
    * malgre `OnPush` : c'est un signal, pas une mutation en place.
    */
   protected readonly magasin = computed(() => this.brouillon());
-
-  /** Un exemple chiffre sous le reglage : le montant seul ne dit pas ce qu'il donne. */
-  protected readonly exempleDeTicket = computed(() => 25_000);
-  protected readonly exempleDePoints = computed(() => {
-    const parPoint = Number(this.brouillon().montantParPoint) || 10_000;
-    return parPoint > 0 ? Math.floor(this.exempleDeTicket() / parPoint) : 0;
-  });
 
   ngOnInit(): void {
     this.entreprise.charger().subscribe({

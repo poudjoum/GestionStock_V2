@@ -139,6 +139,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./parametres/identite-du-magasin').then((m) => m.IdentiteDuMagasin),
       },
+      {
+        // Le programme de fidelite : une decision commerciale, celle du gerant.
+        path: 'fidelite',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],
+        loadComponent: () =>
+          import('./parametres/programme-fidelite').then((m) => m.ProgrammeFidelite),
+      },
       // La racine mene a l'accueil du role, et non a une page fixe.
       //
       // Elle sert a ceux qui arrivent par un signet ou en tapant l'adresse : un administrateur

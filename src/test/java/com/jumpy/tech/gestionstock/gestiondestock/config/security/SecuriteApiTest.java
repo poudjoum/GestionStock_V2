@@ -232,6 +232,22 @@ class SecuriteApiTest extends AbstractIntegrationTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @WithMockUser(roles = "MANAGER")
+    void le_gerant_regle_la_politique_de_fidelite() throws Exception {
+        // 404 et non 403 : ce compte de test n'a pas d'entreprise, et c'est bien la route qui
+        // a ete atteinte.
+        mockMvc.perform(get(API + "/fidelite/politique"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(roles = "CAISSIER")
+    void le_caissier_ne_regle_pas_la_politique_de_fidelite() throws Exception {
+        mockMvc.perform(get(API + "/fidelite/politique"))
+                .andExpect(status().isForbidden());
+    }
+
     private String inscrireClient(String telephone) throws Exception {
         String reponse = mockMvc.perform(post(API + "/fidelite/auth/inscription")
                         .contentType(MediaType.APPLICATION_JSON)
