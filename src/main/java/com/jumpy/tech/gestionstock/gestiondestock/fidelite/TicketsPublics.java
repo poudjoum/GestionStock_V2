@@ -12,6 +12,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepositor
 import com.jumpy.tech.gestionstock.gestiondestock.repository.FactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneFactureRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneVenteRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.ReglementRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.VenteRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,12 +36,14 @@ public class TicketsPublics {
     private final LigneVenteRepository lignesVente;
     private final EntrepriseRepository entreprises;
     private final CampagneRepository campagnes;
+    private final ReglementRepository reglements;
     private final Calendrier calendrier;
 
     public TicketsPublics(VenteRepository ventes, FactureRepository factures,
                           LigneFactureRepository lignesFacture, LigneVenteRepository lignesVente,
                           EntrepriseRepository entreprises, CampagneRepository campagnes,
-                          Calendrier calendrier) {
+                          Calendrier calendrier, ReglementRepository reglements) {
+        this.reglements = reglements;
         this.campagnes = campagnes;
         this.calendrier = calendrier;
         this.ventes = ventes;
@@ -85,7 +88,8 @@ public class TicketsPublics {
                     .toList();
             total = facture.getTotalTtc();
             boolean compte = !vente.isAnnulee() && !facture.isAnnulee();
-            points = compte ? PointsFidelite.pour(total, fideliteActive, montantParPoint) : 0;
+            points = compte ? PointsFidelite.pour(total, reglements.totalRegleParBonsPour(facture.getId()),
+                    fideliteActive, montantParPoint) : 0;
         } else {
             // Pas encore de facture : les articles sont connus, le total qui fait foi pas encore.
             articles = lignesVente.findAllByVenteId(vente.getId()).stream()

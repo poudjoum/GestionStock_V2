@@ -46,6 +46,7 @@ public class FideliteClientServiceImpl implements FideliteClientService {
     private final JwtUtils jwtUtils;
     private final CampagneRepository campagneRepository;
     private final Calendrier calendrier;
+    private final ReglementRepository reglementRepository;
 
     public FideliteClientServiceImpl(CompteClientFideliteRepository clientRepository,
                                      SoldePointsMagasinRepository soldeRepository,
@@ -57,7 +58,9 @@ public class FideliteClientServiceImpl implements FideliteClientService {
                                      PasswordEncoder passwordEncoder,
                                      JwtUtils jwtUtils,
                                      CampagneRepository campagneRepository,
-                                     Calendrier calendrier) {
+                                     Calendrier calendrier,
+                                     ReglementRepository reglementRepository) {
+        this.reglementRepository = reglementRepository;
         this.campagneRepository = campagneRepository;
         this.calendrier = calendrier;
         this.clientRepository = clientRepository;
@@ -302,7 +305,10 @@ public class FideliteClientServiceImpl implements FideliteClientService {
         }
         BigDecimal montantAchat = facture.getTotalTtc();
 
-        int pointsGagnes = PointsFidelite.pour(montantAchat, entreprise.isFideliteActive(), entreprise.getMontantParPoint());
+        // Sur ce que le client a paye : la part reglee par bon d'achat ne rapporte rien.
+        BigDecimal regleParBons = reglementRepository.totalRegleParBonsPour(facture.getId());
+        int pointsGagnes = PointsFidelite.pour(montantAchat, regleParBons, entreprise.isFideliteActive(),
+                entreprise.getMontantParPoint());
         if (pointsGagnes <= 0) {
             throw new InvalidEntityException(
                     "Le montant de ce ticket (" + montantAchat + " FCFA) ne donne droit à aucun point. Il faut au moins "

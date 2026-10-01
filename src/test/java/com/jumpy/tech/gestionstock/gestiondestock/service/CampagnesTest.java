@@ -10,6 +10,7 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.EntrepriseDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneVenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.PromotionArticleDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.PromotionsDuJourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.VenteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Campagne;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
@@ -151,7 +152,8 @@ class CampagnesTest extends AbstractIntegrationTest {
 
         assertThat(arretee.getStatut()).isEqualTo(CampagneDto.Statut.ARRETEE);
         assertThat(prixVendus(vente)).containsExactly(new BigDecimal("5000.00"));
-        assertThat(campagnes.promotionsEnCours()).isEmpty();
+        assertThat(campagnes.promotionsEnCours().getPromotions()).isEmpty();
+        assertThat(campagnes.promotionsEnCours().getCampagnes()).isEmpty();
     }
 
     @Test
@@ -159,7 +161,9 @@ class CampagnesTest extends AbstractIntegrationTest {
         campagne("Rentrée", aujourdhui, aujourdhui.plusDays(7), promo(ciment, TypeRemise.POURCENTAGE, "20"));
         campagne("Plus tard", aujourdhui.plusDays(8), aujourdhui.plusDays(10), promo(fer, TypeRemise.POURCENTAGE, "20"));
 
-        assertThat(campagnes.promotionsEnCours())
+        assertThat(campagnes.promotionsEnCours().getCampagnes())
+                .extracting(PromotionsDuJourDto.Campagne::getTitre).containsExactly("Rentrée");
+        assertThat(campagnes.promotionsEnCours().getPromotions())
                 .singleElement()
                 .satisfies(p -> {
                     assertThat(p.getIdArticle()).isEqualTo(ciment);

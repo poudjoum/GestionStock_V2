@@ -16,6 +16,16 @@ export type { ModeReglement, ReglementDto } from '../noyau/reglements';
 
 const API = `${environnement.api}/gestiondestock/v1`;
 
+/** Un bon d'achat lu au comptoir. Ecrit a la main, en attendant la regeneration des types. */
+export interface BonDAchatDto {
+  codeBon: string;
+  nomMagasin?: string;
+  montantFcfa: number;
+  statut: 'ACTIF' | 'UTILISE' | 'EXPIRE';
+  dateExpiration?: string;
+  utilisable: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class Comptoir {
   private readonly http = inject(HttpClient);
@@ -54,6 +64,16 @@ export class Comptoir {
    * Le serveur refuse un montant qui depasse ce qui reste du : c'est lui qui tient la regle, et le
    * comptoir n'a pas a la redire — il envoie ce qu'il encaisse.
    */
+  /**
+   * Lit un bon d'achat avant de l'encaisser : son montant, et s'il vaut encore. Le serveur refuse
+   * le bon d'un autre magasin.
+   */
+  verifierBon(code: string): Observable<BonDAchatDto> {
+    return this.http.get<BonDAchatDto>(
+      `${API}/fidelite/bons/${encodeURIComponent(code.trim())}/verifier`,
+    );
+  }
+
   regler(idFacture: number, reglement: ReglementDto): Observable<ReglementDto> {
     return this.http.post<ReglementDto>(`${API}/factures/${idFacture}/reglements`, reglement);
   }

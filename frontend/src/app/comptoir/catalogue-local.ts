@@ -5,6 +5,13 @@ import { environnement } from '../../environnements/environnement';
 import { lire, ecrire, toutLire, toutRemplacer } from '../noyau/base-locale';
 import { Session } from '../noyau/session';
 import type { ArticleDto } from '../noyau/api';
+import {
+  jourLocal,
+  prixPromotionnel,
+  promotionEnCours,
+  PromotionArticleDto,
+  PromotionsDuJourDto,
+} from './prix-promotionnel';
 
 const API = `${environnement.api}/gestiondestock/v1`;
 
@@ -35,6 +42,20 @@ export class CatalogueLocal {
   private readonly session = inject(Session);
 
   private readonly articles = signal<ArticleDto[]>([]);
+  /**
+   * Les promotions du jour, gardees avec le catalogue : hors ligne, la caisse vend encore au prix
+   * de la campagne. Chacune porte ses dates, et n'est appliquee que le jour ou elle vaut — une
+   * caisse restee sans reseau ne la prolonge pas.
+   */
+  private readonly duJour = signal<PromotionsDuJourDto>({ campagnes: [], promotions: [] });
+  private readonly promotions = computed(() => this.duJour().promotions);
+  private readonly promotionsParArticle = computed(() => {
+    const index = new Map<number, PromotionArticleDto>();
+    for (const promotion of this.promotions()) {
+      index.set(promotion.idArticle, promotion);
+    }
+    return index;
+  });
   private readonly etiquette = signal<Etiquette | null>(null);
   private rafraichissementEnCours: Promise<void> | null = null;
 
@@ -80,6 +101,9 @@ export class CatalogueLocal {
         return;
       }
       this.articles.set(await toutLire<ArticleDto>('catalogue'));
+      this.duJour.set(
+        (await lire<PromotionsDuJourDto>('reglages', 'promotions')) ?? { campagnes: [], promotions: [] },
+      );
       this.etiquette.set(etiquette);
     } catch {
       // Pas de base sur cet appareil : on vend en ligne comme avant, sans copie.
@@ -110,16 +134,47 @@ export class CatalogueLocal {
       return;
     }
     await this.charger();
-    const articles = await firstValueFrom(this.http.get<ArticleDto[]>(`${API}/articles/all`));
+    const [articles, promotions] = await Promise.all([
+      firstValueFrom(this.http.get<ArticleDto[]>(`${API}/articles/all`)),
+      // Sans les promotions, on vend quand meme : le serveur applique de lui-meme le prix de la
+      // campagne a toute vente faite en ligne.
+      firstValueFrom(
+        this.http.get<PromotionsDuJourDto>(`${API}/campagnes/promotions-en-cours`),
+      ).catch(() => this.duJour()),
+    ]);
     const etiquette: Etiquette = { proprietaire, date: new Date().toISOString() };
     try {
       await toutRemplacer('catalogue', articles);
+      await ecrire('reglages', promotions, 'promotions');
       await ecrire('reglages', etiquette, 'catalogue');
     } catch {
       // L'appareil ne garde rien, mais la copie en memoire sert encore tant que la page vit.
     }
     this.articles.set(articles);
+    this.duJour.set(promotions);
     this.etiquette.set(etiquette);
+  }
+
+  /**
+   * Si une campagne du magasin vaut aujourd'hui : ses tickets rapportent des points, et le ticket
+   * imprime le dit. Hors campagne, il n'en annonce pas — le client serait refuse en le scannant.
+   */
+  enCampagne(): boolean {
+    const jour = jourLocal();
+    return this.duJour().campagnes.some((c) => promotionEnCours(c, jour));
+  }
+
+  /** La promotion qui vaut aujourd'hui pour cet article, s'il en a une. */
+  promotionDe(article: ArticleDto): PromotionArticleDto | null {
+    const promotion = article.id == null ? undefined : this.promotionsParArticle().get(article.id);
+    return promotion && promotionEnCours(promotion, jourLocal()) ? promotion : null;
+  }
+
+  /** Le prix hors taxes auquel l'article se vend aujourd'hui : celui de sa promotion, s'il en a une. */
+  prixDe(article: ArticleDto): number {
+    const normal = article.prixUnitaireHt ?? 0;
+    const promotion = this.promotionDe(article);
+    return promotion ? prixPromotionnel(normal, promotion.typeRemise, promotion.valeur) : normal;
   }
 
   /** L'article qui porte exactement ce code : ce que rend une douchette. */

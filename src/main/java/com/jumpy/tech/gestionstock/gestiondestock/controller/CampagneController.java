@@ -2,7 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CampagneDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CampagnePubliqueDto;
-import com.jumpy.tech.gestionstock.gestiondestock.dto.PromotionArticleDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.PromotionsDuJourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.promotion.Campagnes;
 import com.jumpy.tech.gestionstock.gestiondestock.promotion.CampagnesPubliques;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,7 +42,7 @@ public class CampagneController {
     /** Declaree avant `/campagnes/{id}`, qui sinon prendrait le mot pour un identifiant. */
     @GetMapping(value = APP_ROOT + "/campagnes/promotions-en-cours", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Les articles en promotion aujourd'hui", description = "Ce que la caisse garde pour vendre au bon prix, même hors ligne")
-    public ResponseEntity<List<PromotionArticleDto>> promotionsEnCours() {
+    public ResponseEntity<PromotionsDuJourDto> promotionsEnCours() {
         return ResponseEntity.ok(campagnes.promotionsEnCours());
     }
 

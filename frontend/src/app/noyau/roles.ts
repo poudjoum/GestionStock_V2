@@ -113,6 +113,14 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CAISSIER', 'ROLE_COMPTABLE'],
   },
   {
+    chemin: '/campagnes',
+    libelle: 'Campagnes',
+    icone: 'campaign',
+    // Les promotions du magasin, qui s'appliquent en caisse et s'affichent dans l'application des
+    // clients : comme la politique de points, une decision du gerant.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER'],
+  },
+  {
     chemin: '/fidelite',
     libelle: 'Fidélité',
     icone: 'loyalty',

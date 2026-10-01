@@ -3,6 +3,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.service;
 import com.jumpy.tech.gestionstock.gestiondestock.AbstractIntegrationTest;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.service.UserDetailsImpl;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.CampagneDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CategoryDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.EntrepriseDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.FactureDto;
@@ -18,6 +19,9 @@ import com.jumpy.tech.gestionstock.gestiondestock.entities.StatutBonDAchat;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.fidelite.CodeBonAchat;
+import com.jumpy.tech.gestionstock.gestiondestock.fidelite.TicketsPublics;
+import com.jumpy.tech.gestionstock.gestiondestock.promotion.Calendrier;
+import com.jumpy.tech.gestionstock.gestiondestock.promotion.Campagnes;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.BonDAchatRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.CompteClientFideliteRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.EntrepriseRepository;
@@ -49,6 +53,12 @@ class PaiementParBonTest extends AbstractIntegrationTest {
     private FactureService factureService;
     @Autowired
     private CaisseService caisseService;
+    @Autowired
+    private TicketsPublics tickets;
+    @Autowired
+    private Campagnes campagnes;
+    @Autowired
+    private Calendrier calendrier;
     @Autowired
     private VenteService venteService;
     @Autowired
@@ -124,6 +134,25 @@ class PaiementParBonTest extends AbstractIntegrationTest {
         assertThat(etat.getTotal()).isEqualByComparingTo("4000");
         assertThat(etat.getParMode()).noneMatch(t -> t.getMode() == ModeReglement.BON_ACHAT);
         assertThat(etat.getBonsAchat().getTotal()).isEqualByComparingTo("1000");
+    }
+
+    @Test
+    void la_part_reglee_par_bon_ne_rapporte_pas_de_points() {
+        // Une campagne en cours, et un point par 1 000 F payes.
+        campagnes.creer(CampagneDto.builder().titre("Rentrée")
+                .dateDebut(calendrier.aujourdhui()).dateFin(calendrier.aujourdhui().plusDays(7)).build());
+        var magasin = entrepriseRepository.findById(idEntreprise).orElseThrow();
+        magasin.setMontantParPoint(new BigDecimal("1000"));
+        entrepriseRepository.save(magasin);
+
+        FactureDto facture = factureDe("2");              // 10 000 F
+        factureService.regler(facture.getId(), parBon(bon(idEntreprise, "3000")));
+        factureService.regler(facture.getId(), ReglementDto.builder()
+                .montant(new BigDecimal("7000")).mode(ModeReglement.ESPECES).build());
+
+        // 10 000 F de ticket, dont 3 000 F regles par le bon : 7 points, et non 10. Sans cela, le
+        // bon rapportait des points comme de l'argent.
+        assertThat(tickets.parCode(facture.getCodeTicket()).getPoints()).isEqualTo(7);
     }
 
     @Test

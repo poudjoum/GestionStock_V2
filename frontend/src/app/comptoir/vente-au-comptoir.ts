@@ -29,7 +29,7 @@ import {
   throwError,
 } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Comptoir, FactureDto, ModeReglement, VenteDto } from './comptoir.service';
+import { BonDAchatDto, Comptoir, FactureDto, ModeReglement, VenteDto } from './comptoir.service';
 import { CatalogueLocal } from './catalogue-local';
 import { FileDesVentes, VenteSynchronisee } from './file-des-ventes';
 import { messageDErreur } from '../noyau/erreurs';
@@ -127,6 +127,19 @@ export class VenteAuComptoir {
   /** Le nombre d'articles gardes sur l'appareil, et de quand ils datent. */
   protected readonly articlesGardes = this.catalogueLocal.taille;
   protected readonly dateDuCatalogue = this.catalogueLocal.date;
+
+  /**
+   * Le prix hors taxes auquel l'article se vend aujourd'hui : celui de sa campagne, s'il est en
+   * promotion. C'est ce prix qui part au serveur, qui s'imprime hors ligne, et qu'on annonce.
+   */
+  protected prix(article: ArticleDto): number {
+    return this.catalogueLocal.prixDe(article);
+  }
+
+  /** La promotion du jour de l'article, pour barrer le prix normal a cote du prix reduit. */
+  protected promotion(article: ArticleDto) {
+    return this.catalogueLocal.promotionDe(article);
+  }
   /** Les ventes faites ici et pas encore parties. */
   protected readonly enAttente = computed(() => this.file.aEnvoyer().length);
 
@@ -179,6 +192,18 @@ export class VenteAuComptoir {
   /** Ce que le client tend. Nul veut dire « le compte exact ». */
   protected readonly recu = signal<number | null>(null);
   protected readonly modes = MODES_DE_REGLEMENT;
+
+  /**
+   * Le bon d'achat que tend le client, une fois lu. Il vient en deduction du total avant tout
+   * autre moyen : le client ne paie que ce qui reste. Il ne se lit qu'en ligne — hors reseau, rien
+   * ne dirait s'il a deja servi.
+   */
+  protected readonly saisieDuBon = signal(false);
+  protected readonly codeDuBon = signal('');
+  protected readonly bon = signal<BonDAchatDto | null>(null);
+  protected readonly lectureDuBon = signal(false);
+  protected readonly erreurDuBon = signal<string | null>(null);
+  protected readonly enLigne = computed(() => this.reseau.joignable());
   protected readonly coupures = COUPURES;
 
   /** Le ticket a imprimer : pose apres l'encaissement, retire quand le caissier le referme. */
@@ -187,12 +212,14 @@ export class VenteAuComptoir {
     paiement: PaiementDuTicket;
     /** Vendu hors ligne : sans numero, la facture suivra. */
     provisoire: boolean;
+    /** Vendu pendant une campagne : le ticket annonce ses points. */
+    enCampagne: boolean;
   } | null>(null);
   private readonly zoneTicket = viewChild<ElementRef<HTMLElement>>('zoneTicket');
 
   protected readonly total = computed(() =>
     this.panier().reduce(
-      (somme, l) => somme + arrondi((l.article.prixUnitaireHt ?? 0) * l.quantite),
+      (somme, l) => somme + arrondi(this.prix(l.article) * l.quantite),
       0,
     ),
   );
@@ -210,24 +237,38 @@ export class VenteAuComptoir {
    */
   protected readonly totalTva = computed(() =>
     this.panier().reduce((somme, l) => {
-      const ht = arrondi((l.article.prixUnitaireHt ?? 0) * l.quantite);
+      const ht = arrondi(this.prix(l.article) * l.quantite);
       return somme + arrondi((ht * this.taux(l.article)) / 100);
     }, 0),
   );
   protected readonly totalTtc = computed(() => arrondi(this.total() + this.totalTva()));
 
-  /** Ce qu'on rend. Zero tant que le client n'a pas tendu plus que le total. */
+  /**
+   * Ce que le bon retire du total. Au plus le total : un bon plus gros que l'achat ne rend pas la
+   * monnaie, et le caissier doit le dire au client avant de valider.
+   */
+  protected readonly deductionDuBon = computed(() =>
+    Math.min(this.bon()?.montantFcfa ?? 0, this.totalTtc()),
+  );
+  /** Ce que le bon vaut au-dela de l'achat, et que le client perd. */
+  protected readonly bonPerdu = computed(() =>
+    Math.max(0, arrondi((this.bon()?.montantFcfa ?? 0) - this.totalTtc())),
+  );
+  /** Ce qui reste a payer une fois le bon deduit : c'est ce chiffre qu'on annonce. */
+  protected readonly aPayer = computed(() => arrondi(this.totalTtc() - this.deductionDuBon()));
+
+  /** Ce qu'on rend. Zero tant que le client n'a pas tendu plus que ce qu'il doit. */
   protected readonly aRendre = computed(() =>
-    Math.max(0, arrondi((this.recu() ?? this.totalTtc()) - this.totalTtc())),
+    Math.max(0, arrondi((this.recu() ?? this.aPayer()) - this.aPayer())),
   );
   /** Ce qui manquerait si l'on validait maintenant : un acompte, et le reste reste du. */
   protected readonly manquant = computed(() =>
-    Math.max(0, arrondi(this.totalTtc() - (this.recu() ?? this.totalTtc()))),
+    Math.max(0, arrondi(this.aPayer() - (this.recu() ?? this.aPayer()))),
   );
 
-  /** Les coupures superieures au total : ce qu'un client est susceptible de tendre. */
+  /** Les coupures superieures a ce qui reste a payer : ce qu'un client est susceptible de tendre. */
   protected readonly coupuresUtiles = computed(() => {
-    const total = this.totalTtc();
+    const total = this.aPayer();
     return COUPURES.filter((c) => c > total).slice(0, 3);
   });
 
@@ -481,7 +522,44 @@ export class VenteAuComptoir {
     this.erreur.set(null);
     this.recu.set(null);
     this.mode.set('ESPECES');
+    this.oublierLeBon();
     this.encaissement.set(true);
+  }
+
+  /** Lit le bon tendu par le client : son montant, et s'il vaut encore dans ce magasin. */
+  protected lireLeBon(): void {
+    const code = this.codeDuBon().trim();
+    if (!code || this.lectureDuBon()) {
+      return;
+    }
+    this.lectureDuBon.set(true);
+    this.erreurDuBon.set(null);
+    this.service.verifierBon(code).subscribe({
+      next: (bon) => {
+        this.lectureDuBon.set(false);
+        if (!bon.utilisable) {
+          this.erreurDuBon.set(
+            bon.statut === 'EXPIRE' ? 'Ce bon a expiré.' : 'Ce bon a déjà été utilisé.',
+          );
+          return;
+        }
+        this.bon.set(bon);
+        // Le montant tendu se recompte sur ce qui reste a payer.
+        this.recu.set(null);
+      },
+      error: (echec: unknown) => {
+        this.lectureDuBon.set(false);
+        this.erreurDuBon.set(messageDErreur(echec, 'Ce bon n’a pas pu être lu.'));
+      },
+    });
+  }
+
+  protected oublierLeBon(): void {
+    this.bon.set(null);
+    this.codeDuBon.set('');
+    this.erreurDuBon.set(null);
+    this.saisieDuBon.set(false);
+    this.recu.set(null);
   }
 
   protected fermerEncaissement(): void {
@@ -549,16 +627,37 @@ export class VenteAuComptoir {
       ligneVente: this.panier().map((l) => ({
         article: { id: l.article.id },
         quantite: l.quantite,
-        prixUnitaire: l.article.prixUnitaireHt,
+        prixUnitaire: this.prix(l.article),
       })),
     };
-    const tendu = this.recu();
+    const bon = this.bon();
+    // Avec un bon, le client ne tend que ce qui reste : c'est ce qui part si la vente bascule hors
+    // ligne, le bon n'ayant pas pu etre encaisse.
+    const tendu = this.recu() ?? (bon ? this.aPayer() : null);
     const mode = this.mode();
-    const horsLigne = () => this.garderHorsLigne(vente, instantane, tendu, mode);
+    const deduction = this.deductionDuBon();
+    const horsLigne = () => {
+      this.garderHorsLigne(vente, instantane, tendu, mode);
+      if (bon) {
+        this.snack.open(
+          `Le bon ${bon.codeBon} n’a pas pu être encaissé : la facture garde ${deduction.toLocaleString()} F à payer. Encaissez-le depuis les factures au retour du réseau.`,
+          'Fermer',
+          { duration: 12000 },
+        );
+      }
+    };
 
     // Le serveur ne repondait deja plus : inutile de lui laisser vingt secondes pour le redire,
     // pendant que le client attend.
     if (!this.reseau.joignable()) {
+      if (bon) {
+        // Un bon ne se verifie qu'en ligne : sans reseau, rien ne dit qu'il n'a pas deja servi.
+        this.envoiEnCours.set(false);
+        this.erreur.set(
+          'Le réseau est coupé : le bon ne peut pas être encaissé. Retirez-le pour vendre hors ligne.',
+        );
+        return;
+      }
       horsLigne();
       return;
     }
@@ -566,7 +665,10 @@ export class VenteAuComptoir {
     this.service.vendre(vente).subscribe({
       next: (enregistree) => {
         this.service.facturer(enregistree.id!).subscribe({
-          next: (facture) => this.encaisserLaFacture(facture, tendu, mode, vente),
+          next: (facture) =>
+            bon
+              ? this.encaisserLeBon(facture, bon, tendu, mode, vente)
+              : this.encaisserLaFacture(facture, tendu, mode, vente),
           error: (echec: unknown) => {
             if (estUneCoupure(echec)) {
               // La vente est passee, la facture non : la synchronisation l'emettra et encaissera,
@@ -664,7 +766,7 @@ export class VenteAuComptoir {
       // Meme regle que le serveur : sans magasin connu, la TVA s'applique.
       tvaApplicable: magasin?.assujettieTva !== false,
       lignes: instantane.lignes.map((l, rang) => {
-        const prix = l.article.prixUnitaireHt ?? 0;
+        const prix = this.prix(l.article);
         const taux = this.taux(l.article);
         const ht = arrondi(prix * l.quantite);
         const tva = arrondi((ht * taux) / 100);
@@ -688,24 +790,62 @@ export class VenteAuComptoir {
     };
   }
 
+  /**
+   * Encaisse d'abord le bon, puis le reste par le moyen choisi.
+   *
+   * Le montant que le bon regle est celui que rend le serveur — le bon plafonne au reste a payer
+   * de la facture, qui fait foi, et non a l'estimation du panier.
+   */
+  private encaisserLeBon(
+    facture: FactureDto,
+    bon: BonDAchatDto,
+    tendu: number | null,
+    mode: ModeReglement,
+    vente: VenteDto,
+  ): void {
+    this.service.regler(facture.id!, { mode: 'BON_ACHAT', reference: bon.codeBon }).subscribe({
+      next: (reglement) => {
+        this.encaisserLaFacture(facture, tendu, mode, vente, {
+          code: bon.codeBon,
+          montant: reglement.montant ?? 0,
+        });
+      },
+      error: (echec: unknown) => {
+        // La vente et sa facture existent : le ticket sort avec son reste a payer, et la facture
+        // attend dans « a encaisser », ou le bon pourra etre repris.
+        this.presenterLeTicket({ ...facture }, { mode, recu: 0, monnaie: 0 }, null);
+        this.erreur.set(
+          messageDErreur(echec, 'Le bon n’a pas pu être encaissé : la facture reste due.'),
+        );
+      },
+    });
+  }
+
   private encaisserLaFacture(
     facture: FactureDto,
     tendu: number | null,
     mode: ModeReglement,
     vente: VenteDto,
+    bon?: { code: string; montant: number },
   ): void {
-    const du = facture.totalTtc ?? 0;
+    const parBon = bon?.montant ?? 0;
+    const du = arrondi((facture.totalTtc ?? 0) - parBon);
     // Ce qui entre en caisse est plafonne a ce qui est du : le surplus n'est pas une recette,
     // c'est la monnaie qu'on rend. Le serveur refuserait d'ailleurs un montant qui depasse.
     const encaisse = Math.min(tendu ?? du, du);
     const paiement: PaiementDuTicket = {
       mode,
-      recu: tendu ?? du,
+      recu: du > 0 ? (tendu ?? du) : 0,
       monnaie: Math.max(0, arrondi((tendu ?? du) - du)),
+      bon,
     };
 
     if (encaisse <= 0) {
-      this.presenterLeTicket(facture, paiement, 'Vente enregistrée — rien n’a été encaissé.');
+      this.presenterLeTicket(
+        { ...facture, montantRegle: parBon, resteAPayer: du },
+        paiement,
+        bon && du <= 0 ? 'Réglé par le bon d’achat.' : 'Vente enregistrée — rien n’a été encaissé.',
+      );
       return;
     }
 
@@ -715,7 +855,7 @@ export class VenteAuComptoir {
         // montant, donc de constater qu'il ne depassait pas. Un aller-retour de plus ferait
         // attendre un client qui a deja paye.
         this.presenterLeTicket(
-          { ...facture, montantRegle: encaisse, resteAPayer: arrondi(du - encaisse) },
+          { ...facture, montantRegle: parBon + encaisse, resteAPayer: arrondi(du - encaisse) },
           paiement,
           paiement.monnaie > 0
             ? `Encaissé — rendre ${paiement.monnaie.toLocaleString()} F`
@@ -735,7 +875,7 @@ export class VenteAuComptoir {
           this.file.garder(aEnvoyer, du).then(
             () =>
               this.presenterLeTicket(
-                { ...facture, montantRegle: encaisse, resteAPayer: arrondi(du - encaisse) },
+                { ...facture, montantRegle: parBon + encaisse, resteAPayer: arrondi(du - encaisse) },
                 paiement,
                 'Hors ligne — l’encaissement est gardé sur l’appareil, il partira au retour du réseau.',
               ),
@@ -765,7 +905,7 @@ export class VenteAuComptoir {
     message: string | null,
     provisoire = false,
   ): void {
-    this.aImprimer.set({ facture, paiement, provisoire });
+    this.aImprimer.set({ facture, paiement, provisoire, enCampagne: this.catalogueLocal.enCampagne() });
     this.terminer();
     if (message) {
       this.snack.open(message, 'Fermer', { duration: 5000 });

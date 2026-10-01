@@ -19,6 +19,18 @@ public final class PointsFidelite {
     private PointsFidelite() {
     }
 
+    /**
+     * Les points d'un ticket regle en partie par bon d'achat : sur le total, moins ce que les bons
+     * ont regle. Sans cela, un bon rapportait des points comme de l'argent — le client les
+     * regagnait en le depensant, et l'echange des points tournait en rond.
+     */
+    public static int pour(BigDecimal totalTtc, BigDecimal regleParBons, boolean fideliteActive,
+                           BigDecimal montantParPoint) {
+        BigDecimal paye = totalTtc == null ? null
+                : totalTtc.subtract(regleParBons == null ? BigDecimal.ZERO : regleParBons);
+        return pour(paye, fideliteActive, montantParPoint);
+    }
+
     public static int pour(BigDecimal totalTtc, boolean fideliteActive, BigDecimal montantParPoint) {
         if (!fideliteActive || totalTtc == null || montantParPoint == null || montantParPoint.signum() <= 0) {
             return 0;

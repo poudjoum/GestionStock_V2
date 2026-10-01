@@ -1,7 +1,12 @@
 import type { components } from '../api/schema';
 
-export type ReglementDto = components['schemas']['ReglementDto'];
-export type ModeReglement = NonNullable<ReglementDto['mode']>;
+/**
+ * `BON_ACHAT` est ajoute a la main, en attendant la regeneration des types contre l'API deployee.
+ */
+export type ModeReglement = NonNullable<components['schemas']['ReglementDto']['mode']> | 'BON_ACHAT';
+export type ReglementDto = Omit<components['schemas']['ReglementDto'], 'mode'> & {
+  mode?: ModeReglement;
+};
 
 /**
  * Les moyens par lesquels l'argent entre, dits comme on les dit au comptoir.
@@ -19,6 +24,15 @@ export const MODES_DE_REGLEMENT: { valeur: ModeReglement; libelle: string; icone
   { valeur: 'AUTRE', libelle: 'Autre', icone: 'more_horiz' },
 ];
 
+/**
+ * Le bon d'achat, a part des autres moyens : il ne se choisit pas dans la liste, il se lit — son
+ * code donne son montant. Mais il se nomme comme eux, sur le ticket et dans les factures.
+ */
+export const BON_ACHAT = { valeur: 'BON_ACHAT' as const, libelle: 'Bon d’achat', icone: 'redeem' };
+
 export function libelleDuMode(mode: string | undefined): string {
+  if (mode === BON_ACHAT.valeur) {
+    return BON_ACHAT.libelle;
+  }
   return MODES_DE_REGLEMENT.find((m) => m.valeur === mode)?.libelle ?? mode ?? '—';
 }

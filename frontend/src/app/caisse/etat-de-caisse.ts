@@ -12,7 +12,10 @@ import { libelleDuMode } from '../factures/factures.service';
 import type { components } from '../api/schema';
 import type { Page } from '../noyau/api';
 
-type EtatDeCaisseDto = components['schemas']['EtatDeCaisseDto'];
+/** `bonsAchat` est ajoute a la main, en attendant la regeneration des types contre l'API deployee. */
+type EtatDeCaisseDto = components['schemas']['EtatDeCaisseDto'] & {
+  bonsAchat?: { mode?: string; total?: number; nombre?: number };
+};
 type ReglementDto = components['schemas']['ReglementDto'];
 
 const API = `${environnement.api}/gestiondestock/v1/caisse`;

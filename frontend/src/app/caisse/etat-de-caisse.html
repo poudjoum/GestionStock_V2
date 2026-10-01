@@ -79,6 +79,21 @@
             }
           </ul>
         }
+        <!--
+          Les bons d'achat a part, sous la recette : ils reglent des factures sans faire entrer
+          d'argent. Les additionner au reste ferait chercher au tiroir des billets absents.
+        -->
+        @if (e?.bonsAchat; as bons) {
+          <div
+            class="mt-4 flex items-baseline gap-2 border-t pt-3 text-sm"
+            style="border-color: var(--mat-sys-outline-variant)"
+          >
+            <mat-icon class="!h-5 !w-5 self-center !text-xl opacity-70">redeem</mat-icon>
+            <span class="flex-1">Bons d’achat <span class="opacity-60">— hors recette</span></span>
+            <span class="text-xs opacity-60">{{ bons.nombre }}×</span>
+            <span class="nombre font-medium">{{ bons.total | number: '1.0-0' }} F</span>
+          </div>
+        }
       </section>
 
       <!-- Le detail, encaissement par encaissement -->

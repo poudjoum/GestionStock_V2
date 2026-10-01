@@ -49,6 +49,8 @@ class FideliteClientServiceImplTest {
     private JwtUtils jwtUtils;
     @Mock
     private CampagneRepository campagneRepository;
+    @Mock
+    private ReglementRepository reglementRepository;
 
     private FideliteClientServiceImpl service;
 
@@ -65,7 +67,8 @@ class FideliteClientServiceImplTest {
                 passwordEncoder,
                 jwtUtils,
                 campagneRepository,
-                Calendrier.fixe(Instant.now(), java.time.ZoneId.of("Africa/Douala"))
+                Calendrier.fixe(Instant.now(), java.time.ZoneId.of("Africa/Douala")),
+                reglementRepository
         );
         // Par defaut, l'achat a eu lieu pendant une campagne encore en cours.
         lenient().when(campagneRepository.ticketScannable(any(), any(), any())).thenReturn(true);

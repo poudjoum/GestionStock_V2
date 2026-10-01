@@ -140,6 +140,12 @@ export const routes: Routes = [
           import('./parametres/identite-du-magasin').then((m) => m.IdentiteDuMagasin),
       },
       {
+        // Les campagnes de promotion : le gerant met des articles en promotion sur une periode.
+        path: 'campagnes',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],
+        loadComponent: () => import('./campagnes/campagnes').then((m) => m.CampagnesEcran),
+      },
+      {
         // Le programme de fidelite : une decision commerciale, celle du gerant.
         path: 'fidelite',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],

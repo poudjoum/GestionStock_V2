@@ -21,6 +21,14 @@ public interface ReglementRepository extends JpaRepository<Reglement, Long> {
     BigDecimal totalReglePour(@Param("idFacture") Long idFacture);
 
     /**
+     * Ce que les bons d'achat ont regle sur une facture. Cette part ne rapporte pas de points :
+     * c'est le magasin qui l'a offerte, pas le client qui l'a payee.
+     */
+    @Query("select coalesce(sum(r.montant), 0) from Reglement r where r.facture.id = :idFacture"
+            + " and r.mode = com.jumpy.tech.gestionstock.gestiondestock.entities.ModeReglement.BON_ACHAT")
+    BigDecimal totalRegleParBonsPour(@Param("idFacture") Long idFacture);
+
+    /**
      * Les totaux de plusieurs factures en une requete.
      *
      * Une liste de factures affiche le reste a payer de chacune : les interroger une par une

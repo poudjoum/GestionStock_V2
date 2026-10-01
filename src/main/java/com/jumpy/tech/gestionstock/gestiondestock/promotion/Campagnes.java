@@ -3,6 +3,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.promotion;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CampagneDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.PromotionArticleDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.PromotionsDuJourDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Campagne;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.PromotionArticle;
@@ -77,10 +78,20 @@ public class Campagnes {
      * une caisse restee sans reseau ne doit pas continuer a les appliquer le lendemain.
      */
     @Transactional(readOnly = true)
-    public List<PromotionArticleDto> promotionsEnCours() {
-        return promotions.enCours(entreprise(), calendrier.aujourdhui()).stream()
-                .map(PromotionArticleDto::de)
-                .toList();
+    public PromotionsDuJourDto promotionsEnCours() {
+        LocalDate aujourdhui = calendrier.aujourdhui();
+        Long idEntreprise = entreprise();
+        return PromotionsDuJourDto.builder()
+                .campagnes(campagnes.enCours(idEntreprise, aujourdhui).stream()
+                        .map(c -> PromotionsDuJourDto.Campagne.builder()
+                                .id(c.getId()).titre(c.getTitre())
+                                .dateDebut(c.getDateDebut()).dateFin(c.getDateFin())
+                                .build())
+                        .toList())
+                .promotions(promotions.enCours(idEntreprise, aujourdhui).stream()
+                        .map(PromotionArticleDto::de)
+                        .toList())
+                .build();
     }
 
     @Transactional
