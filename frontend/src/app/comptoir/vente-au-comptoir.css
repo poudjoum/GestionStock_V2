@@ -1,0 +1,498 @@
+/*
+ * Le comptoir.
+ *
+ * Sur grand ecran, deux colonnes qui occupent toute la hauteur et defilent chacune de leur cote.
+ * Sur telephone, tout s'empile, et un resume colle en bas garde le total sous le pouce.
+ */
+
+.comptoir {
+  display: grid;
+  gap: var(--gs-esp-4);
+}
+
+@media (min-width: 1024px) {
+  .comptoir {
+    grid-template-columns: minmax(0, 1fr) 400px;
+    /* La hauteur de l'ecran, moins la barre du haut (64 px et son filet) et la marge du contenu. */
+    height: calc(100dvh - 64px - var(--marge-haut) - 33px);
+  }
+  .volet-articles,
+  .volet-ticket {
+    min-height: 0;
+  }
+  .volet-articles .grille-zone {
+    overflow-y: auto;
+    min-height: 0;
+    padding: 2px;
+  }
+}
+
+/* --- Les articles ------------------------------------------------------------------------- */
+
+.volet-articles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gs-esp-3);
+  min-width: 0;
+}
+
+.bandeau {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--gs-r-champ);
+  background: var(--gs-alerte-fond);
+  color: var(--gs-alerte);
+  font-size: var(--gs-texte-sm);
+  line-height: 1.45;
+}
+
+.bandeau mat-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
+.bandeau b {
+  font-weight: 600;
+}
+
+.bandeau small {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--gs-texte-xs);
+  opacity: 0.85;
+}
+
+.bandeau--danger {
+  background: var(--gs-danger-fond);
+  color: var(--gs-danger);
+}
+
+.bandeau--info {
+  background: var(--gs-accent-doux);
+  color: var(--gs-sur-accent-doux);
+  align-items: center;
+}
+
+/* Les rayons : une rangee qui defile de cote sur telephone plutot que de s'empiler. */
+.rayons {
+  display: flex;
+  gap: var(--gs-esp-2);
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.rayon {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--gs-trait);
+  border-radius: var(--gs-r-pilule);
+  background: var(--gs-surface);
+  color: var(--gs-encre-2);
+  font: 500 var(--gs-texte-sm) / 1 var(--gs-police-texte);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rayon mat-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
+.rayon .compte {
+  font-size: var(--gs-texte-xs);
+  color: var(--gs-encre-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.rayon:hover {
+  border-color: var(--gs-trait-fort);
+  color: var(--gs-encre);
+}
+
+.rayon[aria-checked='true'] {
+  background: var(--gs-accent);
+  border-color: var(--gs-accent);
+  color: var(--gs-sur-accent);
+  font-weight: 600;
+}
+
+.rayon[aria-checked='true'] .compte {
+  color: inherit;
+  opacity: 0.8;
+}
+
+.rayon--promo:not([aria-checked='true']) {
+  border-color: color-mix(in srgb, var(--gs-petrole-700) 40%, transparent);
+  color: var(--gs-petrole-700);
+}
+
+.rayon--promo[aria-checked='true'] {
+  background: var(--gs-petrole-700);
+  border-color: var(--gs-petrole-700);
+}
+
+.grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: var(--gs-esp-2);
+}
+
+/* La tuile d'article : grande, pour le doigt, avec le prix lisible d'un coup d'oeil. */
+.tuile-article {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 4px;
+  min-height: 108px;
+  padding: 12px;
+  border: 1px solid var(--gs-trait);
+  border-radius: var(--gs-r-carte);
+  background: var(--gs-surface);
+  color: var(--gs-encre);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 80ms ease;
+}
+
+.tuile-article:hover {
+  border-color: var(--gs-accent);
+  box-shadow: var(--gs-ombre-1);
+}
+
+.tuile-article:active {
+  transform: scale(0.98);
+}
+
+.tuile-article .designation {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--gs-texte-md);
+  font-weight: 600;
+  line-height: 1.3;
+  padding-right: 4px;
+}
+
+.tuile-article .code {
+  font-size: var(--gs-texte-xs);
+  color: var(--gs-encre-3);
+}
+
+.tuile-article .prix {
+  align-self: end;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+
+.tuile-article .prix b {
+  font: 700 1.125rem / 1 var(--gs-police-titre);
+}
+
+.tuile-article .prix .prix-promo {
+  color: var(--gs-petrole-700);
+}
+
+.tuile-article .prix s {
+  font-size: var(--gs-texte-xs);
+  color: var(--gs-encre-3);
+}
+
+.tuile-article .prix small {
+  font-size: var(--gs-texte-xs);
+  color: var(--gs-encre-3);
+}
+
+/* Le badge de promotion suit le prix : en haut de la tuile, il coupait la designation. */
+.tuile-article .badge {
+  margin-left: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tuile-article {
+    transition: none;
+  }
+  .tuile-article:active {
+    transform: none;
+  }
+}
+
+/* --- Le ticket ---------------------------------------------------------------------------- */
+
+.volet-ticket {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-trait);
+  border-radius: var(--gs-r-carte);
+  overflow: hidden;
+}
+
+.ticket-entete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--gs-trait);
+}
+
+.ticket-entete mat-icon {
+  color: var(--gs-encre-3);
+}
+
+.ticket-entete .titre {
+  flex: 1;
+  font-weight: 600;
+}
+
+.ticket-entete .compte {
+  font-size: var(--gs-texte-sm);
+  color: var(--gs-encre-2);
+}
+
+.ticket-vide {
+  flex: 1;
+  align-content: center;
+}
+
+.lignes {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ligne {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--gs-trait);
+  transition: background-color 700ms ease;
+}
+
+.ligne--ajoutee {
+  background: var(--gs-accent-doux);
+  transition: none;
+}
+
+.ligne-haut {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ligne-nom {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ligne-nom .designation {
+  font-size: var(--gs-texte-md);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ligne-nom .unitaire {
+  font-size: var(--gs-texte-xs);
+  color: var(--gs-encre-3);
+}
+
+.ligne-nom .unitaire s {
+  margin-right: 4px;
+}
+
+.ligne-total {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ligne-bas {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* La quantite : trois cibles de 44 px, le chiffre au milieu. */
+.quantite {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--gs-trait);
+  border-radius: var(--gs-r-champ);
+  overflow: hidden;
+}
+
+.quantite button {
+  display: grid;
+  place-items: center;
+  width: var(--gs-cible);
+  height: 40px;
+  border: 0;
+  background: var(--gs-surface-2);
+  color: var(--gs-encre);
+  cursor: pointer;
+}
+
+.quantite button:hover {
+  background: var(--gs-trait);
+}
+
+.quantite span {
+  min-width: 44px;
+  text-align: center;
+  font-weight: 700;
+  font-size: var(--gs-texte-lg);
+}
+
+.client {
+  padding: 8px 12px;
+  border-top: 1px solid var(--gs-trait);
+}
+
+.client-choisi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 10px;
+  border-radius: var(--gs-r-champ);
+  background: var(--gs-accent-doux);
+  color: var(--gs-sur-accent-doux);
+  font-size: var(--gs-texte-sm);
+}
+
+.client-trouve {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  margin-top: 4px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--gs-r-champ);
+  background: var(--gs-surface-2);
+  color: var(--gs-encre);
+  font-size: var(--gs-texte-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ticket-pied {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--gs-trait);
+  background: var(--gs-surface-2);
+}
+
+.total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.total .montant {
+  font-size: var(--gs-chiffre);
+}
+
+.total .montant small {
+  margin-left: 4px;
+  font: 500 var(--gs-texte-lg) var(--gs-police-texte);
+  color: var(--gs-encre-3);
+}
+
+.detail-tva {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  font-size: var(--gs-texte-xs);
+  color: var(--gs-encre-3);
+}
+
+.encaisser {
+  height: 52px !important;
+  font-size: var(--gs-texte-lg) !important;
+}
+
+/* --- Le resume du telephone --------------------------------------------------------------- */
+
+.resume-telephone {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .ticket-pied {
+    display: none;
+  }
+  .lignes {
+    overflow: visible;
+  }
+  /* Colle juste au-dessus de la barre de navigation du telephone, sans laisser voir la grille
+     entre les deux ; le comptoir garde en bas la place de ce resume. */
+  .comptoir:has(+ .resume-telephone) {
+    padding-bottom: 80px;
+  }
+  .resume-telephone {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--barre-basse);
+    z-index: 25;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px var(--gs-esp-4);
+    background: var(--gs-surface);
+    border-top: 1px solid var(--gs-trait);
+    box-shadow: var(--gs-ombre-2);
+  }
+  .resume-total {
+    display: grid;
+    flex: 1;
+    gap: 2px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--gs-encre);
+    text-align: left;
+    cursor: pointer;
+  }
+  .resume-total .gs-titre {
+    font-size: 1.5rem;
+  }
+  .resume-telephone .encaisser {
+    flex-shrink: 0;
+  }
+}
+
+/* Entre la tablette et le grand ecran, la barre de navigation du bas n'existe plus. */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .resume-telephone {
+    left: 240px;
+    bottom: 0;
+  }
+}

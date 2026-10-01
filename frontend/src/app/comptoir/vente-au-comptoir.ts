@@ -9,7 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -40,6 +40,8 @@ import { nouveauCodeDeTicket } from '../noyau/code-ticket';
 import { imprimerLeTicket } from '../noyau/impression';
 import { PaiementDuTicket, Ticket } from '../ticket/ticket';
 import { MODES_DE_REGLEMENT } from '../noyau/reglements';
+import { EtatVide } from '../design/etat-vide';
+import { Statut } from '../design/statut';
 import type { ArticleDto, ClientDto, EntrepriseDto } from '../noyau/api';
 
 /** Les montants suivent la regle du serveur : deux decimales, au plus pres. */
@@ -49,6 +51,23 @@ function arrondi(montant: number): number {
 
 /** Ce qu'on tend au comptoir : les coupures qui evitent de compter la monnaie a l'unite. */
 const COUPURES = [500, 1000, 2000, 5000, 10000];
+
+/**
+ * Trois montants qu'un client tend vraisemblablement pour payer `total`.
+ *
+ * Les coupures seules s'arretaient a 10 000 F : sur un ticket de 23 421 F, il ne restait que
+ * « compte exact », et le caissier tapait le montant a la main. Au-dela, on propose l'arrondi au
+ * millier, aux cinq mille et aux dix mille superieurs — 24 000, 25 000, 30 000 —, ce que tendent
+ * les clients qui ne font pas l'appoint.
+ */
+export function montantsTendus(total: number): number[] {
+  if (total <= 0) {
+    return [];
+  }
+  const arrondis = [1000, 5000, 10000].map((pas) => Math.ceil(total / pas) * pas);
+  const candidats = [...COUPURES, ...arrondis].filter((m) => m > total);
+  return [...new Set(candidats)].sort((a, b) => a - b).slice(0, 3);
+}
 
 /** Un article dans le panier, avec la quantite que le caissier a saisie. */
 interface LignePanier {
@@ -100,6 +119,9 @@ interface Instantane {
 @Component({
   selector: 'app-vente-au-comptoir',
   imports: [
+    NgTemplateOutlet,
+    EtatVide,
+    Statut,
     DatePipe,
     DecimalPipe,
     FormsModule,
@@ -111,6 +133,7 @@ interface Instantane {
     Ticket,
   ],
   templateUrl: './vente-au-comptoir.html',
+  styleUrl: './vente-au-comptoir.css',
 })
 export class VenteAuComptoir {
   private readonly service = inject(Comptoir);
@@ -127,6 +150,62 @@ export class VenteAuComptoir {
   /** Le nombre d'articles gardes sur l'appareil, et de quand ils datent. */
   protected readonly articlesGardes = this.catalogueLocal.taille;
   protected readonly dateDuCatalogue = this.catalogueLocal.date;
+
+  /**
+   * Le rayon montre dans la grille : tout, les promotions du jour, ou une categorie.
+   *
+   * La grille sert quand l'article n'a pas de code-barres, ou qu'il n'y a pas de douchette. Elle
+   * lit la copie du catalogue gardee sur l'appareil — et marche donc hors ligne.
+   */
+  protected readonly rayon = signal<string>('tout');
+
+  /** Les rayons proposes, avec le nombre d'articles de chacun. Ceux qui sont vides n'y sont pas. */
+  protected readonly rayons = computed(() => {
+    const articles = this.catalogueLocal.tous();
+    const enPromo = articles.filter((a) => this.catalogueLocal.promotionDe(a)).length;
+    const parCategorie = new Map<string, { libelle: string; nombre: number }>();
+    for (const article of articles) {
+      const categorie = article.category;
+      if (categorie?.id == null) {
+        continue;
+      }
+      const cle = String(categorie.id);
+      const deja = parCategorie.get(cle);
+      parCategorie.set(cle, {
+        libelle: categorie.designation ?? 'Sans nom',
+        nombre: (deja?.nombre ?? 0) + 1,
+      });
+    }
+    const categories = [...parCategorie.entries()]
+      .map(([id, c]) => ({ id, ...c }))
+      .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
+    return [
+      { id: 'tout', libelle: 'Tout', nombre: articles.length },
+      ...(enPromo > 0 ? [{ id: 'promos', libelle: 'En promotion', nombre: enPromo }] : []),
+      ...categories,
+    ];
+  });
+
+  /** Les articles du rayon choisi : ceux en promotion d'abord, puis par ordre alphabetique. */
+  protected readonly grille = computed(() => {
+    const rayon = this.rayon();
+    const articles = this.catalogueLocal.tous().filter((a) => {
+      if (rayon === 'tout') return true;
+      if (rayon === 'promos') return !!this.catalogueLocal.promotionDe(a);
+      return String(a.category?.id) === rayon;
+    });
+    return [...articles].sort((a, b) => {
+      const promo = Number(!!this.catalogueLocal.promotionDe(b)) - Number(!!this.catalogueLocal.promotionDe(a));
+      return promo || (a.designation ?? '').localeCompare(b.designation ?? '', 'fr');
+    });
+  });
+
+  private readonly volTicket = viewChild<ElementRef<HTMLElement>>('volTicket');
+
+  /** Sur telephone, le resume colle en bas mene au ticket, qui est sous la grille. */
+  protected voirLeTicket(): void {
+    this.volTicket()?.nativeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   /**
    * Le prix hors taxes auquel l'article se vend aujourd'hui : celui de sa campagne, s'il est en
@@ -266,11 +345,8 @@ export class VenteAuComptoir {
     Math.max(0, arrondi(this.aPayer() - (this.recu() ?? this.aPayer()))),
   );
 
-  /** Les coupures superieures a ce qui reste a payer : ce qu'un client est susceptible de tendre. */
-  protected readonly coupuresUtiles = computed(() => {
-    const total = this.aPayer();
-    return COUPURES.filter((c) => c > total).slice(0, 3);
-  });
+  /** Ce qu'un client est susceptible de tendre : trois montants ronds au-dessus du total. */
+  protected readonly coupuresUtiles = computed(() => montantsTendus(this.aPayer()));
 
   private taux(article: ArticleDto): number {
     const magasin = this.magasin();

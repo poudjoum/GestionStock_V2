@@ -100,17 +100,16 @@ export class Ticket {
   /**
    * Le QR qui mene le client a son achat : le magasin, la date, les articles, les points.
    *
-   * L'adresse est celle que le serveur declare publique, et non celle de la page : ouvert sur le
-   * reseau du magasin, le front ne connait que `http://192.168.1.100:9093`, qui ne mene nulle part
-   * depuis le telephone d'un client. A defaut, l'origine de la page si elle est en HTTPS — c'est
-   * alors deja une adresse publique. Sans l'une ni l'autre, pas de QR : un QR qui ne mene nulle
-   * part est pire que pas de QR ; le code reste imprime.
+   * Il est toujours imprime des que le ticket a un code. Son adresse est celle que le serveur
+   * declare publique quand il en a une — le client l'ouvre alors depuis n'importe ou. A defaut,
+   * celle de la caisse elle-meme : elle ne mene peut-etre pas au ticket depuis le telephone d'un
+   * client hors du magasin, mais le QR porte le code, et c'est le code que lit l'application de
+   * fidelite pour crediter les points. Un ticket sans QR, en revanche, ne se scanne pas du tout.
    */
   protected readonly qr = computed(() => {
     const code = this.facture().codeTicket;
     const base =
-      this.entreprise()?.adresseTickets ||
-      (typeof location !== 'undefined' && location.protocol === 'https:' ? location.origin : null);
+      this.entreprise()?.adresseTickets || (typeof location !== 'undefined' ? location.origin : null);
     return code && base ? dessinerQr(adresseDuTicket(base, code)) : null;
   });
 

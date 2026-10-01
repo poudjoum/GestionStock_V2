@@ -248,3 +248,17 @@
     display: none;
   }
 }
+
+/*
+ * Le contenu laisse la place de la barre du bas sur telephone seulement. Sur grand ecran, cette
+ * marge de 64 px faisait deborder les ecrans qui occupent toute la hauteur, comme le comptoir.
+ */
+.contenu {
+  padding-bottom: calc(1rem + var(--barre-basse));
+}
+
+@media (min-width: 768px) {
+  .contenu {
+    padding-bottom: 1rem;
+  }
+}

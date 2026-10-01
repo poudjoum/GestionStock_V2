@@ -59,6 +59,12 @@ export class CatalogueLocal {
   private readonly etiquette = signal<Etiquette | null>(null);
   private rafraichissementEnCours: Promise<void> | null = null;
 
+  /**
+   * Les articles gardes, pour la grille du comptoir : on vend au toucher sans attendre le
+   * serveur, en ligne comme hors ligne. Lecture seule — seule la copie les ecrit.
+   */
+  readonly tous = this.articles.asReadonly();
+
   /** Le nombre d'articles gardes. Zero : l'appareil ne peut rien vendre hors ligne. */
   readonly taille = computed(() => this.articles().length);
   /** Quand la copie a ete faite. */
