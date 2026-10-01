@@ -640,7 +640,7 @@ export class VenteAuComptoir {
       this.garderHorsLigne(vente, instantane, tendu, mode);
       if (bon) {
         this.snack.open(
-          `Le bon ${bon.codeBon} n’a pas pu être encaissé : la facture garde ${deduction.toLocaleString()} F à payer. Encaissez-le depuis les factures au retour du réseau.`,
+          `Le bon ${bon.codeBon} n’a pas pu être encaissé : la facture garde ${deduction.toLocaleString('fr-FR')} F à payer. Encaissez-le depuis les factures au retour du réseau.`,
           'Fermer',
           { duration: 12000 },
         );
@@ -737,7 +737,7 @@ export class VenteAuComptoir {
           { ...this.factureProvisoire(instantane, encaisse), codeTicket: vente.codeTicket },
           paiement,
           paiement.monnaie > 0
-            ? `Hors ligne — vente gardée sur l’appareil. Rendre ${paiement.monnaie.toLocaleString()} F`
+            ? `Hors ligne — vente gardée sur l’appareil. Rendre ${paiement.monnaie.toLocaleString('fr-FR')} F`
             : 'Hors ligne — vente gardée sur l’appareil, elle partira au retour du réseau.',
           true,
         );
@@ -858,7 +858,7 @@ export class VenteAuComptoir {
           { ...facture, montantRegle: parBon + encaisse, resteAPayer: arrondi(du - encaisse) },
           paiement,
           paiement.monnaie > 0
-            ? `Encaissé — rendre ${paiement.monnaie.toLocaleString()} F`
+            ? `Encaissé — rendre ${paiement.monnaie.toLocaleString('fr-FR')} F`
             : 'Encaissé.',
         );
       },

@@ -1,4 +1,11 @@
-import { ApplicationConfig, isDevMode, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig,
+  LOCALE_ID,
+  isDevMode,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
+import { registerLocaleData } from '@angular/common';
+import localeFr from '@angular/common/locales/fr';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { MAT_FORM_FIELD_DEFAULT_OPTIONS } from '@angular/material/form-field';
@@ -8,9 +15,19 @@ import { intercepteurDelai } from './noyau/intercepteur-delai';
 import { intercepteurJeton } from './noyau/intercepteur-jeton';
 import { intercepteurReseau } from './noyau/reseau';
 
+/*
+ * Les nombres et les dates a la francaise : « 100 000 F », « 19,25 % », « 1 oct. 2026 ».
+ *
+ * Sans cela, Angular formate en anglais quel que soit le navigateur — « 100,000 » se lit au
+ * comptoir comme cent francs, la virgule y etant le separateur decimal. Une seule declaration
+ * ici, et tous les `number` et `date` de l'application suivent.
+ */
+registerLocaleData(localeFr);
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
+    { provide: LOCALE_ID, useValue: 'fr-FR' },
     /*
      * Tous les champs en apparence « contour », et non plus au cas par cas.
      *
