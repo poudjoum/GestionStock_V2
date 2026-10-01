@@ -24,5 +24,4 @@ public interface FideliteClientService {
 
     BonDAchatDto verifierBon(String codeBon, Long idEntrepriseCaissier);
 
-    BonDAchatDto utiliserBon(String codeBon, Long idEntrepriseCaissier, Long idVenteOptionnel);
 }

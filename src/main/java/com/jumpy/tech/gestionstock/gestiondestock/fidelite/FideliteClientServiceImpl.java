@@ -472,34 +472,6 @@ public class FideliteClientServiceImpl implements FideliteClientService {
         return toBonDto(bon);
     }
 
-    @Override
-    @Transactional
-    public BonDAchatDto utiliserBon(String codeBonSaisi, Long idEntrepriseCaissier, Long idVenteOptionnel) {
-        BonDAchatDto verif = verifierBon(codeBonSaisi, idEntrepriseCaissier);
-        if (!verif.isUtilisable()) {
-            throw new InvalidEntityException("Ce bon d'achat ne peut plus être utilisé (statut : " + verif.getStatut() + ").",
-                    ErrorCodes.BON_ACHAT_NOT_VALID, List.of("Bon non utilisable"));
-        }
-
-        // Relu sous verrou, et son statut avec : la verification ci-dessus a pu etre faite par deux
-        // caisses a la fois, et seule la premiere a prendre le verrou doit le consommer.
-        BonDAchat bon = bonDAchatRepository.verrouillerParCode(verif.getCodeBon())
-                .orElseThrow(() -> new EntityNotFoundException("Bon introuvable", ErrorCodes.BON_ACHAT_NOT_FOUND));
-        if (bon.getStatut() != StatutBonDAchat.ACTIF) {
-            throw new InvalidEntityException("Ce bon d'achat ne peut plus être utilisé (statut : " + bon.getStatut() + ").",
-                    ErrorCodes.BON_ACHAT_NOT_VALID, List.of("Bon non utilisable"));
-        }
-
-        bon.setStatut(StatutBonDAchat.UTILISE);
-        bon.setDateUtilisation(Instant.now());
-        if (idVenteOptionnel != null) {
-            venteRepository.findById(idVenteOptionnel).ifPresent(bon::setVenteUtilisation);
-        }
-
-        BonDAchat enregistre = bonDAchatRepository.save(bon);
-        return toBonDto(enregistre);
-    }
-
     private BonDAchatDto toBonDto(BonDAchat bon) {
         boolean expire = bon.getDateExpiration().isBefore(Instant.now());
         StatutBonDAchat statut = bon.getStatut();

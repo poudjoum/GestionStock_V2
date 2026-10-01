@@ -55,12 +55,19 @@ public class CaisseServiceImpl implements CaisseService {
                         debutDeJournee(du), finDeJournee(au), cloisonnement.entrepriseCourante())
                 : reglementRepository.totauxParMode(debutDeJournee(du), finDeJournee(au));
 
-        List<EtatDeCaisseDto.TotalParModeDto> parMode = lignes.stream()
+        List<EtatDeCaisseDto.TotalParModeDto> tous = lignes.stream()
                 .map(ligne -> EtatDeCaisseDto.TotalParModeDto.builder()
                         .mode((ModeReglement) ligne[0])
                         .total((BigDecimal) ligne[1])
                         .nombre((Long) ligne[2])
                         .build())
+                .collect(Collectors.toList());
+        // Les bons d'achat a part : ils reglent une facture sans faire entrer d'argent.
+        EtatDeCaisseDto.TotalParModeDto bonsAchat = tous.stream()
+                .filter(t -> t.getMode() == ModeReglement.BON_ACHAT)
+                .findFirst().orElse(null);
+        List<EtatDeCaisseDto.TotalParModeDto> parMode = tous.stream()
+                .filter(t -> t.getMode() != ModeReglement.BON_ACHAT)
                 .collect(Collectors.toList());
 
         // Le total est la somme des lignes affichees, et non une requete de plus : ainsi il
@@ -76,6 +83,7 @@ public class CaisseServiceImpl implements CaisseService {
                 .total(total)
                 .nombreReglements(nombre)
                 .parMode(parMode)
+                .bonsAchat(bonsAchat)
                 .build();
     }
 

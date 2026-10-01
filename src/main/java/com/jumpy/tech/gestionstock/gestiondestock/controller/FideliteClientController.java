@@ -84,7 +84,10 @@ public class FideliteClientController {
         return ResponseEntity.ok(fideliteService.listerMesBons(client.getId()));
     }
 
-    // --- Validation & Encaissement au Comptoir / Caisse ---
+    // --- Au comptoir : lire un bon avant de l'encaisser ---
+    //
+    // Il s'encaisse ensuite comme un reglement de la facture, en mode BON_ACHAT : c'est ce qui
+    // diminue le reste a payer.
 
     @GetMapping("/bons/{codeBon}/verifier")
     @Operation(summary = "Vérifier la validité d'un bon d'achat", description = "Vérifie si un bon d'achat est valide, non expiré et utilisable")
@@ -92,14 +95,5 @@ public class FideliteClientController {
                                                     @AuthenticationPrincipal UserDetailsImpl caissier) {
         Long idEntreprise = caissier != null ? caissier.getIdEntreprise() : null;
         return ResponseEntity.ok(fideliteService.verifierBon(codeBon, idEntreprise));
-    }
-
-    @PostMapping("/bons/{codeBon}/utiliser")
-    @Operation(summary = "Consommer un bon d'achat", description = "Marque le bon d'achat comme utilisé lors d'un passage en caisse")
-    public ResponseEntity<BonDAchatDto> utiliserBon(@PathVariable String codeBon,
-                                                    @RequestParam(required = false) Long idVente,
-                                                    @AuthenticationPrincipal UserDetailsImpl caissier) {
-        Long idEntreprise = caissier != null ? caissier.getIdEntreprise() : null;
-        return ResponseEntity.ok(fideliteService.utiliserBon(codeBon, idEntreprise, idVente));
     }
 }

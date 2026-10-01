@@ -186,8 +186,8 @@ public class SecurityConfiguration {
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER)
                         // Les campagnes elles-memes : une decision commerciale, celle du gerant.
                         .requestMatchers(API + "/campagnes/**", API + "/campagnes").hasAnyRole(ADMIN, MANAGER)
-                        // Lire et consommer un bon se fait au comptoir : le personnel du magasin.
-                        .requestMatchers(API + "/fidelite/bons/*/verifier", API + "/fidelite/bons/*/utiliser")
+                        // Lire un bon se fait au comptoir, avant de l'encaisser comme un reglement.
+                        .requestMatchers(API + "/fidelite/bons/*/verifier")
                             .hasAnyRole(ADMIN, MANAGER, CAISSIER, SUPER_ADMIN)
                         // La politique de fidelite du magasin : une decision commerciale, celle
                         // du gerant — et de l'administrateur, qui peut tout ce que peut le gerant.

@@ -13,5 +13,7 @@ public enum ModeReglement {
     MOBILE_MONEY,
     VIREMENT,
     CHEQUE,
+    /** Un bon d'achat du programme de fidelite, dont le code est la reference du reglement. */
+    BON_ACHAT,
     AUTRE
 }

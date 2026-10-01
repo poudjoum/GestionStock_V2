@@ -269,56 +269,6 @@ class FideliteClientServiceImplTest {
     }
 
     @Test
-    void verifier_et_utiliser_bon_succes() {
-        Long idEntreprise = 5L;
-        String codeBon = "BON-7K3M-9P2Q";
-
-        Entreprise entreprise = new Entreprise();
-        entreprise.setId(idEntreprise);
-        entreprise.setNom("Boutique Centrale");
-
-        BonDAchat bon = new BonDAchat();
-        bon.setId(10L);
-        bon.setCodeBon(codeBon);
-        bon.setEntreprise(entreprise);
-        bon.setMontantFcfa(new BigDecimal("1000"));
-        bon.setStatut(StatutBonDAchat.ACTIF);
-        bon.setDateEmission(Instant.now().minus(2, ChronoUnit.DAYS));
-        bon.setDateExpiration(Instant.now().plus(88, ChronoUnit.DAYS));
-
-        when(bonDAchatRepository.findByCodeBon(codeBon)).thenReturn(Optional.of(bon));
-        when(bonDAchatRepository.verrouillerParCode(codeBon)).thenReturn(Optional.of(bon));
-        when(bonDAchatRepository.save(any(BonDAchat.class))).thenAnswer(i -> i.getArgument(0));
-
-        BonDAchatDto utilise = service.utiliserBon(codeBon, idEntreprise, null);
-
-        assertThat(utilise.getStatut()).isEqualTo(StatutBonDAchat.UTILISE);
-        assertThat(utilise.getDateUtilisation()).isNotNull();
-        assertThat(utilise.isUtilisable()).isFalse();
-    }
-
-    @Test
-    void utiliser_bon_deja_utilise_est_refuse() {
-        Long idEntreprise = 5L;
-        String codeBon = "BON-7K3M-9P2Q";
-
-        Entreprise entreprise = new Entreprise();
-        entreprise.setId(idEntreprise);
-
-        BonDAchat bon = new BonDAchat();
-        bon.setCodeBon(codeBon);
-        bon.setEntreprise(entreprise);
-        bon.setStatut(StatutBonDAchat.UTILISE); // déjà utilisé
-        bon.setDateExpiration(Instant.now().plus(10, ChronoUnit.DAYS));
-
-        when(bonDAchatRepository.findByCodeBon(codeBon)).thenReturn(Optional.of(bon));
-
-        assertThatThrownBy(() -> service.utiliserBon(codeBon, idEntreprise, null))
-                .isInstanceOf(InvalidEntityException.class)
-                .hasMessageContaining("ne peut plus être utilisé");
-    }
-
-    @Test
     void inscrire_avec_un_identifiant_qui_n_est_pas_un_telephone_est_refuse() {
         InscriptionClientDto dto = InscriptionClientDto.builder()
                 .telephone("admin")
@@ -378,27 +328,6 @@ class FideliteClientServiceImplTest {
                 .isInstanceOf(InvalidEntityException.class)
                 .hasMessageContaining("déjà été enregistré");
         verify(soldeRepository, never()).save(any());
-    }
-
-    @Test
-    void un_bon_consomme_par_une_autre_caisse_entre_temps_est_refuse() {
-        Long idEntreprise = 5L;
-        String codeBon = "BON-7K3M-9P2Q";
-        Entreprise entreprise = new Entreprise();
-        entreprise.setId(idEntreprise);
-
-        BonDAchat lu = bonActif(codeBon, entreprise);
-        // Relu sous verrou, apres que l'autre caisse l'a encaisse.
-        BonDAchat sousVerrou = bonActif(codeBon, entreprise);
-        sousVerrou.setStatut(StatutBonDAchat.UTILISE);
-
-        when(bonDAchatRepository.findByCodeBon(codeBon)).thenReturn(Optional.of(lu));
-        when(bonDAchatRepository.verrouillerParCode(codeBon)).thenReturn(Optional.of(sousVerrou));
-
-        assertThatThrownBy(() -> service.utiliserBon(codeBon, idEntreprise, null))
-                .isInstanceOf(InvalidEntityException.class)
-                .hasMessageContaining("ne peut plus être utilisé");
-        verify(bonDAchatRepository, never()).save(any());
     }
 
     @Test
@@ -506,16 +435,5 @@ class FideliteClientServiceImplTest {
         entreprise.setMontantParPoint(new BigDecimal("10000"));
         entreprise.setAbonnementEcheance(LocalDate.now().plusMonths(6));
         return entreprise;
-    }
-
-    private static BonDAchat bonActif(String codeBon, Entreprise entreprise) {
-        BonDAchat bon = new BonDAchat();
-        bon.setCodeBon(codeBon);
-        bon.setEntreprise(entreprise);
-        bon.setMontantFcfa(new BigDecimal("1000"));
-        bon.setStatut(StatutBonDAchat.ACTIF);
-        bon.setDateEmission(Instant.now().minus(1, ChronoUnit.DAYS));
-        bon.setDateExpiration(Instant.now().plus(10, ChronoUnit.DAYS));
-        return bon;
     }
 }
