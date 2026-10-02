@@ -15,4 +15,7 @@ credentials-file: /home/jumpy/.cloudflared/0f565913-29fa-48b3-be0b-a862dbb3e93e.
 ingress:
   - hostname: stock.tontinepro.uk
     service: http://127.0.0.1:9093
+  # Le site de presentation et la documentation, servis par le conteneur gestionstock-site.
+  - hostname: gestionstock.tontinepro.uk
+    service: http://127.0.0.1:9094
   - service: http_status:404

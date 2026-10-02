@@ -141,6 +141,26 @@ services:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
 
+  # Le site de presentation et la documentation (gestionstock.tontinepro.uk).
+  #
+  # Un nginx a part, et non un dossier de plus dans celui du front : le site se modifie sans
+  # reconstruire l'application, et une faute de frappe ici ne casse pas la caisse. Les fichiers
+  # sont montes depuis le depot — le deploiement continu qui tire master les met donc a jour.
+  site:
+    image: nginx:1.27-alpine
+    container_name: gestionstock-site
+    restart: unless-stopped
+    ports:
+      - "${SITE_BIND:-0.0.0.0}:${SITE_PORT:-9094}:80"
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+      - ./site/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # L'APK n'est pas dans le depot : il se depose dans ~/apps/gestionstock/telechargements.
+      - ../telechargements:/usr/share/nginx/html/telechargements:ro
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
 networks:
   gestionstock:
     name: gestionstock
