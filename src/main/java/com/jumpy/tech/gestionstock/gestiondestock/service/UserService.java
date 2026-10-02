@@ -1,5 +1,6 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service;
 
+import com.jumpy.tech.gestionstock.gestiondestock.dto.NouveauCollaborateurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.UserDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
 
@@ -15,6 +16,17 @@ import java.util.List;
 public interface UserService {
 
     UserDto save(UserDto dto);
+
+    /**
+     * Ajoute un collaborateur a l'equipe du magasin de l'appelant.
+     *
+     * Le geste du gerant : il embauche un caissier, il lui ouvre un compte. Le mot de passe est
+     * provisoire et devra etre change a la premiere connexion.
+     */
+    UserDto ajouterCollaborateur(NouveauCollaborateurDto collaborateur);
+
+    /** Les roles que l'appelant peut donner : ceux de son equipe, jamais plus que les siens. */
+    List<ERole> rolesAttribuables();
 
     UserDto findById(Long id);
 

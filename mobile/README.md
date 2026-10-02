@@ -28,8 +28,23 @@ version publiée ne parle qu'en https.
 flutter build apk --release --dart-define=API_URL=https://stock.tontinepro.uk
 ```
 
-La signature de publication n'est pas encore configurée : l'APK de release est signé avec la clé
-de debug.
+**La signature.** L'APK de release est signé par la clé de publication, lue dans
+`android/key.properties` (ignoré par git), qui désigne un keystore gardé hors du dépôt. Sans ce
+fichier, le build retombe sur la clé de debug — pratique pour essayer, à ne jamais publier.
+
+Toutes les versions doivent être signées par la **même** clé : un téléphone refuse de mettre à jour
+une application signée par une autre, et le client devrait la désinstaller. Le keystore et son mot
+de passe se sauvegardent donc hors de cette machine ; les perdre, c'est ne plus pouvoir publier de
+mise à jour.
+
+**Publier sur le site.** Déposer l'APK sous ce nom exact, il est aussitôt téléchargeable sur
+https://gestionstock.tontinepro.uk :
+
+```bash
+scp build/app/outputs/flutter-apk/app-release.apk     jumpy@192.168.1.100:apps/gestionstock/telechargements/gestionstock-fidelite.apk
+```
+
+Penser à augmenter `version:` dans `pubspec.yaml` à chaque publication.
 
 ## Le design
 

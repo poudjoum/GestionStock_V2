@@ -159,6 +159,12 @@ export class VenteAuComptoir {
    */
   protected readonly rayon = signal<string>('tout');
 
+  /**
+   * Au-dela, le tableau n'aide plus : personne ne parcourt mille lignes du regard, on cherche ou
+   * on choisit un rayon. Et le navigateur garde un comptoir fluide sur un petit ordinateur.
+   */
+  protected readonly AFFICHES_MAX = 300;
+
   /** Les rayons proposes, avec le nombre d'articles de chacun. Ceux qui sont vides n'y sont pas. */
   protected readonly rayons = computed(() => {
     const articles = this.catalogueLocal.tous();

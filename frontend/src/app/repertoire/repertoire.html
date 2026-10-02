@@ -9,6 +9,13 @@
       [titre]="client ? 'Clients' : 'Fournisseurs'"
       [sousTitre]="client ? 'Les clients à qui l’on facture : particuliers et entreprises.' : 'Ceux à qui l’on passe commande.'"
     >
+      @if (peutSupprimer()) {
+        <!-- Le gerant remplit son repertoire d'un coup, depuis un classeur. -->
+        <a mat-stroked-button [routerLink]="client ? '/clients/import' : '/fournisseurs/import'">
+          <mat-icon>upload_file</mat-icon>
+          Importer
+        </a>
+      }
       <button mat-flat-button (click)="nouveau()">
         <mat-icon>add</mat-icon>
         Nouveau {{ libelle() }}

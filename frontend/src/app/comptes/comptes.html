@@ -1,9 +1,18 @@
 @let c = ouvert();
 @let liste = filtres();
+@let voletOuvert = !!c || ajout();
+@let s = saisie();
 
-<div class="page grid gap-4" [class.lg:grid-cols-[1fr_360px]]="c">
+<div class="page grid gap-4" [class.lg:grid-cols-[1fr_400px]]="voletOuvert">
   <section class="min-w-0">
-    <gs-en-tete-page titre="Comptes" sousTitre="Qui se connecte, et ce que chacun peut faire. Un compte se ferme, il ne se supprime pas." />
+    <gs-en-tete-page titre="Équipe" sousTitre="Qui se connecte, et ce que chacun peut faire. Un compte se ferme, il ne se supprime pas.">
+      @if (rolesAttribuables().length) {
+        <button mat-flat-button (click)="nouveau()">
+          <mat-icon>person_add</mat-icon>
+          Ajouter un collaborateur
+        </button>
+      }
+    </gs-en-tete-page>
 
     <div class="barre-outils">
       <mat-form-field appearance="outline" class="recherche" subscriptSizing="dynamic">
@@ -23,10 +32,10 @@
       </mat-form-field>
     </div>
 
-    @if (erreur(); as message) {
+    @if (erreur() && !voletOuvert) {
       <p class="message-erreur mb-3" role="alert">
         <mat-icon aria-hidden="true">error_outline</mat-icon>
-        <span>{{ message }}</span>
+        <span>{{ erreur() }}</span>
       </p>
     }
 
@@ -38,27 +47,34 @@
       </div>
     } @else if (liste.length === 0) {
       <gs-section>
-        <gs-etat-vide
-          icone="group_off"
-          [titre]="recherche() ? 'Aucun compte ne correspond à « ' + recherche() + ' »' : 'Aucun compte'"
-          texte="Cherchez par l’identifiant, le nom ou le courriel."
-          [filtre]="!!recherche()"
-        />
+        @if (recherche()) {
+          <gs-etat-vide
+            icone="group_off"
+            [titre]="'Aucun compte ne correspond à « ' + recherche() + ' »'"
+            texte="Cherchez par l’identifiant, le nom ou le courriel."
+            [filtre]="true"
+          />
+        } @else {
+          <gs-etat-vide icone="group_add" titre="Personne dans l’équipe" texte="Ajoutez vos caissiers, magasiniers et comptables : chacun aura son compte et ne verra que ce qui le regarde.">
+            <button mat-flat-button (click)="nouveau()"><mat-icon>person_add</mat-icon>Ajouter un collaborateur</button>
+          </gs-etat-vide>
+        }
       </gs-section>
     } @else {
       <ul class="cartes">
         @for (compte of liste; track compte.id) {
+          @let modifiable = peutModifier(compte);
           <li [class.compte--ferme]="!compte.actif" [class.compte--ouvert]="c?.id === compte.id">
             <span class="pastille-compte" aria-hidden="true">{{ initiales(compte) }}</span>
 
-            <button type="button" class="infos ouvrir gs-focus" (click)="ouvrir(compte)">
+            <button type="button" class="infos ouvrir gs-focus" [disabled]="!modifiable" (click)="ouvrir(compte)">
               <span class="designation">
-                {{ compte.username }}
+                {{ [compte.prenoms, compte.nom].join(' ').trim() || compte.username }}
                 @if (estMoi(compte)) {
                   <gs-statut ton="ok">vous</gs-statut>
                 }
               </span>
-              <span class="code">{{ compte.email }}</span>
+              <span class="code">{{ compte.username }}@if (compte.numTel) { · {{ compte.numTel }} }</span>
               <span class="code">{{ libelleDesRoles(compte) }}</span>
             </button>
 
@@ -66,14 +82,18 @@
               <gs-statut class="max-sm:hidden" ton="neutre" icone="block">Fermé</gs-statut>
             }
 
-            <!-- Fermer plutot que supprimer : l'employe parti reste l'auteur de ses ventes. -->
-            <mat-slide-toggle
-              [checked]="compte.actif ?? false"
-              [disabled]="estMoi(compte)"
-              (change)="changerActivation(compte, $event.checked)"
-              [matTooltip]="estMoi(compte) ? 'On ne ferme pas son propre accès' : ''"
-              [attr.aria-label]="(compte.actif ? 'Fermer' : 'Rouvrir') + ' le compte ' + compte.username"
-            />
+            @if (modifiable) {
+              <!-- Fermer plutot que supprimer : l'employe parti reste l'auteur de ses ventes. -->
+              <mat-slide-toggle
+                [checked]="compte.actif ?? false"
+                [disabled]="estMoi(compte)"
+                (change)="changerActivation(compte, $event.checked)"
+                [matTooltip]="estMoi(compte) ? 'On ne ferme pas son propre accès' : ''"
+                [attr.aria-label]="(compte.actif ? 'Fermer' : 'Rouvrir') + ' le compte ' + compte.username"
+              />
+            } @else {
+              <mat-icon class="gs-encre-3" matTooltip="Seul l’administrateur modifie ce compte" aria-label="Compte géré par l’administrateur">lock</mat-icon>
+            }
           </li>
         }
       </ul>
@@ -83,14 +103,110 @@
     }
   </section>
 
-  @if (c) {
+  @if (ajout()) {
+    <aside class="min-w-0">
+      <div class="carte lg:sticky lg:top-0">
+        <header class="volet-entete">
+          <span class="min-w-0 flex-1 font-semibold">{{ cree() ? 'Collaborateur ajouté' : 'Ajouter un collaborateur' }}</span>
+          <button mat-icon-button (click)="fermer()" aria-label="Fermer">
+            <mat-icon>close</mat-icon>
+          </button>
+        </header>
+
+        @if (cree(); as acces) {
+          <!-- Les acces, a dicter ou a envoyer : c'est le seul moment ou le mot de passe se lit. -->
+          <div class="grid gap-3 p-4">
+            <gs-statut ton="ok" icone="check_circle">Compte ouvert pour {{ acces.nom }}</gs-statut>
+            <p class="gs-encre-2 m-0 text-sm">Donnez-lui ces accès. Son propre mot de passe lui sera demandé à la première connexion : celui-ci ne servira qu’une fois.</p>
+            <dl class="acces">
+              <dt>Identifiant</dt>
+              <dd>{{ acces.username }}</dd>
+              <dt>Mot de passe provisoire</dt>
+              <dd>{{ acces.motDePasse }}</dd>
+            </dl>
+            <button mat-stroked-button (click)="copierLesAcces()"><mat-icon>content_copy</mat-icon>Copier les accès</button>
+            <button mat-flat-button (click)="nouveau()"><mat-icon>person_add</mat-icon>Ajouter un autre collaborateur</button>
+          </div>
+        } @else {
+          <div class="grid gap-3 p-4">
+            <div class="deux">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Prénom</mat-label>
+                <input matInput autocomplete="off" [ngModel]="s.prenoms" (ngModelChange)="champ('prenoms', $event)" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Nom</mat-label>
+                <input matInput autocomplete="off" [ngModel]="s.nom" (ngModelChange)="champ('nom', $event)" />
+              </mat-form-field>
+            </div>
+
+            <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+              <mat-label>Téléphone</mat-label>
+              <mat-icon matPrefix>call</mat-icon>
+              <input matInput type="tel" inputmode="tel" autocomplete="off" [ngModel]="s.numTel" (ngModelChange)="champ('numTel', $event)" placeholder="690 00 00 00" />
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Courriel (facultatif)</mat-label>
+              <mat-icon matPrefix>mail</mat-icon>
+              <input matInput type="email" inputmode="email" autocapitalize="none" autocomplete="off" [ngModel]="s.email" (ngModelChange)="champ('email', $event)" />
+              <mat-hint>Il y reçoit son identifiant — jamais le mot de passe</mat-hint>
+            </mat-form-field>
+
+            <h3 class="gs-etiquette mb-0 mt-1">Rôle</h3>
+            <div class="roles-choix" role="group" aria-label="Rôles du collaborateur">
+              @for (role of rolesAttribuables(); track role) {
+                <mat-checkbox [checked]="s.roles.includes(role)" (change)="basculerRole(role, $event.checked)">
+                  <span class="block font-semibold">{{ libelles[role] }}</span>
+                  @if (ceQueFait[role]; as texte) {
+                    <span class="gs-encre-3 block text-xs">{{ texte }}</span>
+                  }
+                </mat-checkbox>
+              }
+            </div>
+
+            <h3 class="gs-etiquette mb-0 mt-1">Connexion</h3>
+            <mat-form-field appearance="outline" class="w-full">
+              <mat-label>Identifiant</mat-label>
+              <mat-icon matPrefix>badge</mat-icon>
+              <input matInput autocapitalize="none" autocomplete="off" spellcheck="false" [ngModel]="s.username" (ngModelChange)="champ('username', $event)" />
+              <mat-hint>Proposé à partir du nom ; modifiable</mat-hint>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+              <mat-label>Mot de passe provisoire</mat-label>
+              <mat-icon matPrefix>key</mat-icon>
+              <input matInput class="gs-code" autocomplete="off" spellcheck="false" [ngModel]="s.motDePasse" (ngModelChange)="champ('motDePasse', $event)" />
+              <button matSuffix mat-icon-button type="button" (click)="nouveauMotDePasseProvisoire()" aria-label="Proposer un autre mot de passe" matTooltip="Proposer un autre">
+                <mat-icon>autorenew</mat-icon>
+              </button>
+              <mat-hint>8 caractères au moins. À changer à sa première connexion</mat-hint>
+            </mat-form-field>
+
+            @if (erreur(); as message) {
+              <p class="message-erreur" role="alert">
+                <mat-icon aria-hidden="true">error_outline</mat-icon>
+                <span>{{ message }}</span>
+              </p>
+            }
+
+            <button mat-flat-button class="!h-12 w-full" [disabled]="!saisieComplete() || envoiEnCours()" (click)="ajouter()">
+              {{ envoiEnCours() ? 'Ajout…' : 'Ajouter à l’équipe' }}
+            </button>
+            @if (!saisieComplete()) {
+              <p class="gs-encre-3 m-0 text-center text-xs">Nom, téléphone, identifiant, mot de passe et un rôle sont exigés.</p>
+            }
+          </div>
+        }
+      </div>
+    </aside>
+  } @else if (c) {
     <aside class="min-w-0">
       <div class="carte lg:sticky lg:top-0">
         <header class="volet-entete">
           <span class="min-w-0 flex-1">
             <span class="block truncate font-semibold">{{ c.username }}</span>
             <span class="gs-encre-3 block truncate text-xs">
-              {{ c.nom }} {{ c.prenoms }} · {{ c.email }}
+              {{ c.prenoms }} {{ c.nom }}@if (c.email) { · {{ c.email }} }
             </span>
           </span>
           <button mat-icon-button (click)="fermer()" aria-label="Fermer la fiche">
@@ -103,7 +219,7 @@
           <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
             <mat-label>Rôles du compte</mat-label>
             <mat-select multiple [value]="rolesChoisis()" (valueChange)="rolesChoisis.set($event)">
-              @for (role of rolesAttribuables; track role) {
+              @for (role of rolesAttribuables(); track role) {
                 <mat-option [value]="role">{{ libelles[role] }}</mat-option>
               }
             </mat-select>
@@ -143,10 +259,17 @@
           <p class="note m-0">
             <mat-icon aria-hidden="true">record_voice_over</mat-icon>
             <span>
-              Le mot de passe est à transmettre de vive voix : il n’est jamais envoyé par courriel.
-              Les sessions ouvertes de ce compte seront fermées.
+              À transmettre de vive voix : il n’est jamais envoyé par courriel. Il sera à changer à
+              la prochaine connexion, et les sessions ouvertes de ce compte seront fermées.
             </span>
           </p>
+
+          @if (erreur(); as message) {
+            <p class="message-erreur" role="alert">
+              <mat-icon aria-hidden="true">error_outline</mat-icon>
+              <span>{{ message }}</span>
+            </p>
+          }
         </div>
       </div>
     </aside>

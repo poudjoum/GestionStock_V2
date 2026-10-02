@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur } from '../design';
 import { FormsModule } from '@angular/forms';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -52,6 +52,7 @@ function vide(nature: Nature): Saisie {
     MatIconModule,
     MatInputModule,
     EnTetePage,
+    RouterLink,
     EtatVide,
     Section,
     Selecteur,

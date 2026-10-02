@@ -1,0 +1,126 @@
+@let r = rapport();
+@let nom = fichier()?.name;
+
+<!--
+  Trois temps, dans l'ordre ou on les fait : prendre le modele, deposer le fichier rempli, lire ce
+  qui va entrer et confirmer. Le troisieme n'apparait qu'une fois le fichier analyse — offrir un
+  bouton « Importer » avant d'avoir rien montre serait exactement ce que cet ecran evite.
+-->
+<div class="page grid max-w-5xl gap-4">
+  <gs-en-tete-page [titre]="cible.titre" [sousTitre]="cible.intro" />
+
+  @if (erreur(); as message) {
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  }
+
+  <gs-section titre="1. Le modèle">
+    <div class="etape">
+      <p class="gs-encre-2 m-0 text-sm">Les colonnes sont imposées : {{ cible.colonnes }}</p>
+      <button mat-stroked-button (click)="telechargerLeModele()">
+        <mat-icon>download</mat-icon>
+        Télécharger le modèle
+      </button>
+    </div>
+  </gs-section>
+
+  <gs-section titre="2. Votre fichier">
+    <label
+      class="depot"
+      [class.depot--survole]="survole()"
+      (dragover)="surSurvol($event)"
+      (dragleave)="surSortie()"
+      (drop)="surDepot($event)"
+    >
+      <mat-icon aria-hidden="true">upload_file</mat-icon>
+      @if (nom) {
+        <span class="font-semibold break-all">{{ nom }}</span>
+        <span class="gs-encre-3 text-sm">Choisissez un autre fichier pour recommencer</span>
+      } @else {
+        <span class="font-semibold">Déposez le classeur ici</span>
+        <span class="gs-encre-3 text-sm">ou cliquez pour le choisir — fichier .xlsx</span>
+      }
+      <input
+        type="file"
+        class="hidden"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        (change)="choisir($event)"
+      />
+    </label>
+
+    @if (analyse()) {
+      <div class="mt-4">
+        <mat-progress-bar mode="indeterminate" />
+        <p class="gs-encre-3 mt-2 text-sm">Lecture du fichier…</p>
+      </div>
+    }
+  </gs-section>
+
+  @if (r) {
+    <gs-section titre="3. Ce qui va entrer">
+      <!-- Trois nombres, gros : c'est la seule question qu'on se pose devant cet ecran. -->
+      <div class="compteurs">
+        <div>
+          <span class="gs-etiquette">À créer</span>
+          <strong class="nombre">{{ r.creees | number }}</strong>
+        </div>
+        <div>
+          <span class="gs-etiquette">À mettre à jour</span>
+          <strong class="nombre">{{ r.modifiees | number }}</strong>
+        </div>
+        <div>
+          <span class="gs-etiquette">Refusées</span>
+          <strong class="nombre" [class.danger]="refusees().length" [class.gs-encre-3]="!refusees().length">{{ refusees().length | number }}</strong>
+        </div>
+      </div>
+
+      @if (refusees().length) {
+        <p class="gs-encre-2 mt-4 text-sm">
+          Ces lignes ne seront pas importées. Le numéro est celui de votre tableur : corrigez-les et
+          redéposez le fichier — ce qui est déjà entré sera simplement mis à jour.
+        </p>
+        <div class="tableau-cadre refus">
+          <table class="gs-tableau">
+            <thead>
+              <tr>
+                <th scope="col">Ligne</th>
+                <th scope="col">{{ cible.repere }}</th>
+                <th scope="col">Raison</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (refus of refusees(); track refus.ligne) {
+                <tr>
+                  <td class="nombre">{{ refus.ligne }}</td>
+                  <td class="break-all">{{ refus.code ?? '—' }}</td>
+                  <td>{{ refus.raison }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (rienAEcrire()) {
+        <p class="gs-encre-3 mt-4 text-sm">Aucune ligne de ce fichier ne peut être importée.</p>
+      }
+
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        @if (r.simulation) {
+          <button mat-flat-button class="!h-12" [disabled]="envoi() || rienAEcrire()" (click)="importer()">
+            <mat-icon>check</mat-icon>
+            {{ envoi() ? 'Import en cours…' : 'Importer ' + aEcrire() + ' ' + unite(aEcrire()) }}
+          </button>
+          <button mat-button class="!h-12" [disabled]="envoi()" (click)="recommencer()">Annuler</button>
+        } @else {
+          <!-- Deja ecrit : on ne propose pas de recommencer le meme fichier, on propose la suite. -->
+          <gs-statut ton="ok" icone="task_alt">Import effectué</gs-statut>
+          <a mat-stroked-button class="!h-12" [routerLink]="cible.retour.lien">{{ cible.retour.libelle }}</a>
+          <button mat-button class="!h-12" (click)="recommencer()">Importer un autre fichier</button>
+        }
+      </div>
+    </gs-section>
+  }
+</div>

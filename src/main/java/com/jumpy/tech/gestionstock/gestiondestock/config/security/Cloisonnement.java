@@ -47,6 +47,14 @@ public class Cloisonnement {
                 .anyMatch(ERole.ROLE_SUPER_ADMIN.name()::equals);
     }
 
+    /** L'appelant porte-t-il ce role ? */
+    public boolean aLeRole(ERole role) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(role.name()::equals);
+    }
+
     public boolean estAuthentifie() {
         return utilisateur() != null;
     }

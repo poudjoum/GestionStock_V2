@@ -115,18 +115,14 @@
 
     <div class="grille-zone">
       @if (cherche()) {
-        <div class="grille">
-          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-            <div class="squelette h-24"></div>
+        <div class="grid gap-1">
+          @for (i of [1, 2, 3, 4, 5, 6, 7, 8]; track i) {
+            <div class="squelette h-11"></div>
           }
         </div>
       } @else if (recherche()) {
         @if (resultats().length > 0) {
-          <div class="grille">
-            @for (article of resultats(); track article.id) {
-              <ng-container *ngTemplateOutlet="tuileArticle; context: { $implicit: article }" />
-            }
-          </div>
+          <ng-container *ngTemplateOutlet="tableauArticles; context: { $implicit: resultats() }" />
         } @else {
           <gs-etat-vide
             icone="search_off"
@@ -138,11 +134,7 @@
           </gs-etat-vide>
         }
       } @else if (grille().length > 0) {
-        <div class="grille">
-          @for (article of grille(); track article.id) {
-            <ng-container *ngTemplateOutlet="tuileArticle; context: { $implicit: article }" />
-          }
-        </div>
+        <ng-container *ngTemplateOutlet="tableauArticles; context: { $implicit: grille() }" />
       } @else if (articlesGardes() === 0) {
         <gs-etat-vide
           icone="barcode_reader"
@@ -160,24 +152,62 @@
     </div>
   </section>
 
-  <!-- Une tuile d'article : la designation, le prix, et la promotion s'il y en a une. -->
-  <ng-template #tuileArticle let-article>
-    <button type="button" class="tuile-article gs-focus" (click)="ajouter(article)">
-      <span class="designation">{{ article.designation }}</span>
-      <span class="code gs-code">{{ article.codeArticle }}</span>
-      <span class="prix nombre">
-        @if (promotion(article)) {
-          <s>{{ article.prixUnitaireHt | number: '1.0-0' }}</s>
-          <b class="prix-promo">{{ prix(article) | number: '1.0-0' }} F</b>
-        } @else {
-          <b>{{ article.prixUnitaireHt | number: '1.0-0' }} F</b>
-        }
-        <small>HT</small>
-        @if (promotion(article)) {
-          <gs-statut class="badge" ton="promo" icone="sell">Promo</gs-statut>
-        }
-      </span>
-    </button>
+  <!--
+    Le tableau des articles. Il remplace les tuiles : au-dela de cent cinquante articles, des
+    cartes de trois par ligne obligeaient a faire defiler des ecrans entiers pour trouver un prix.
+    Une ligne par article, la designation et le prix alignes, se parcourt d'un coup d'oeil.
+
+    Toute la ligne ajoute l'article au ticket ; le bouton « + » porte le geste pour le clavier et
+    le lecteur d'ecran, puisqu'une ligne de tableau n'est pas un bouton.
+  -->
+  <ng-template #tableauArticles let-articles>
+    <div class="tableau-articles">
+      <table class="gs-tableau">
+        <thead>
+          <tr>
+            <th scope="col">Article</th>
+            <th scope="col" class="col-rayon">Rayon</th>
+            <th scope="col" class="col-prix">Prix HT</th>
+            <th scope="col" class="col-ajout"><span class="sr-only">Ajouter</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (article of articles.slice(0, AFFICHES_MAX); track article.id) {
+            <tr [class.ligne--promo]="promotion(article)" [class.ligne--ajoutee]="dernierAjout() === article.id" (click)="ajouter(article)">
+              <td>
+                <span class="designation">{{ article.designation }}</span>
+                <span class="code gs-code">{{ article.codeArticle }}</span>
+              </td>
+              <td class="col-rayon gs-encre-3">{{ article.category?.designation ?? '—' }}</td>
+              <td class="col-prix nombre">
+                @if (promotion(article)) {
+                  <s>{{ article.prixUnitaireHt | number: '1.0-0' }}</s>
+                  <b class="prix-promo">{{ prix(article) | number: '1.0-0' }} F</b>
+                } @else {
+                  <b>{{ article.prixUnitaireHt | number: '1.0-0' }} F</b>
+                }
+              </td>
+              <td class="col-ajout">
+                <button
+                  mat-icon-button
+                  type="button"
+                  (click)="$event.stopPropagation(); ajouter(article)"
+                  [attr.aria-label]="'Ajouter ' + article.designation + ' au ticket'"
+                >
+                  <mat-icon>add_circle</mat-icon>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (articles.length > AFFICHES_MAX) {
+      <p class="pied gs-encre-3">
+        {{ AFFICHES_MAX }} articles affichés sur {{ articles.length | number }} — cherchez par le nom ou
+        choisissez un rayon.
+      </p>
+    }
   </ng-template>
 
   <!-- Volet droit : le ticket -->
@@ -198,7 +228,7 @@
         class="ticket-vide"
         icone="shopping_cart"
         titre="Le ticket est vide"
-        texte="Scannez un article ou touchez-le dans la grille : il s’ajoute ici."
+        texte="Scannez un article ou touchez-le dans la liste : il s’ajoute ici."
       />
     } @else {
       <ul class="lignes">
