@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../api/modeles.dart';
+import '../design/composants.dart';
+import '../design/jetons.dart';
 import '../outils.dart';
 import '../session.dart';
 
@@ -35,7 +37,11 @@ class _EcranBonsState extends State<EcranBons> {
       future: _bons,
       builder: (context, etat) {
         if (etat.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            physics: const NeverScrollableScrollPhysics(),
+            children: const [Squelette(hauteur: 104), Squelette(hauteur: 104)],
+          );
         }
         if (etat.hasError) {
           return EtatErreur(message: etat.error.toString(), reessayer: _recharger);
@@ -60,8 +66,7 @@ class _EcranBonsState extends State<EcranBons> {
                     for (final bon in actifs) _CarteBon(bon: bon),
                     if (passes.isNotEmpty) ...[
                       const SizedBox(height: 16),
-                      Text('UTILISÉS OU EXPIRÉS', style: Theme.of(context).textTheme.labelSmall),
-                      const SizedBox(height: 8),
+                      const Etiquette('Utilisés ou expirés'),
                       for (final bon in passes) _CarteBon(bon: bon),
                     ],
                   ],
@@ -72,6 +77,7 @@ class _EcranBonsState extends State<EcranBons> {
   }
 }
 
+/// Un bon, dessine comme un coupon : le montant sur le petrole a gauche, le magasin a droite.
 class _CarteBon extends StatelessWidget {
   const _CarteBon({required this.bon});
 
@@ -80,27 +86,63 @@ class _CarteBon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
-    final etat = switch (bon.statut) {
-      StatutBon.utilise => 'Utilisé le ${jour(bon.utilisation)}',
-      StatutBon.expire => 'Expiré le ${jour(bon.expiration)}',
-      StatutBon.actif => 'Valable jusqu’au ${jour(bon.expiration)}',
+    final j = context.jetons;
+    final statut = switch (bon.statut) {
+      StatutBon.utilise => Statut(ton: Ton.neutre, icone: Icons.check, libelle: 'Utilisé le ${jour(bon.utilisation)}'),
+      StatutBon.expire => Statut(ton: Ton.neutre, icone: Icons.event_busy, libelle: 'Expiré le ${jour(bon.expiration)}'),
+      StatutBon.actif => Statut(ton: Ton.ok, icone: Icons.event_available, libelle: 'Jusqu’au ${jour(bon.expiration)}'),
     };
-    return Opacity(
-      opacity: bon.utilisable ? 1 : 0.6,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        color: bon.utilisable ? couleurs.secondaryContainer : null,
-        child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          leading: Icon(Icons.redeem, size: 32, color: bon.utilisable ? couleurs.primary : couleurs.outline),
-          title: Text(francs(bon.montant), style: theme.textTheme.titleLarge),
-          subtitle: Text('${bon.nomMagasin}\n$etat'),
-          isThreeLine: true,
-          trailing: bon.utilisable ? const Icon(Icons.qr_code_2, size: 32) : null,
-          onTap: bon.utilisable
-              ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => _BonEnGrand(bon: bon)))
-              : null,
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: bon.utilisable
+            ? () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => _BonEnGrand(bon: bon)))
+            : null,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                width: 112,
+                color: bon.utilisable ? Jetons.petroleProfond : j.surface2,
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                child: FittedBox(
+                  child: Text(
+                    francs(bon.montant),
+                    style: TextStyle(
+                      fontFamily: Polices.titre,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: bon.utilisable ? Colors.white : j.encre3,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Bon d’achat', style: theme.textTheme.bodySmall?.copyWith(color: j.encre3)),
+                      Text(bon.nomMagasin,
+                          style: theme.textTheme.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 6),
+                      statut,
+                    ],
+                  ),
+                ),
+              ),
+              if (bon.utilisable)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Icon(Icons.qr_code_2, size: 32, color: j.encre2),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -117,17 +159,15 @@ class _BonEnGrand extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(bon.nomMagasin)),
+      appBar: AppBar(title: Text(bon.nomMagasin, overflow: TextOverflow.ellipsis)),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                Text('Bon d’achat', style: theme.textTheme.titleMedium),
-                Text(francs(bon.montant),
-                    style: theme.textTheme.displayMedium
-                        ?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                Text('Bon d’achat', style: theme.textTheme.titleMedium?.copyWith(color: context.jetons.encre2)),
+                Text(francs(bon.montant), style: theme.textTheme.displayMedium?.copyWith(color: context.jetons.petrole)),
                 const SizedBox(height: 24),
                 // Fond blanc, quel que soit le theme : une douchette lit mal un QR sur fond sombre.
                 Container(
@@ -137,7 +177,8 @@ class _BonEnGrand extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 SelectableText(bon.code,
-                    style: theme.textTheme.headlineSmall?.copyWith(letterSpacing: 2, fontFamily: 'monospace')),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                        letterSpacing: 2, fontFamily: Polices.code, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
                 Text('Valable jusqu’au ${jour(bon.expiration)}', style: theme.textTheme.bodyMedium),
                 const SizedBox(height: 24),
@@ -145,7 +186,7 @@ class _BonEnGrand extends StatelessWidget {
                   'Montrez ce bon au caissier avant de payer : il le déduit de votre total. '
                   'Il ne rend pas la monnaie.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall,
+                  style: theme.textTheme.bodySmall?.copyWith(color: context.jetons.encre2, height: 1.45),
                 ),
               ],
             ),

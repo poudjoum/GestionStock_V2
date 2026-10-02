@@ -4,6 +4,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'api/api.dart';
+import 'design/composants.dart';
+import 'design/jetons.dart';
 import 'ecrans/bons.dart';
 import 'ecrans/connexion.dart';
 import 'ecrans/points.dart';
@@ -19,28 +21,16 @@ Future<void> main() async {
   await session.demarrer();
 }
 
-/// Le vert du back-office des magasins, et son orange en accent : une seule identite.
-const _vert = Color(0xFF2E7D32);
-
 class Fidelite extends StatelessWidget {
   const Fidelite({super.key});
-
-  ThemeData _theme(Brightness luminosite) => ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: _vert,
-          brightness: luminosite,
-          tertiary: luminosite == Brightness.light ? const Color(0xFFB45309) : const Color(0xFFFFB86B),
-        ),
-        useMaterial3: true,
-      );
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Fidélité',
+      title: 'GestionStock Fidélité',
       debugShowCheckedModeBanner: false,
-      theme: _theme(Brightness.light),
-      darkTheme: _theme(Brightness.dark),
+      theme: themeGestionStock(Brightness.light),
+      darkTheme: themeGestionStock(Brightness.dark),
       locale: const Locale('fr'),
       supportedLocales: const [Locale('fr')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -75,7 +65,11 @@ class _AccueilState extends State<Accueil> {
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
     if (!session.prete) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      // Le logo, sur le fond de l'ecran de lancement : le passage ne se voit pas.
+      return const Scaffold(
+        backgroundColor: Jetons.petroleProfond,
+        body: Center(child: Logo(taille: 96)),
+      );
     }
 
     final Widget contenu;
@@ -92,12 +86,30 @@ class _AccueilState extends State<Accueil> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titres[_onglet]),
+        // Le logo a gauche du titre : c'est l'application des magasins GestionStock, ou que l'on soit.
+        titleSpacing: 16,
+        title: Row(
+          children: [
+            const Logo(taille: 32),
+            const SizedBox(width: 12),
+            Flexible(child: Text(_titres[_onglet], overflow: TextOverflow.ellipsis)),
+          ],
+        ),
         actions: [
           if (session.connecte)
             PopupMenuButton<String>(
               tooltip: 'Mon compte',
-              icon: const Icon(Icons.account_circle_outlined),
+              icon: CircleAvatar(
+                radius: 16,
+                backgroundColor: context.jetons.accentDoux,
+                // L'initiale du prenom, ou une silhouette : un « ? » aurait l'air d'une erreur.
+                child: _initiale(session) == null
+                    ? Icon(Icons.person, size: 20, color: context.jetons.surAccentDoux)
+                    : Text(
+                        _initiale(session)!,
+                        style: TextStyle(fontWeight: FontWeight.w700, color: context.jetons.surAccentDoux),
+                      ),
+              ),
               onSelected: (_) => session.deconnecter(),
               itemBuilder: (_) => [
                 PopupMenuItem<String>(
@@ -123,4 +135,9 @@ class _AccueilState extends State<Accueil> {
       ),
     );
   }
+}
+
+String? _initiale(Session session) {
+  final prenom = session.profil?.prenom?.trim() ?? '';
+  return prenom.isEmpty ? null : prenom[0].toUpperCase();
 }

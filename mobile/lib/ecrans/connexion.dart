@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../design/composants.dart';
+import '../design/jetons.dart';
 import '../session.dart';
 
 /// Se connecter ou creer son compte : un numero de telephone et un mot de passe.
@@ -65,7 +67,7 @@ class _EcranConnexionState extends State<EcranConnexion> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
+    final j = context.jetons;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -76,14 +78,14 @@ class _EcranConnexionState extends State<EcranConnexion> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.stars_rounded, size: 56, color: couleurs.primary),
-                const SizedBox(height: 12),
+                const Center(child: Logo(taille: 64)),
+                const SizedBox(height: 16),
                 Text(_inscription ? 'Créer mon compte' : 'Me connecter',
-                    style: theme.textTheme.headlineSmall, textAlign: TextAlign.center),
+                    style: theme.textTheme.headlineMedium, textAlign: TextAlign.center),
                 const SizedBox(height: 6),
                 Text(
                   widget.raison ?? 'Gagnez des points à chaque achat dans les magasins partenaires.',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: couleurs.onSurfaceVariant),
+                  style: theme.textTheme.bodyMedium?.copyWith(color: j.encre2, height: 1.45),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -91,7 +93,7 @@ class _EcranConnexionState extends State<EcranConnexion> {
                   TextFormField(
                     controller: _prenom,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Prénom (facultatif)', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Prénom (facultatif)', prefixIcon: Icon(Icons.person_outline)),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -102,8 +104,7 @@ class _EcranConnexionState extends State<EcranConnexion> {
                   decoration: const InputDecoration(
                     labelText: 'Numéro de téléphone',
                     hintText: '6 90 12 34 56',
-                    prefixIcon: Icon(Icons.phone),
-                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.phone_outlined),
                   ),
                   validator: (v) {
                     final chiffres = (v ?? '').replaceAll(RegExp(r'[^0-9]'), '');
@@ -118,7 +119,6 @@ class _EcranConnexionState extends State<EcranConnexion> {
                   decoration: InputDecoration(
                     labelText: 'Mot de passe',
                     prefixIcon: const Icon(Icons.lock_outline),
-                    border: const OutlineInputBorder(),
                     helperText: _inscription ? 'Au moins 6 caractères' : null,
                     suffixIcon: IconButton(
                       tooltip: _masque ? 'Afficher' : 'Masquer',
@@ -131,14 +131,7 @@ class _EcranConnexionState extends State<EcranConnexion> {
                 ),
                 if (_erreur != null) ...[
                   const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: couleurs.errorContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(_erreur!, style: TextStyle(color: couleurs.onErrorContainer)),
-                  ),
+                  MessageErreur(_erreur!),
                 ],
                 const SizedBox(height: 20),
                 FilledButton(

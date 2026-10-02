@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Le bleu-petrole de GestionStock : la couleur de ce qui parle au client. -->
+    <color name="petrole">#0B6A80</color>
+</resources>
