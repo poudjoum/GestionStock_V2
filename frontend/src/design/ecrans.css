@@ -1,0 +1,136 @@
+/*
+ * Les motifs communs aux ecrans de liste : la page, sa barre d'outils, le cadre du tableau, les
+ * cartes du telephone. Globaux plutot que copies dans chaque composant : un ecran de liste se
+ * reconnait au meme dessin, du stock aux factures.
+ */
+
+/* La page : pleine largeur jusqu'a 1280 px, au meme bord partout. */
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* La recherche et les filtres, sur une ligne qui passe a la ligne sur telephone. */
+.barre-outils {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gs-esp-3);
+  margin-bottom: var(--gs-esp-4);
+}
+
+.barre-outils .recherche {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+/* Le tableau dans sa carte : il defile de cote plutot que de casser la page. */
+.tableau-cadre {
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-trait);
+  border-radius: var(--gs-r-carte);
+  overflow: auto;
+}
+
+.gs-tableau .designation {
+  display: block;
+  font-weight: 500;
+}
+
+.gs-tableau .code {
+  display: block;
+  font-size: var(--gs-texte-xs);
+  color: var(--gs-encre-3);
+}
+
+.gs-tableau .quantite {
+  font: 700 var(--gs-texte-lg) var(--gs-police-titre);
+}
+
+.gs-tableau .valeur {
+  font-weight: 600;
+}
+
+.danger {
+  color: var(--gs-danger);
+}
+
+/* Les cartes du telephone : une ligne du tableau, empilee. */
+.cartes {
+  display: grid;
+  gap: var(--gs-esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cartes > li {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-esp-3);
+  padding: 12px 14px;
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-trait);
+  border-radius: var(--gs-r-carte);
+}
+
+.cartes .infos {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cartes .designation {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: var(--gs-texte-md);
+}
+
+.cartes .code {
+  font-size: var(--gs-texte-xs);
+  color: var(--gs-encre-3);
+}
+
+.cartes .chiffres {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.cartes .quantite {
+  font: 700 1.5rem / 1 var(--gs-police-titre);
+}
+
+/* Le compte des elements, sous la liste. */
+.pied {
+  margin: var(--gs-esp-3) 0 0;
+  text-align: center;
+  font-size: var(--gs-texte-xs);
+}
+
+/* Le message d'erreur d'un ecran : celui du serveur, tel quel, avec une icone. */
+.message-erreur {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--gs-r-champ);
+  background: var(--gs-danger-fond);
+  color: var(--gs-danger);
+  font-size: var(--gs-texte-sm);
+  line-height: 1.45;
+}
+
+.message-erreur mat-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}

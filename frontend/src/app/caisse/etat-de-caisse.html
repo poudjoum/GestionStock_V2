@@ -1,18 +1,15 @@
 @let e = etat();
 
-<div class="mx-auto max-w-5xl">
-  <div class="mb-4 flex flex-wrap items-center gap-3">
-    <mat-button-toggle-group
-      [value]="periode()"
-      hideSingleSelectionIndicator
-    >
-      <mat-button-toggle value="jour" (click)="choisirPeriode('jour')">Aujourd’hui</mat-button-toggle>
-      <mat-button-toggle value="semaine" (click)="choisirPeriode('semaine')">7 jours</mat-button-toggle>
-      <mat-button-toggle value="mois" (click)="choisirPeriode('mois')">30 jours</mat-button-toggle>
-    </mat-button-toggle-group>
+<div class="page">
+  <gs-en-tete-page
+    titre="Caisse"
+    [sousTitre]="'Ce qui est entré du ' + (debut() | date: 'd MMMM') + ' au ' + (fin() | date: 'd MMMM y') + ', moyen par moyen.'"
+  />
 
+  <div class="barre-outils">
+    <!-- Les periodes courantes en un geste ; les dates pour tout le reste. -->
+    <gs-selecteur aria-label="Période" [options]="periodes" [valeur]="periode()" (valeurChange)="choisirPeriode($any($event))" />
     <span class="flex-1"></span>
-
     <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
       <mat-label>Du</mat-label>
       <input matInput type="date" [ngModel]="debut()" (ngModelChange)="changerDate('debut', $event)" />
@@ -24,123 +21,91 @@
   </div>
 
   @if (chargement()) {
-    <div class="squelette mb-3 h-32"></div>
-    <div class="squelette h-64"></div>
+    <div class="tuiles">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="squelette h-28"></div>
+      }
+    </div>
+    <div class="squelette mt-4 h-64"></div>
   } @else if (erreur(); as message) {
-    <p class="rounded px-3 py-2 text-sm" role="alert"
-       style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
-      {{ message }}
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
     </p>
   } @else {
-    <!--
-      Le total de la periode : le chiffre qu'on vient chercher, donc le plus gros de l'ecran.
-      Le fond reste sobre et c'est le nombre qui porte la couleur — un aplat de couleur vive sur
-      toute la largeur fatigue l'oeil d'un comptable qui passe la journee dessus.
-    -->
-    <div class="carte mb-4 flex flex-wrap items-end gap-x-8 gap-y-2 p-5">
-      <div>
-        <p class="text-xs font-medium uppercase tracking-wide opacity-60">
-          Encaissé du {{ debut() | date: 'dd/MM/yyyy' }} au {{ fin() | date: 'dd/MM/yyyy' }}
-        </p>
-        <p class="nombre mt-1 text-4xl font-medium" style="color: var(--mat-sys-primary)">
-          {{ e?.total ?? 0 | number: '1.0-0' }}
-          <span class="text-xl font-normal opacity-60">F</span>
-        </p>
-      </div>
-      <p class="pb-1 text-sm opacity-60">
-        {{ e?.nombreReglements ?? 0 }} règlement{{ (e?.nombreReglements ?? 0) > 1 ? 's' : '' }}
-      </p>
+    <!-- Le chiffre qu'on vient chercher, puis ce qui l'explique. -->
+    <div class="tuiles">
+      <gs-tuile libelle="Encaissé" icone="point_of_sale" [valeur]="e?.total ?? 0" unite="F" detail="la recette de la période" />
+      <gs-tuile
+        libelle="Règlements"
+        icone="receipt_long"
+        [valeur]="e?.nombreReglements ?? 0"
+        [detail]="(e?.nombreReglements ?? 0) > 0 ? 'en moyenne ' + ((e?.total ?? 0) / (e?.nombreReglements || 1) | number: '1.0-0') + ' F' : 'aucun sur la période'"
+      />
+      @if (e?.bonsAchat; as bons) {
+        <!--
+          Les bons d'achat a part : ils reglent des factures sans faire entrer d'argent. Les
+          additionner a la recette ferait chercher au tiroir des billets absents.
+        -->
+        <gs-tuile libelle="Bons d’achat" icone="redeem" [valeur]="bons.total" unite="F" [detail]="bons.nombre + ' bon' + ((bons.nombre ?? 0) > 1 ? 's' : '') + ', hors recette'" />
+      }
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-[320px_1fr]">
-      <!-- La repartition par moyen de paiement -->
-      <section class="carte p-4">
-        <h2 class="mb-3 text-sm font-medium uppercase tracking-wide opacity-70">Par moyen</h2>
+    <div class="colonnes">
+      <gs-section titre="Par moyen de paiement">
         @if (!e?.parMode?.length) {
-          <p class="py-8 text-center text-sm opacity-50">Aucun encaissement.</p>
+          <gs-etat-vide icone="payments" titre="Aucun encaissement" texte="Les règlements de la période s’additionnent ici." />
         } @else {
-          <ul class="flex list-none flex-col gap-3 p-0">
+          <ul class="modes">
             @for (mode of e!.parMode!; track mode.mode) {
               <li>
-                <div class="flex items-baseline gap-2 text-sm">
-                  <span class="flex-1">{{ libelleDuMode(mode.mode) }}</span>
-                  <span class="text-xs opacity-60">{{ mode.nombre }}×</span>
-                  <span class="nombre font-medium">{{ mode.total | number: '1.0-0' }} F</span>
+                <div class="mode-ligne">
+                  <span class="mode-nom">{{ libelleDuMode(mode.mode) }}</span>
+                  <span class="gs-encre-3 text-xs">{{ mode.nombre }}×</span>
+                  <span class="nombre font-semibold">{{ mode.total | number: '1.0-0' }} F</span>
                 </div>
-                <div class="mt-1 h-2 overflow-hidden rounded-full"
-                     style="background: var(--mat-sys-surface-container-high)">
-                  <div
-                    class="h-full rounded-full"
-                    style="background: var(--mat-sys-primary)"
-                    [style.width.%]="part(mode.total)"
-                  ></div>
-                </div>
+                <div class="barre" aria-hidden="true"><i [style.width.%]="part(mode.total)"></i></div>
               </li>
             }
           </ul>
         }
-        <!--
-          Les bons d'achat a part, sous la recette : ils reglent des factures sans faire entrer
-          d'argent. Les additionner au reste ferait chercher au tiroir des billets absents.
-        -->
-        @if (e?.bonsAchat; as bons) {
-          <div
-            class="mt-4 flex items-baseline gap-2 border-t pt-3 text-sm"
-            style="border-color: var(--mat-sys-outline-variant)"
-          >
-            <mat-icon class="!h-5 !w-5 self-center !text-xl opacity-70">redeem</mat-icon>
-            <span class="flex-1">Bons d’achat <span class="opacity-60">— hors recette</span></span>
-            <span class="text-xs opacity-60">{{ bons.nombre }}×</span>
-            <span class="nombre font-medium">{{ bons.total | number: '1.0-0' }} F</span>
-          </div>
-        }
-      </section>
+      </gs-section>
 
-      <!-- Le detail, encaissement par encaissement -->
-      <section class="carte overflow-hidden">
-        <h2 class="border-b px-4 py-3 text-sm font-medium uppercase tracking-wide opacity-70"
-            style="border-color: var(--mat-sys-outline-variant)">
-          Détail
-        </h2>
+      <gs-section titre="Détail" description="Encaissement par encaissement, du plus récent au plus ancien.">
         @if (reglements().length === 0) {
-          <p class="py-12 text-center text-sm opacity-50">Aucun encaissement sur la période.</p>
+          <gs-etat-vide icone="receipt_long" titre="Aucun encaissement sur la période" texte="Choisissez une autre période, ou encaissez une vente au comptoir." [filtre]="true" />
         } @else {
-          <div class="max-h-[50dvh] overflow-y-auto">
-            <table class="w-full border-collapse text-sm">
+          <div class="detail">
+            <table class="gs-tableau">
+              <thead>
+                <tr><th>Facture</th><th>Moyen</th><th class="gs-num">Montant</th></tr>
+              </thead>
               <tbody>
                 @for (r of reglements(); track r.id) {
-                  <tr class="border-b last:border-b-0" style="border-color: var(--mat-sys-outline-variant)">
-                    <td class="px-4 py-2">
-                      <span class="block">{{ r.numeroFacture }}</span>
-                      <span class="block text-xs opacity-60">
-                        {{ r.dateReglement | date: 'dd/MM à HH:mm' }}
-                      </span>
+                  <tr>
+                    <td>
+                      <span class="designation gs-code">{{ r.numeroFacture }}</span>
+                      <span class="code">{{ r.dateReglement | date: 'dd/MM à HH:mm' }}</span>
                     </td>
-                    <td class="px-4 py-2">
-                      <span class="pastille"
-                            style="background: var(--mat-sys-surface-container-high); color: var(--mat-sys-on-surface-variant)">
+                    <td>
+                      <gs-statut [ton]="r.mode === 'BON_ACHAT' ? 'promo' : 'neutre'" [icone]="r.mode === 'BON_ACHAT' ? 'redeem' : 'payments'">
                         {{ libelleDuMode(r.mode) }}
-                      </span>
+                      </gs-statut>
                       @if (r.reference) {
-                        <span class="block text-xs opacity-60">{{ r.reference }}</span>
+                        <span class="code gs-code">{{ r.reference }}</span>
                       }
                     </td>
-                    <td class="nombre px-4 py-2 text-right font-medium">
-                      {{ r.montant | number: '1.0-0' }} F
-                    </td>
+                    <td class="gs-num valeur">{{ r.montant | number: '1.0-0' }} F</td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
           @if (totalReglements() > reglements().length) {
-            <p class="border-t px-4 py-2 text-center text-xs opacity-50"
-               style="border-color: var(--mat-sys-outline-variant)">
-              {{ reglements().length }} sur {{ totalReglements() }} — resserrez la période
-            </p>
+            <p class="pied gs-encre-3">{{ reglements().length }} sur {{ totalReglements() }} — resserrez la période</p>
           }
         }
-      </section>
+      </gs-section>
     </div>
   }
 </div>

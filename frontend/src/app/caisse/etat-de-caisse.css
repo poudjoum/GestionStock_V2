@@ -1,0 +1,62 @@
+/* L'etat de caisse : les tuiles, puis la repartition et le detail cote a cote. */
+
+.tuiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--gs-esp-3);
+}
+
+.colonnes {
+  display: grid;
+  gap: var(--gs-esp-4);
+  margin-top: var(--gs-esp-4);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .colonnes {
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+}
+
+.modes {
+  display: grid;
+  gap: var(--gs-esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mode-ligne {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--gs-texte-md);
+}
+
+.mode-nom {
+  flex: 1;
+}
+
+.barre {
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: var(--gs-surface-2);
+  overflow: hidden;
+}
+
+.barre i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--gs-vert-600);
+}
+
+/* Le detail defile dans sa carte : la page garde ses tuiles en vue. */
+.detail {
+  max-height: 55dvh;
+  overflow: auto;
+  margin: 0 calc(-1 * var(--gs-esp-5)) calc(-1 * var(--gs-esp-5));
+  border-top: 1px solid var(--gs-trait);
+}

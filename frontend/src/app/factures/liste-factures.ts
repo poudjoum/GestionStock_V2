@@ -35,37 +35,9 @@ import {
 import { Session } from '../noyau/session';
 import { messageDErreur } from '../noyau/erreurs';
 import type { Page } from '../noyau/api';
+import { statutDeFacture } from '../noyau/statuts';
+import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut } from '../design';
 
-/** L'etiquette d'une facture, selon ce qu'il reste a encaisser. */
-function pastilleDe(facture: FactureDto) {
-  if (facture.annulee) {
-    return {
-      libelle: 'Annulée',
-      fond: 'var(--mat-sys-surface-container-high)',
-      texte: 'var(--mat-sys-on-surface-variant)',
-    };
-  }
-  switch (facture.statutReglement) {
-    case 'REGLEE':
-      return {
-        libelle: 'Réglée',
-        fond: 'var(--mat-sys-secondary-container)',
-        texte: 'var(--mat-sys-on-secondary-container)',
-      };
-    case 'PARTIELLEMENT_REGLEE':
-      return {
-        libelle: 'Partielle',
-        fond: 'var(--mat-sys-tertiary-container)',
-        texte: 'var(--mat-sys-on-tertiary-container)',
-      };
-    default:
-      return {
-        libelle: 'Impayée',
-        fond: 'var(--mat-sys-error-container)',
-        texte: 'var(--mat-sys-on-error-container)',
-      };
-  }
-}
 
 /**
  * Les factures, et ce qu'il reste a encaisser dessus.
@@ -88,8 +60,14 @@ function pastilleDe(facture: FactureDto) {
     MatSelectModule,
     MatTooltipModule,
     Ticket,
+    EnTetePage,
+    EtatVide,
+    Section,
+    Selecteur,
+    Statut,
   ],
   templateUrl: './liste-factures.html',
+  styleUrl: './liste-factures.css',
 })
 export class ListeFactures implements OnInit {
   private readonly service = inject(Factures);
@@ -105,6 +83,14 @@ export class ListeFactures implements OnInit {
   protected readonly total = signal(0);
   protected readonly chargement = signal(true);
   protected readonly erreur = signal<string | null>(null);
+
+  /** Combien de factures attendent un encaissement : affiche sur l'onglet, avant de cliquer. */
+  private readonly nombreDues = signal<number | null>(null);
+  protected readonly filtres = computed<OptionSelecteur<string>[]>(() => [
+    { valeur: 'DUES', libelle: 'À encaisser', compteur: this.nombreDues() },
+    { valeur: 'REGLEE', libelle: 'Réglées' },
+    { valeur: '', libelle: 'Toutes' },
+  ]);
 
   /** L'en-tete du magasin, pour le ticket. Chargee une fois et gardee par le service. */
   protected readonly magasin = signal<EntrepriseDto | null>(null);
@@ -132,7 +118,7 @@ export class ListeFactures implements OnInit {
 
   protected readonly modes = MODES_DE_REGLEMENT;
   protected readonly libelleDuMode = libelleDuMode;
-  protected readonly pastille = pastilleDe;
+  protected readonly pastille = statutDeFacture;
 
   /** Reprendre un encaissement touche a une recette deja constatee. */
   protected readonly peutReprendre = computed(() =>
@@ -163,6 +149,11 @@ export class ListeFactures implements OnInit {
 
   ngOnInit(): void {
     this.charger();
+    // Le compte de l'onglet « À encaisser », meme quand on ouvre la liste sur un autre filtre.
+    this.service.lister('', 'DUES', 0, 1).subscribe({
+      next: (page) => this.nombreDues.set(page.totalElements ?? 0),
+      error: () => undefined,
+    });
     this.magasinService
       .charger()
       .pipe(takeUntilDestroyed(this.destruction))
@@ -310,6 +301,10 @@ export class ListeFactures implements OnInit {
   private afficher(page: Page<FactureDto>): void {
     this.lignes.set(page.content ?? []);
     this.total.set(page.totalElements ?? 0);
+    // Le compte de l'onglet « À encaisser », tant qu'aucune recherche ne le restreint.
+    if (this.statut() === 'DUES' && !this.recherche()) {
+      this.nombreDues.set(page.totalElements ?? 0);
+    }
     this.chargement.set(false);
   }
 

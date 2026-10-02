@@ -1,7 +1,7 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -10,7 +10,8 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Stock } from './stock.service';
 import type { LigneInventaireDto } from '../noyau/api';
-import { pastilleDe } from '../noyau/statuts';
+import { statutDuStock } from '../noyau/statuts';
+import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut } from '../design';
 
 /**
  * L'etat du stock, tel qu'on le consulte debout dans les rayons.
@@ -27,11 +28,16 @@ import { pastilleDe } from '../noyau/statuts';
   imports: [
     DecimalPipe,
     FormsModule,
-    MatButtonToggleModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
     MatProgressBarModule,
+    RouterLink,
+    EnTetePage,
+    EtatVide,
+    Section,
+    Selecteur,
+    Statut,
   ],
   templateUrl: './etat-du-stock.html',
 })
@@ -45,6 +51,19 @@ export class EtatDuStock implements OnInit {
   protected readonly chargement = signal(true);
   protected readonly erreur = signal<string | null>(null);
   protected readonly total = signal(0);
+
+  /**
+   * Le nombre d'articles a recommander, lu une fois a l'ouverture : il s'affiche sur l'onglet,
+   * pour qu'on sache avant de cliquer s'il y a quelque chose dedans.
+   */
+  private readonly nombreAlertes = signal<number | null>(null);
+  private readonly nombreArticles = signal<number | null>(null);
+
+  protected readonly vue = computed<'tout' | 'alertes'>(() => (this.alertesSeulement() ? 'alertes' : 'tout'));
+  protected readonly vues = computed<OptionSelecteur<'tout' | 'alertes'>[]>(() => [
+    { valeur: 'tout', libelle: 'Tout', compteur: this.nombreArticles() },
+    { valeur: 'alertes', libelle: 'À recommander', compteur: this.nombreAlertes() },
+  ]);
 
   constructor() {
     this.frappe
@@ -62,6 +81,14 @@ export class EtatDuStock implements OnInit {
 
   ngOnInit(): void {
     this.charger();
+    this.stock.alertes().subscribe({
+      next: (lignes) => this.nombreAlertes.set(lignes.length),
+      error: () => undefined,
+    });
+  }
+
+  protected changerVue(vue: 'tout' | 'alertes'): void {
+    this.basculerAlertes(vue === 'alertes');
   }
 
   protected chercher(q: string): void {
@@ -81,12 +108,12 @@ export class EtatDuStock implements OnInit {
   }
 
   protected statut(ligne: LigneInventaireDto) {
-    return pastilleDe(ligne);
+    return statutDuStock(ligne);
   }
 
   /** Une quantite negative se lit d'un coup d'oeil : c'est elle qui demande un comptage. */
   protected estAnormal(ligne: LigneInventaireDto): boolean {
-    return ligne.statut === 'NEGATIF';
+    return ligne.statut === 'NEGATIF' || ligne.statut === 'RUPTURE';
   }
 
   private charger(): void {
@@ -108,6 +135,10 @@ export class EtatDuStock implements OnInit {
   private afficher(lignes: LigneInventaireDto[], total: number): void {
     this.lignes.set(lignes);
     this.total.set(total);
+    // Le total du catalogue, pour l'onglet « Tout », tant qu'aucune recherche ne le restreint.
+    if (!this.alertesSeulement() && !this.recherche()) {
+      this.nombreArticles.set(total);
+    }
     this.chargement.set(false);
   }
 
