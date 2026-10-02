@@ -41,7 +41,7 @@
           <li><a href="#campagnes">Campagnes</a></li>
           <li><a href="#fidelite">Programme de fidélité</a></li>
           <li><a href="#appli">L’application des clients</a></li>
-          <li><a href="#equipe">L’équipe et les comptes</a></li>
+          <li><a href="#equipe">L’équipe : ajouter ses collaborateurs</a></li>
           <li><a href="#alertes">Les alertes</a></li>
           <li><a href="#questions">Questions fréquentes</a></li>
         </ol>
@@ -93,7 +93,7 @@
         <!-- 2 ------------------------------------------------------------------------------- -->
         <section id="magasin">
           <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#reglages" /></svg></span>Mettre en place le magasin</h2>
-          <ul class="qui"><li>Administrateur</li><li>Gérant pour le catalogue</li></ul>
+          <ul class="qui"><li>Administrateur</li><li>Gérant pour le catalogue et les imports</li></ul>
           <h3>Le magasin</h3>
           <p>
             Dans <strong>Réglages › Le magasin</strong> : le nom, l’adresse, le téléphone, le logo,
@@ -116,6 +116,17 @@
             <svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg>
             <p>Le rapport n’est pas une estimation : la simulation passe par le même code que l’import réel. Ce qui est montré est exactement ce qui entrera.</p>
           </div>
+          <h3>Importer ses clients et ses fournisseurs</h3>
+          <p>
+            Sur les écrans <strong>Clients</strong> et <strong>Fournisseurs</strong>, le bouton
+            <strong>Importer</strong> fonctionne comme celui du catalogue : modèle, fichier, rapport,
+            confirmation. Les colonnes sont : nom, prénom, téléphone, courriel, adresse, ville, pays.
+          </p>
+          <ul>
+            <li>Laissez le <strong>prénom vide pour une entreprise</strong> : la colonne nom porte alors sa raison sociale.</li>
+            <li>Une fiche est reconnue par son <strong>téléphone</strong>, écrit avec ou sans espaces, avec ou sans +237 : réimporter un fichier corrigé met les fiches à jour au lieu de les doubler.</li>
+            <li>Le nom, le téléphone et le courriel sont exigés, comme à l’écran.</li>
+          </ul>
           <h3>Les seuils d’alerte</h3>
           <p>
             Chaque article peut avoir un <strong>seuil d’alerte</strong> : la quantité en dessous de
@@ -130,10 +141,13 @@
           <ul class="qui"><li>Caissier</li><li>Gérant</li><li>Administrateur</li></ul>
           <h3>Composer le panier</h3>
           <p>
-            Touchez un article dans la grille, cherchez-le par son nom, ou scannez son code-barres
-            avec une douchette : elle tape le code et valide, le champ reprend la main tout seul
-            pour l’article suivant. Les rayons, en haut de la grille, filtrent par catégorie. Les
-            articles en promotion affichent déjà leur prix réduit.
+            Scannez le code-barres avec une douchette : elle tape le code et valide, le champ
+            reprend la main tout seul pour l’article suivant. Sans code-barres, cherchez l’article
+            par son nom ou parcourez le <strong>tableau des articles</strong> : une ligne par
+            article, avec son code, son rayon et son prix. Touchez la ligne, ou son bouton
+            <strong>+</strong>, pour l’ajouter au ticket. Les rayons, au-dessus du tableau, filtrent
+            par catégorie ; les articles en promotion portent un liseré bleu et affichent déjà leur
+            prix réduit.
           </p>
           <p>Le ticket reste visible à droite (en bas sur téléphone) : quantités, total TTC et bouton <strong>Encaisser</strong>.</p>
           <h3>Encaisser</h3>
@@ -335,8 +349,31 @@
 
         <!-- 11 ------------------------------------------------------------------------------ -->
         <section id="equipe">
-          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#cadenas" /></svg></span>L’équipe et les comptes</h2>
-          <ul class="qui"><li>Administrateur</li></ul>
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#equipe" /></svg></span>L’équipe : ajouter ses collaborateurs</h2>
+          <ul class="qui"><li>Gérant</li><li>Administrateur</li></ul>
+          <p>
+            Chaque personne qui travaille au magasin a son propre compte : c’est ce qui permet de
+            savoir qui a vendu quoi, et de ne montrer à chacun que ce qui le regarde. Le gérant
+            ouvre lui-même les comptes de son équipe, dans <strong>Réglages › Équipe</strong>.
+          </p>
+          <h3>Ajouter un collaborateur</h3>
+          <ol>
+            <li><strong>Ajouter un collaborateur.</strong> Prénom, nom et téléphone. Le courriel est facultatif : s’il est donné, le collaborateur y reçoit son identifiant — jamais son mot de passe.</li>
+            <li><strong>Choisir son rôle</strong> : caissier, magasinier, comptable. Une personne peut en cumuler plusieurs — un caissier qui reçoit aussi les livraisons sera caissier et magasinier.</li>
+            <li><strong>L’identifiant</strong> est proposé à partir du nom (<code>grace.ndongo</code>) et reste modifiable. <strong>Le mot de passe provisoire</strong> est proposé aussi (<code>Caisse-4827</code>) : facile à dicter, il ne servira qu’une fois.</li>
+            <li><strong>Ajouter à l’équipe.</strong> L’écran affiche alors les accès à transmettre, avec un bouton pour les copier.</li>
+          </ol>
+          <div class="encadre encadre--petrole">
+            <svg aria-hidden="true"><use href="/images/icones.svg#cadenas" /></svg>
+            <p>À sa première connexion, le collaborateur doit <strong>choisir son propre mot de passe</strong> avant d’aller plus loin. Le gérant ne le connaît donc plus — et chacun reste responsable de ce qu’il fait sous son nom.</p>
+          </div>
+          <h3>Ce que le gérant peut donner</h3>
+          <p>
+            Le gérant donne les rôles de caissier, magasinier et comptable, et gère les comptes qui
+            n’ont que ces rôles. Les comptes de l’administrateur et des autres gérants sont marqués
+            d’un cadenas : seul l’administrateur du magasin les modifie, et lui seul nomme un gérant
+            ou un administrateur.
+          </p>
           <p>Ce que chaque rôle peut ouvrir :</p>
           <div class="tableau-cadre">
             <table class="tableau">
@@ -353,15 +390,16 @@
                 <tr><td>Achats, fournisseurs</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="oui">oui</td><td class="non">—</td></tr>
                 <tr><td>Clients</td><td class="oui">oui</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td></tr>
                 <tr><td>Campagnes, fidélité</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td><td class="non">—</td></tr>
-                <tr><td>Le magasin, comptes</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td><td class="non">—</td><td class="non">—</td></tr>
+                <tr><td>Équipe</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td><td class="non">—</td></tr>
+                <tr><td>Le magasin</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td><td class="non">—</td><td class="non">—</td></tr>
               </tbody>
             </table>
           </div>
-          <h3>Gérer les comptes</h3>
+          <h3>Gérer l’équipe au quotidien</h3>
           <ul>
-            <li><strong>Les rôles</strong> : la liste choisie remplace les rôles actuels — décocher en retire un. Une personne peut en cumuler plusieurs.</li>
-            <li><strong>Fermer un compte</strong> plutôt que le supprimer : l’employé parti reste l’auteur de ses ventes, et l’historique reste lisible. On ne ferme pas son propre accès.</li>
-            <li><strong>Réinitialiser un mot de passe</strong> : huit caractères au moins, à transmettre de vive voix — il n’est jamais envoyé par courriel. Les sessions ouvertes du compte sont fermées.</li>
+            <li><strong>Changer les rôles</strong> : touchez le collaborateur. La liste choisie remplace ses rôles actuels — décocher en retire un.</li>
+            <li><strong>Fermer un compte</strong> avec l’interrupteur, plutôt que le supprimer : l’employé parti reste l’auteur de ses ventes, et l’historique reste lisible. On ne ferme pas son propre accès.</li>
+            <li><strong>Réinitialiser un mot de passe</strong> oublié : huit caractères au moins, à transmettre de vive voix. Il redevient provisoire — le collaborateur en choisira un nouveau à la connexion suivante — et ses sessions ouvertes sont fermées.</li>
           </ul>
         </section>
 

@@ -36,6 +36,11 @@
   min-width: 0;
 }
 
+/* Seule la liste defile et se resserre : le champ de scan et les rayons gardent leur hauteur. */
+.volet-articles > :not(.grille-zone) {
+  flex-shrink: 0;
+}
+
 .bandeau {
   display: flex;
   align-items: flex-start;
@@ -81,6 +86,8 @@
 /* Les rayons : une rangee qui defile de cote sur telephone plutot que de s'empiler. */
 .rayons {
   display: flex;
+  /* Sans lui, une longue liste d'articles ecrasait les rayons a quelques pixels de haut. */
+  flex-shrink: 0;
   gap: var(--gs-esp-2);
   overflow-x: auto;
   padding-bottom: 2px;
@@ -142,96 +149,107 @@
   border-color: var(--gs-petrole-700);
 }
 
-.grille {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
-  gap: var(--gs-esp-2);
-}
-
-/* La tuile d'article : grande, pour le doigt, avec le prix lisible d'un coup d'oeil. */
-.tuile-article {
-  position: relative;
-  display: grid;
-  grid-template-rows: auto auto 1fr;
-  gap: 4px;
-  min-height: 108px;
-  padding: 12px;
+/*
+ * Le tableau des articles. Dense — 44 px par ligne, la taille d'un doigt — pour qu'une vingtaine
+ * d'articles tiennent a l'ecran, et l'en-tete reste colle en haut quand la liste defile.
+ */
+.tableau-articles {
   border: 1px solid var(--gs-trait);
   border-radius: var(--gs-r-carte);
   background: var(--gs-surface);
-  color: var(--gs-encre);
-  text-align: left;
+  overflow: clip;
+}
+
+.tableau-articles table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableau-articles thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--gs-surface-2);
+}
+
+.tableau-articles tbody tr {
   cursor: pointer;
-  transition:
-    border-color 120ms ease,
-    box-shadow 120ms ease,
-    transform 80ms ease;
 }
 
-.tuile-article:hover {
-  border-color: var(--gs-accent);
-  box-shadow: var(--gs-ombre-1);
+.tableau-articles tbody tr:hover {
+  background: var(--gs-accent-doux);
 }
 
-.tuile-article:active {
-  transform: scale(0.98);
+.tableau-articles td {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  vertical-align: middle;
 }
 
-.tuile-article .designation {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  font-size: var(--gs-texte-md);
+.tableau-articles .designation {
+  display: block;
   font-weight: 600;
   line-height: 1.3;
-  padding-right: 4px;
 }
 
-.tuile-article .code {
+.tableau-articles .code {
+  display: block;
   font-size: var(--gs-texte-xs);
   color: var(--gs-encre-3);
 }
 
-.tuile-article .prix {
-  align-self: end;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 6px;
+.tableau-articles .col-prix {
+  text-align: right;
+  white-space: nowrap;
 }
 
-.tuile-article .prix b {
-  font: 700 1.125rem / 1 var(--gs-police-titre);
+.tableau-articles .col-prix b {
+  font: 700 1rem / 1 var(--gs-police-titre);
 }
 
-.tuile-article .prix .prix-promo {
+.tableau-articles .col-prix s {
+  display: block;
+  font-size: var(--gs-texte-xs);
+  color: var(--gs-encre-3);
+}
+
+.tableau-articles .prix-promo {
   color: var(--gs-petrole-700);
 }
 
-.tuile-article .prix s {
-  font-size: var(--gs-texte-xs);
-  color: var(--gs-encre-3);
+/* La promotion se voit au bord de la ligne, sans repeindre la ligne entiere. */
+.tableau-articles .ligne--promo td:first-child {
+  box-shadow: inset 3px 0 0 var(--gs-petrole-700);
 }
 
-.tuile-article .prix small {
-  font-size: var(--gs-texte-xs);
-  color: var(--gs-encre-3);
+/* L'article qu'on vient d'ajouter s'allume un instant : le doigt a bien ete entendu. */
+.tableau-articles .ligne--ajoutee {
+  background: var(--gs-accent-doux);
 }
 
-/* Le badge de promotion suit le prix : en haut de la tuile, il coupait la designation. */
-.tuile-article .badge {
-  margin-left: auto;
+.tableau-articles .col-ajout {
+  width: 48px;
+  padding-left: 0;
+  padding-right: 4px;
+  text-align: right;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .tuile-article {
-    transition: none;
+.tableau-articles .col-ajout mat-icon {
+  color: var(--gs-accent);
+}
+
+.tableau-articles .col-rayon {
+  font-size: var(--gs-texte-sm);
+  white-space: nowrap;
+}
+
+/* Sur telephone, le rayon est deja choisi au-dessus : sa colonne laisse la place au nom. */
+@media (max-width: 640px) {
+  .tableau-articles .col-rayon {
+    display: none;
   }
-  .tuile-article:active {
-    transform: none;
-  }
 }
+
 
 /* --- Le ticket ---------------------------------------------------------------------------- */
 

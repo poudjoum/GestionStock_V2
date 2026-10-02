@@ -65,7 +65,8 @@ export const routes: Routes = [
         // prix de tout le magasin en un geste. Il tient la marchandise, pas la politique de prix.
         path: 'articles/import',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],
-        loadComponent: () => import('./catalogue/import-articles').then((m) => m.ImportArticles),
+        data: { cible: 'articles' },
+        loadComponent: () => import('./import/import-classeur').then((m) => m.ImportClasseur),
       },
       {
         // L'inventaire : compter le magasin et rattraper les ecarts. Le comptable en est
@@ -101,6 +102,18 @@ export const routes: Routes = [
       // Un signet sur l'ancien chemin continue de mener au bon endroit.
       { path: 'receptions', redirectTo: 'achats' },
       {
+        path: 'clients/import',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],
+        data: { cible: 'clients' },
+        loadComponent: () => import('./import/import-classeur').then((m) => m.ImportClasseur),
+      },
+      {
+        path: 'fournisseurs/import',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],
+        data: { cible: 'fournisseurs' },
+        loadComponent: () => import('./import/import-classeur').then((m) => m.ImportClasseur),
+      },
+      {
         path: 'clients',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_CAISSIER')],
         loadComponent: () => import('./repertoire/repertoire').then((m) => m.RepertoireEcran),
@@ -122,7 +135,7 @@ export const routes: Routes = [
       },
       {
         path: 'comptes',
-        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_SUPER_ADMIN')],
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SUPER_ADMIN')],
         loadComponent: () => import('./comptes/comptes').then((m) => m.Comptes),
       },
       {

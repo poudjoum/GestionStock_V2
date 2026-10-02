@@ -2,6 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.UserControllerApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MotDePasseDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.NouveauCollaborateurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.UserDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
 import com.jumpy.tech.gestionstock.gestiondestock.service.UserService;
@@ -22,6 +23,16 @@ public class UserController implements UserControllerApi {
     @Override
     public ResponseEntity<UserDto> save(UserDto dto) {
         return ResponseEntity.status(HttpStatus.OK).body(userService.save(dto));
+    }
+
+    @Override
+    public ResponseEntity<UserDto> ajouterCollaborateur(NouveauCollaborateurDto collaborateur) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.ajouterCollaborateur(collaborateur));
+    }
+
+    @Override
+    public ResponseEntity<List<ERole>> rolesAttribuables() {
+        return ResponseEntity.ok(userService.rolesAttribuables());
     }
 
     @Override

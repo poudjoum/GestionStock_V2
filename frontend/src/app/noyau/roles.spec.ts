@@ -29,7 +29,10 @@ describe('groupesPour', () => {
       'Stock',
       'Achats',
       'Clients et promos',
+      // L'equipe : le gerant y ajoute ses caissiers et ses magasiniers.
+      'Réglages',
     ]);
+    expect(groupes.at(-1)?.entrees.map((e) => e.chemin)).toEqual(['/comptes']);
   });
 });
 

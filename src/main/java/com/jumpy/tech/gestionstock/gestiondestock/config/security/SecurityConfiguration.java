@@ -235,8 +235,19 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.PATCH, API + "/users/*/entreprise/**")
                             .hasRole(SUPER_ADMIN)
 
-                        // Les comptes : l'administration de son propre commerce. Le service
-                        // cloisonne, un administrateur ne voit donc que les siens.
+                        // L'equipe : le gerant ajoute ses collaborateurs, les voit, change leurs
+                        // roles, ferme leur acces, reinitialise leur mot de passe. Le service
+                        // limite ce qu'il peut faire — les metiers du magasin, et les comptes
+                        // qui n'ont rien d'autre — ; la route, elle, lui ouvre la porte.
+                        .requestMatchers(HttpMethod.POST, API + "/users/personnel").hasAnyRole(ADMIN, MANAGER)
+                        .requestMatchers(HttpMethod.GET, API + "/users/all", API + "/users/roles-attribuables")
+                            .hasAnyRole(ADMIN, MANAGER, SUPER_ADMIN)
+                        .requestMatchers(HttpMethod.PATCH, API + "/users/*/roles", API + "/users/*/actif/*",
+                                API + "/users/*/motdepasse")
+                            .hasAnyRole(ADMIN, MANAGER, SUPER_ADMIN)
+
+                        // Le reste des comptes : l'administration de son propre commerce. Le
+                        // service cloisonne, un administrateur ne voit donc que les siens.
                         .requestMatchers(API + "/users/**").hasAnyRole(ADMIN, SUPER_ADMIN)
 
                         // Les entreprises, en revanche, reviennent a l'editeur seul.
@@ -248,6 +259,12 @@ public class SecurityConfiguration {
                         // designent jamais que la sienne.
                         .requestMatchers(API + "/entreprise/**", API + "/entreprises/**")
                             .hasRole(SUPER_ADMIN)
+
+                        // Importer un repertoire ecrit des centaines de fiches d'un coup : le
+                        // gerant, comme pour le catalogue. Avant la regle suivante, qui ouvrirait
+                        // /clients/** au caissier.
+                        .requestMatchers(HttpMethod.POST, API + "/clients/import", API + "/fournisseur/import")
+                            .hasAnyRole(ADMIN, MANAGER)
 
                         // Le caissier vend et enregistre les clients qui se presentent ; il ne
                         // cree ni article ni categorie.

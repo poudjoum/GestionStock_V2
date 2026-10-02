@@ -171,9 +171,10 @@ export const MENU: EntreeDeMenu[] = [
   {
     chemin: '/comptes',
     groupe: 'reglages',
-    libelle: 'Comptes',
+    libelle: 'Équipe',
     icone: 'group',
-    roles: ['ROLE_ADMIN', 'ROLE_SUPER_ADMIN'],
+    // Le gerant y ajoute ses caissiers et ses magasiniers : c'est lui qui embauche au quotidien.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SUPER_ADMIN'],
   },
   {
     chemin: '/parametres',

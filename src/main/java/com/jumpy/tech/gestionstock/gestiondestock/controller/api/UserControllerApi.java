@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller.api;
 
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MotDePasseDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.NouveauCollaborateurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.UserDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +24,14 @@ public interface UserControllerApi {
     @PostMapping(value = APP_ROOT+"/users/create",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
     // @RequestBody manquait : le corps n'etait pas lie et le service recevait un utilisateur vide.
     ResponseEntity<UserDto> save(@RequestBody UserDto dto);
+
+    /** Ajouter un collaborateur a l'equipe : le geste du gerant, et de l'administrateur. */
+    @PostMapping(value = APP_ROOT+"/users/personnel",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<UserDto> ajouterCollaborateur(@RequestBody NouveauCollaborateurDto collaborateur);
+
+    /** Les roles que l'appelant peut donner. Declaree avant `/users/{idUser}`. */
+    @GetMapping(value = APP_ROOT+"/users/roles-attribuables",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<List<ERole>> rolesAttribuables();
 
     /**
      * Qui suis-je : le compte connecte, ses roles et son entreprise.

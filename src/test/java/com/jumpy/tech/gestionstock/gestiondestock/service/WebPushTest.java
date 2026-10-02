@@ -120,7 +120,21 @@ class WebPushTest extends AbstractIntegrationTest {
         SecurityContextHolder.clearContext();
     }
 
+    /**
+     * Un compte de l'entreprise, cree par l'editeur : un magasinier connecte n'a pas le droit de
+     * distribuer des roles, et le service le lui refuse desormais comme la route le faisait deja.
+     */
     private String creerCompte(ERole role) {
+        var appelant = SecurityContextHolder.getContext().getAuthentication();
+        connecte("amorceur", null, ERole.ROLE_SUPER_ADMIN);
+        try {
+            return creerCompteEnTantQueLEditeur(role);
+        } finally {
+            SecurityContextHolder.getContext().setAuthentication(appelant);
+        }
+    }
+
+    private String creerCompteEnTantQueLEditeur(ERole role) {
         String username = "u-" + UUID.randomUUID();
         UserDto compte = userService.save(UserDto.builder()
                 .nom("Employé").prenoms(role.name())

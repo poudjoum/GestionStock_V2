@@ -2,6 +2,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.ServiceDeRafraichissement;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.NouveauCollaborateurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.UserDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ERole;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Entreprise;
@@ -23,6 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +34,21 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
+
+    /**
+     * L'equipe du gerant : les metiers du magasin. Il les donne et les retire, et il ne touche
+     * qu'aux comptes qui n'ont rien d'autre.
+     *
+     * Ni administrateur ni gerant : un gerant qui nommerait un autre gerant, ou un administrateur,
+     * se donnerait par la un pouvoir que le proprietaire ne lui a pas confie.
+     */
+    private static final Set<ERole> EQUIPE_DU_GERANT =
+            EnumSet.of(ERole.ROLE_CAISSIER, ERole.ROLE_MAGASINIER, ERole.ROLE_COMPTABLE);
+
+    /** Ce que l'administrateur d'un magasin distribue : tout, sauf le rang de l'editeur. */
+    private static final Set<ERole> EQUIPE_DE_L_ADMINISTRATEUR = EnumSet.of(
+            ERole.ROLE_ADMIN, ERole.ROLE_MANAGER,
+            ERole.ROLE_CAISSIER, ERole.ROLE_MAGASINIER, ERole.ROLE_COMPTABLE, ERole.ROLE_USER);
 
     private final UtilisateurRepository userRepository;
     private final RoleRepository roleRepository;
@@ -114,6 +132,87 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
+    public UserDto ajouterCollaborateur(NouveauCollaborateurDto collaborateur) {
+        List<String> erreurs = new ArrayList<>();
+        if (collaborateur == null) {
+            throw new InvalidEntityException("Le collaborateur n'est pas valide",
+                    ErrorCodes.UTILISATEUR_NOT_VALID, List.of("Veuillez renseigner le collaborateur"));
+        }
+        if (!StringUtils.hasText(collaborateur.getNom())) {
+            erreurs.add("Veuillez renseigner le nom du collaborateur");
+        }
+        if (!StringUtils.hasText(collaborateur.getUsername())) {
+            erreurs.add("Veuillez choisir un identifiant de connexion");
+        }
+        if (!StringUtils.hasText(collaborateur.getNumTel())) {
+            erreurs.add("Veuillez renseigner le numéro de téléphone");
+        }
+        if (!StringUtils.hasLength(collaborateur.getMotDePasse()) || collaborateur.getMotDePasse().length() < 8) {
+            erreurs.add("Le mot de passe provisoire fait au moins 8 caractères");
+        }
+        if (collaborateur.getRoles() == null || collaborateur.getRoles().isEmpty()) {
+            erreurs.add("Veuillez choisir au moins un rôle");
+        }
+        if (!erreurs.isEmpty()) {
+            throw new InvalidEntityException("Le collaborateur n'est pas valide",
+                    ErrorCodes.UTILISATEUR_NOT_VALID, erreurs);
+        }
+        verifierRolesAttribuables(collaborateur.getRoles());
+
+        Long idEntreprise = cloisonnement.entrepriseCourante();
+        if (idEntreprise == null) {
+            // L'editeur n'a pas de magasin : il ouvre les comptes des gerants a l'inscription d'un
+            // commerce, pas d'ici.
+            throw new InvalidEntityException("Un collaborateur s'ajoute depuis le compte d'un magasin",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
+        }
+
+        String identifiant = collaborateur.getUsername().trim();
+        String courriel = StringUtils.hasText(collaborateur.getEmail()) ? collaborateur.getEmail().trim() : null;
+        // Ces controles doublent les contraintes d'unicite de la base : ils rendent un message
+        // lisible la ou la contrainte, seule, rendrait un conflit sans explication.
+        if (Boolean.TRUE.equals(userRepository.existsByUsername(identifiant))) {
+            throw new InvalidEntityException("Cet identifiant est déjà pris : choisissez-en un autre",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
+        }
+        if (courriel != null && Boolean.TRUE.equals(userRepository.existsByEmail(courriel))) {
+            throw new InvalidEntityException("Cette adresse de courriel est déjà utilisée",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
+        }
+
+        Utilisateur compte = new Utilisateur();
+        compte.setNom(collaborateur.getNom().trim());
+        compte.setPrenoms(StringUtils.hasText(collaborateur.getPrenoms()) ? collaborateur.getPrenoms().trim() : null);
+        compte.setUsername(identifiant);
+        compte.setEmail(courriel);
+        compte.setNumTel(collaborateur.getNumTel().trim());
+        compte.setEntreprise(entreprise(idEntreprise));
+        compte.setActif(true);
+        compte.setMotdepasse(encodeur.encode(collaborateur.getMotDePasse()));
+        // Provisoire : le gerant l'a choisi et le donne de vive voix. Le collaborateur en choisira
+        // un autre avant d'entrer, et le gerant cessera de connaitre son mot de passe.
+        compte.setMotdepasseAChanger(true);
+        compte.setRoles(roles(collaborateur.getRoles()));
+
+        Utilisateur enregistre = userRepository.save(compte);
+        annoncerLOuvertureDuCompte(enregistre);
+        log.info("Collaborateur {} ajoute a l'entreprise {}", identifiant, idEntreprise);
+        return UserDto.fromEntity(enregistre);
+    }
+
+    @Override
+    public List<ERole> rolesAttribuables() {
+        if (cloisonnement.estSuperAdmin() || cloisonnement.aLeRole(ERole.ROLE_ADMIN)) {
+            return List.copyOf(EQUIPE_DE_L_ADMINISTRATEUR);
+        }
+        if (cloisonnement.aLeRole(ERole.ROLE_MANAGER)) {
+            return List.copyOf(EQUIPE_DU_GERANT);
+        }
+        return List.of();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public UserDto findById(Long id) {
         if (id == null) {
@@ -189,6 +288,8 @@ public class UserServiceImpl implements UserService {
                             "Le rôle " + role + " n'existe pas en base",
                             ErrorCodes.ROLES_NOT_FOUND)));
         }
+        verifierPouvoirSur(utilisateur);
+        verifierRolesAttribuables(roles);
         utilisateur.setRoles(vises);
         return UserDto.fromEntity(userRepository.save(utilisateur));
     }
@@ -197,6 +298,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserDto changerActivation(Long id, boolean actif) {
         Utilisateur utilisateur = utilisateur(id);
+        verifierPouvoirSur(utilisateur);
         if (!actif && estMoi(utilisateur)) {
             // Se fermer soi-meme l'acces laisserait une entreprise sans personne pour rouvrir.
             throw new InvalidEntityException("On ne ferme pas son propre accès",
@@ -231,7 +333,13 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserDto reinitialiserMotDePasse(Long id, String nouveauMotDePasse) {
         Utilisateur utilisateur = utilisateur(id);
+        verifierPouvoirSur(utilisateur);
         utilisateur.setMotdepasse(encodeur.encode(motDePasseValide(nouveauMotDePasse)));
+        // Celui qui reinitialise connait le nouveau mot de passe : il redevient provisoire, et son
+        // titulaire en choisira un a lui a la connexion suivante.
+        if (!estMoi(utilisateur)) {
+            utilisateur.setMotdepasseAChanger(true);
+        }
         // Un mot de passe qu'on reinitialise est un mot de passe qu'on soupconne : les sessions
         // ouvertes ailleurs tombent avec lui.
         rafraichissement.revoquerTout(id);
@@ -312,6 +420,69 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Le compte connecté n'a pas été retrouvé",
                         ErrorCodes.UTILISATEUR_NOT_FOUND));
+    }
+
+    /**
+     * Le gerant n'agit que sur son equipe : un compte dont tous les roles sont des metiers du
+     * magasin. Le compte de l'administrateur, ou celui d'un autre gerant, n'est pas a lui.
+     *
+     * L'administrateur et l'editeur n'ont pas cette limite ; le cloisonnement par entreprise,
+     * lui, vaut pour tous et a deja ete verifie en lisant le compte.
+     */
+    private void verifierPouvoirSur(Utilisateur cible) {
+        // Hors de toute authentification — un traitement interne, un test — il n'y a personne a
+        // limiter : c'est la regle du cloisonnement, et toutes les routes HTTP exigent un compte.
+        if (!cloisonnement.estAuthentifie()
+                || cloisonnement.estSuperAdmin() || cloisonnement.aLeRole(ERole.ROLE_ADMIN)) {
+            return;
+        }
+        boolean equipe = cible.getRoles() != null && cible.getRoles().stream()
+                .map(Role::getRoleName)
+                .allMatch(role -> EQUIPE_DU_GERANT.contains(role) || role == ERole.ROLE_USER);
+        if (!equipe) {
+            throw new InvalidEntityException("Ce compte n'est pas celui d'un collaborateur : "
+                    + "seul l'administrateur du magasin peut le modifier",
+                    ErrorCodes.UTILISATEUR_NOT_VALID);
+        }
+    }
+
+    private void verifierRolesAttribuables(List<ERole> roles) {
+        if (!cloisonnement.estAuthentifie()) {
+            return;
+        }
+        List<ERole> permis = rolesAttribuables();
+        for (ERole role : roles) {
+            if (role == ERole.ROLE_SUPER_ADMIN && cloisonnement.estSuperAdmin()) {
+                continue;
+            }
+            if (!permis.contains(role)) {
+                throw new InvalidEntityException("Vous ne pouvez pas donner le rôle " + libelle(role),
+                        ErrorCodes.ROLES_NOT_VALIDE);
+            }
+        }
+    }
+
+    private static String libelle(ERole role) {
+        return switch (role) {
+            case ROLE_SUPER_ADMIN -> "super-administrateur";
+            case ROLE_ADMIN -> "administrateur";
+            case ROLE_MANAGER -> "gérant";
+            case ROLE_CAISSIER -> "caissier";
+            case ROLE_MAGASINIER -> "magasinier";
+            case ROLE_COMPTABLE -> "comptable";
+            case ROLE_USER -> "utilisateur";
+        };
+    }
+
+    private Set<Role> roles(List<ERole> roles) {
+        Set<Role> vises = new HashSet<>();
+        for (ERole role : roles) {
+            vises.add(roleRepository.findByRoleName(role)
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Le rôle " + role + " n'existe pas en base",
+                            ErrorCodes.ROLES_NOT_FOUND)));
+        }
+        return vises;
     }
 
     private boolean estMoi(Utilisateur utilisateur) {
