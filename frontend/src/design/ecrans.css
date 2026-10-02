@@ -134,3 +134,42 @@
   height: 18px;
   font-size: 18px;
 }
+
+/* Une remarque qui n'est ni une erreur ni une alerte : ce qu'il faut savoir avant d'agir. */
+.note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 0 var(--gs-esp-4);
+  padding: 10px 12px;
+  border-radius: var(--gs-r-champ);
+  background: var(--gs-surface-2);
+  color: var(--gs-encre-2);
+  font-size: var(--gs-texte-sm);
+  line-height: 1.45;
+}
+
+.note mat-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+/*
+ * La barre d'enregistrement d'un formulaire, collee en bas : on ne fait jamais defiler un
+ * formulaire pour retrouver « Enregistrer ».
+ */
+.barre-enregistrer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--gs-esp-3);
+  margin: 0 calc(-1 * var(--gs-esp-4));
+  padding: 12px var(--gs-esp-4) calc(12px + var(--marge-bas));
+  background: var(--gs-fond, var(--gs-surface));
+  border-top: 1px solid var(--gs-trait);
+}

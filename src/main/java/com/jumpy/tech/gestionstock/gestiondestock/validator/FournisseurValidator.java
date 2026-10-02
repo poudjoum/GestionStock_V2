@@ -12,17 +12,15 @@ public class FournisseurValidator {
         List<String>errors=new ArrayList<>();
         if(dto==null){
             errors.add("Veuillez renseigner le nom du fournisseur");
-            errors.add("Veuillez renseigner le Prenom du fournisseur");
             errors.add("Veuillez renseigner le mail du fournisseur");
             errors.add("Veuillez renseigner le numero de telephone  du fournisseur");
             return  errors;
         }
         if(!StringUtils.hasLength(dto.getNom())){
-            errors.add("Veuillez renseigner le nom du client");
+            errors.add("Veuillez renseigner le nom du fournisseur");
         }
-        if(!StringUtils.hasLength(dto.getPrenom())){
-            errors.add("Veuillez renseigner le Prenom du fournisseur");
-        }
+        // Le prenom n'est pas demande : un fournisseur est le plus souvent une entreprise
+        // — « Cimencam » —, qui n'en a pas. Exiger le prenom forcait a en inventer un.
         if(!StringUtils.hasLength(dto.getMail())){
             errors.add("Veuillez renseigner le mail du fournisseur");
         }

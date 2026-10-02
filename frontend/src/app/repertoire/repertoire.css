@@ -1,0 +1,74 @@
+/* Le repertoire : la liste des fiches, et la fiche ouverte dans un volet a droite. */
+
+.tiers {
+  cursor: pointer;
+}
+
+.tiers--ouvert {
+  border-color: var(--gs-accent) !important;
+  box-shadow: 0 0 0 1px var(--gs-accent);
+}
+
+.tiers:focus-visible {
+  outline: 3px solid var(--gs-focus);
+  outline-offset: 2px;
+}
+
+/* Les initiales d'une personne, l'icone d'un immeuble pour une entreprise. */
+.pastille-tiers {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gs-accent-doux);
+  color: var(--gs-sur-accent-doux);
+  font-size: var(--gs-texte-sm);
+  font-weight: 700;
+}
+
+.pastille-tiers.entreprise {
+  border-radius: 10px;
+  background: var(--gs-surface-2);
+  color: var(--gs-encre-2);
+}
+
+.pastille-tiers mat-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
+.volet {
+  background: var(--gs-surface);
+  border: 1px solid var(--gs-trait);
+  border-radius: var(--gs-r-carte);
+}
+
+.volet-entete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--gs-trait);
+}
+
+.volet-corps {
+  display: grid;
+  gap: var(--gs-esp-3);
+  max-height: 72dvh;
+  overflow-y: auto;
+  padding: var(--gs-esp-4);
+}
+
+.volet-corps .gs-etiquette {
+  margin: var(--gs-esp-2) 0 0;
+}
+
+.deux {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gs-esp-2);
+}

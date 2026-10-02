@@ -14,6 +14,7 @@ import { Session } from '../noyau/session';
 import { LIBELLE_DES_ROLES, Role } from '../noyau/roles';
 import { messageDErreur } from '../noyau/erreurs';
 import type { UserDto } from '../noyau/api';
+import { EnTetePage, EtatVide, Section, Statut } from '../design';
 
 const API = `${environnement.api}/gestiondestock/v1/users`;
 
@@ -48,8 +49,13 @@ const ROLES_ATTRIBUABLES: Role[] = [
     MatSelectModule,
     MatSlideToggleModule,
     MatTooltipModule,
+    EnTetePage,
+    EtatVide,
+    Section,
+    Statut,
   ],
   templateUrl: './comptes.html',
+  styleUrl: './comptes.css',
 })
 export class Comptes implements OnInit {
   private readonly http = inject(HttpClient);

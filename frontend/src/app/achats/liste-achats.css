@@ -1,0 +1,32 @@
+/* La carte d'une commande est un bouton entier : toute la ligne s'ouvre. */
+.commande {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-esp-3);
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pastille-commande {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--gs-accent-doux);
+  color: var(--gs-sur-accent-doux);
+}
+
+.pastille-commande mat-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}

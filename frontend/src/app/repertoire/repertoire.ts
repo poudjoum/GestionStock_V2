@@ -1,8 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur } from '../design';
 import { FormsModule } from '@angular/forms';
 import { NavigationEnd, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -14,14 +14,21 @@ import { Session } from '../noyau/session';
 import { messageDErreur } from '../noyau/erreurs';
 import type { Page } from '../noyau/api';
 
+/**
+ * Un particulier a un nom et un prenom ; une entreprise, une raison sociale. Le prenom etait exige
+ * pour tous, et « Cimencam » devait s'en inventer un — qui s'affichait ensuite colle au nom.
+ */
+type Nature = 'particulier' | 'entreprise';
+
 interface Saisie extends Tiers {
+  nature: Nature;
   ville: string;
   rue: string;
   pays: string;
 }
 
-function vide(): Saisie {
-  return { nom: '', prenom: '', mail: '', tel: '', ville: '', rue: '', pays: '' };
+function vide(nature: Nature): Saisie {
+  return { nature, nom: '', prenom: '', mail: '', tel: '', ville: '', rue: '', pays: '' };
 }
 
 /**
@@ -41,12 +48,16 @@ function vide(): Saisie {
   imports: [
     FormsModule,
     MatButtonModule,
-    MatButtonToggleModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    EnTetePage,
+    EtatVide,
+    Section,
+    Selecteur,
   ],
   templateUrl: './repertoire.html',
+  styleUrl: './repertoire.css',
 })
 export class RepertoireEcran {
   private readonly service = inject(ServiceRepertoire);
@@ -63,7 +74,7 @@ export class RepertoireEcran {
   protected readonly erreur = signal<string | null>(null);
 
   protected readonly volet = signal(false);
-  protected readonly saisie = signal<Saisie>(vide());
+  protected readonly saisie = signal<Saisie>(vide('particulier'));
   protected readonly envoiEnCours = signal(false);
   protected readonly erreurVolet = signal<string | null>(null);
 
@@ -72,11 +83,22 @@ export class RepertoireEcran {
     this.session.roles().some((r) => ['ROLE_ADMIN', 'ROLE_MANAGER'].includes(r)),
   );
 
-  /** Les quatre champs que l'API exige, sans exception. */
+  /** Ce que l'API exige : le nom, le telephone et le courriel ; le prenom pour un particulier. */
   protected readonly complet = computed(() => {
     const s = this.saisie();
-    return !!s.nom.trim() && !!s.prenom.trim() && !!s.mail.trim() && !!s.tel.trim();
+    const prenom = s.nature === 'entreprise' || !!s.prenom?.trim();
+    return !!s.nom.trim() && prenom && !!s.mail.trim() && !!s.tel.trim();
   });
+
+  protected readonly natures: OptionSelecteur<Nature>[] = [
+    { valeur: 'particulier', libelle: 'Particulier' },
+    { valeur: 'entreprise', libelle: 'Entreprise' },
+  ];
+
+  protected readonly genres: OptionSelecteur<Genre>[] = [
+    { valeur: 'client', libelle: 'Clients' },
+    { valeur: 'fournisseur', libelle: 'Fournisseurs' },
+  ];
 
   // Les droits ne sont pas les memes : le caissier cree des clients, le magasinier des
   // fournisseurs. Montrer un onglet qui rendra 403 serait une promesse qu'on ne tient pas.
@@ -134,18 +156,27 @@ export class RepertoireEcran {
     this.frappe.next(q);
   }
 
+  /** Le prenom puis le nom pour un particulier ; la raison sociale seule pour une entreprise. */
   protected nomComplet(t: Tiers): string {
-    return [t.nom, t.prenom].filter(Boolean).join(' ');
+    return [t.prenom, t.nom].filter(Boolean).join(' ');
+  }
+
+  protected estEntreprise(t: Tiers): boolean {
+    return !t.prenom?.trim();
   }
 
   protected initiales(t: Tiers): string {
-    return ((t.nom?.[0] ?? '') + (t.prenom?.[0] ?? '')).toUpperCase() || '?';
+    if (this.estEntreprise(t)) {
+      return (t.nom ?? '?').slice(0, 2).toUpperCase();
+    }
+    return ((t.prenom?.[0] ?? '') + (t.nom?.[0] ?? '')).toUpperCase() || '?';
   }
 
   // --- Le volet -----------------------------------------------------------------------------
 
   protected nouveau(): void {
-    this.saisie.set(vide());
+    // Un fournisseur est le plus souvent une entreprise, un client de comptoir une personne.
+    this.saisie.set(vide(this.genre() === 'fournisseur' ? 'entreprise' : 'particulier'));
     this.erreurVolet.set(null);
     this.volet.set(true);
   }
@@ -153,6 +184,8 @@ export class RepertoireEcran {
   protected modifier(t: Tiers): void {
     this.saisie.set({
       ...t,
+      nature: this.estEntreprise(t) ? 'entreprise' : 'particulier',
+      prenom: t.prenom ?? '',
       ville: t.adresse?.ville ?? '',
       rue: t.adresse?.adresse1 ?? '',
       pays: t.adresse?.pays ?? '',
@@ -181,7 +214,9 @@ export class RepertoireEcran {
     const tiers: Tiers = {
       id: s.id,
       nom: s.nom.trim(),
-      prenom: s.prenom.trim(),
+      // Une entreprise n'a pas de prenom : on n'envoie pas celui qu'on aurait saisi avant de
+      // changer d'avis sur la nature de la fiche.
+      prenom: s.nature === 'entreprise' ? '' : (s.prenom ?? '').trim(),
       mail: s.mail.trim(),
       tel: s.tel.trim(),
       // Les champs d'adresse qu'on ne montre pas — complement, code postal — sont conserves tels
@@ -207,7 +242,7 @@ export class RepertoireEcran {
         );
         this.charger();
         if (creation) {
-          this.saisie.set(vide());
+          this.saisie.set(vide(s.nature));
         } else {
           this.fermer();
         }

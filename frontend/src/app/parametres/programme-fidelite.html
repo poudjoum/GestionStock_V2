@@ -1,4 +1,6 @@
-<div class="mx-auto w-full max-w-6xl p-4">
+<div class="page">
+  <gs-en-tete-page titre="Programme de fidélité" sousTitre="Ce que rapportent les tickets, et ce que valent les points." />
+
   @if (chargement()) {
     <div class="grid gap-4 lg:grid-cols-[1fr_22rem]">
       <div class="carte p-5">
@@ -20,7 +22,7 @@
           >
             Les tickets rapportent des points
           </mat-slide-toggle>
-          <p class="mt-2 text-sm opacity-70">
+          <p class="mt-2 gs-encre-2 text-sm">
             Chaque ticket porte un QR. Le client le scanne dans l’application et ses points
             s’ajoutent à son solde chez vous. Éteint, les tickets ne rapportent plus rien, mais les
             points déjà gagnés restent échangeables.
@@ -28,8 +30,8 @@
         </section>
 
         <section class="carte p-5">
-          <h2 class="mb-1 text-xs uppercase tracking-wide opacity-60">Gagner des points</h2>
-          <p class="mb-4 text-sm opacity-70">
+          <h2 class="gs-etiquette mb-1 mt-0">Gagner des points</h2>
+          <p class="mb-4 gs-encre-2 text-sm">
             Un point par tranche entière de ce montant, payée TTC sur un même ticket.
           </p>
           <mat-form-field class="w-full sm:w-72">
@@ -49,8 +51,8 @@
         </section>
 
         <section class="carte p-5">
-          <h2 class="mb-1 text-xs uppercase tracking-wide opacity-60">Échanger ses points</h2>
-          <p class="mb-4 text-sm opacity-70">
+          <h2 class="gs-etiquette mb-1 mt-0">Échanger ses points</h2>
+          <p class="mb-4 gs-encre-2 text-sm">
             Le client transforme ses points en bon d’achat, à utiliser uniquement dans votre
             magasin.
           </p>
@@ -99,46 +101,38 @@
               <span matTextSuffix>jours</span>
             </mat-form-field>
           </div>
-          <p class="text-sm opacity-70">
+          <p class="gs-encre-2 text-sm">
             Un changement vaut pour l’avenir : les bons déjà émis gardent leur montant et leur date
             d’expiration.
           </p>
         </section>
 
         @if (erreur()) {
-          <div
-            class="carte flex items-start gap-3 p-4"
-            style="
-              background: var(--mat-sys-error-container);
-              color: var(--mat-sys-on-error-container);
-              border-color: transparent;
-            "
-            role="alert"
-          >
-            <mat-icon>error_outline</mat-icon>
-            <span class="text-sm">{{ erreur() }}</span>
-          </div>
+          <p class="message-erreur" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ erreur() }}</span>
+          </p>
         }
       </div>
 
       <!-- Ce que ca represente. Colle en haut sur grand ecran : on le voit bouger en tapant. -->
       <aside class="carte p-5 lg:sticky lg:top-4" aria-live="polite">
-        <h2 class="mb-1 text-xs uppercase tracking-wide opacity-60">Ce que vous rendez</h2>
-        <div class="text-4xl font-medium" style="font-variant-numeric: tabular-nums">
+        <h2 class="gs-etiquette mb-1 mt-0">Ce que vous rendez</h2>
+        <div class="gs-titre nombre text-4xl">
           {{ tauxDeRetour() | number: '1.0-2' }} %
         </div>
-        <p class="mb-5 text-sm opacity-70">des achats de vos clients, en bons d’achat</p>
+        <p class="mb-5 gs-encre-2 text-sm">des achats de vos clients, en bons d’achat</p>
 
-        <dl class="flex flex-col gap-3 text-sm" style="font-variant-numeric: tabular-nums">
+        <dl class="nombre flex flex-col gap-3 text-sm">
           <div>
-            <dt class="opacity-60">Un client qui dépense {{ depenseExemple | number: '1.0-0' }} F</dt>
+            <dt class="gs-encre-3">Un client qui dépense {{ depenseExemple | number: '1.0-0' }} F</dt>
             <dd class="m-0">
               gagne <strong>{{ pointsExemple() | number: '1.0-0' }} points</strong>, soit
               <strong>{{ valeurExemple() | number: '1.0-0' }} F</strong> en bons
             </dd>
           </div>
           <div>
-            <dt class="opacity-60">Premier bon possible</dt>
+            <dt class="gs-encre-3">Premier bon possible</dt>
             <dd class="m-0">
               <strong>{{ plusPetitBon() | number: '1.0-0' }} F</strong>, après
               {{ depensePourUnBon() | number: '1.0-0' }} F d’achats
@@ -147,25 +141,17 @@
         </dl>
 
         @if (brouillon().fideliteActive === false) {
-          <p class="mt-5 flex items-center gap-2 text-sm" style="color: var(--mat-sys-error)">
-            <mat-icon class="!h-5 !w-5 !text-xl">pause_circle</mat-icon>
-            Programme en pause : les tickets ne rapportent rien.
-          </p>
+          <gs-statut class="mt-5" ton="alerte" icone="pause_circle">
+            Programme en pause : les tickets ne rapportent rien
+          </gs-statut>
         }
       </aside>
     </div>
 
     <!-- Colle en bas : on ne fait jamais défiler un formulaire pour retrouver « Enregistrer ». -->
-    <div
-      class="sticky bottom-0 -mx-4 mt-4 flex items-center justify-end gap-3 border-t px-4 py-3"
-      style="
-        background: var(--mat-sys-surface);
-        border-color: var(--mat-sys-outline-variant);
-        padding-bottom: calc(0.75rem + var(--marge-bas));
-      "
-    >
+    <div class="barre-enregistrer">
       @if (!valide()) {
-        <span class="mr-auto text-sm opacity-70">Les quatre réglages doivent être positifs.</span>
+        <span class="gs-encre-2 mr-auto text-sm">Les quatre réglages doivent être positifs.</span>
       }
       <button
         mat-flat-button

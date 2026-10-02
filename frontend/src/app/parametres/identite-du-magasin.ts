@@ -13,6 +13,7 @@ import { preparerLeLogo } from './logo';
 import { Ticket } from '../ticket/ticket';
 import type { EntrepriseDto } from '../noyau/api';
 import type { FactureDto } from '../comptoir/comptoir.service';
+import { EnTetePage } from '../design';
 
 /**
  * Une vente imaginaire, pour l'apercu.
@@ -66,6 +67,7 @@ const VENTE_POUR_VOIR: FactureDto = {
 @Component({
   selector: 'app-identite-du-magasin',
   imports: [
+    EnTetePage,
     FormsModule,
     MatButtonModule,
     MatFormFieldModule,

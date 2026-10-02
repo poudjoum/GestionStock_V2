@@ -3,25 +3,26 @@
 @let liste = lignes();
 @let client = genre() === 'client';
 
-<div class="mx-auto grid max-w-6xl gap-4" [class]="ouvert ? 'lg:grid-cols-[1fr_380px]' : ''">
+<div class="page grid gap-4" [class.lg:grid-cols-[1fr_400px]]="ouvert">
   <section class="min-w-0">
-    <div class="mb-4 flex flex-wrap items-center gap-3">
+    <gs-en-tete-page
+      [titre]="client ? 'Clients' : 'Fournisseurs'"
+      [sousTitre]="client ? 'Les clients à qui l’on facture : particuliers et entreprises.' : 'Ceux à qui l’on passe commande.'"
+    >
+      <button mat-flat-button (click)="nouveau()">
+        <mat-icon>add</mat-icon>
+        Nouveau {{ libelle() }}
+      </button>
+    </gs-en-tete-page>
+
+    <div class="barre-outils">
       <!-- La bascule ne s'affiche que pour qui a les deux droits : le caissier ne cree pas de
            fournisseur, le magasinier pas de client. -->
       @if (bascule()) {
-        <mat-button-toggle-group [value]="genre()" hideSingleSelectionIndicator>
-          <mat-button-toggle value="client" (click)="changerGenre('client')">
-            <mat-icon class="!h-4 !w-4 !text-base">person</mat-icon>
-            Clients
-          </mat-button-toggle>
-          <mat-button-toggle value="fournisseur" (click)="changerGenre('fournisseur')">
-            <mat-icon class="!h-4 !w-4 !text-base">local_shipping</mat-icon>
-            Fournisseurs
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+        <gs-selecteur aria-label="Répertoire" [options]="genres" [valeur]="genre()" (valeurChange)="changerGenre($event)" />
       }
 
-      <mat-form-field appearance="outline" class="min-w-0 flex-1" subscriptSizing="dynamic">
+      <mat-form-field appearance="outline" class="recherche" subscriptSizing="dynamic">
         <mat-label>Chercher un {{ libelle() }}</mat-label>
         <mat-icon matPrefix>search</mat-icon>
         <input
@@ -32,90 +33,69 @@
           placeholder="nom, courriel ou numéro"
         />
         @if (recherche()) {
-          <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer">
+          <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer la recherche">
             <mat-icon>close</mat-icon>
           </button>
         }
       </mat-form-field>
-
-      <button mat-flat-button class="!h-12" (click)="nouveau()">
-        <mat-icon>add</mat-icon>
-        Nouveau {{ libelle() }}
-      </button>
     </div>
 
     @if (chargement()) {
-      <div class="flex flex-col gap-2">
+      <div class="grid gap-2">
         @for (i of [1, 2, 3, 4, 5]; track i) {
           <div class="squelette h-16"></div>
         }
       </div>
     } @else if (erreur(); as message) {
-      <p class="rounded px-3 py-2 text-sm" role="alert"
-         style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
-        {{ message }}
+      <p class="message-erreur" role="alert">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ message }}</span>
       </p>
     } @else if (liste.length === 0) {
-      <div class="py-20 text-center opacity-60">
-        <mat-icon class="!h-12 !w-12 !text-5xl">{{ client ? 'person_off' : 'local_shipping' }}</mat-icon>
+      <gs-section>
         @if (recherche()) {
-          <p class="mt-2 text-sm">Aucun {{ libelle() }} ne correspond à « {{ recherche() }} ».</p>
-          <button mat-flat-button class="mt-4" (click)="nouveau()">
-            <mat-icon>add</mat-icon>
-            Créer ce {{ libelle() }}
-          </button>
+          <gs-etat-vide icone="search_off" [titre]="'Aucun ' + libelle() + ' ne correspond à « ' + recherche() + ' »'" texte="Cherchez par le nom, le courriel ou le numéro de téléphone." [filtre]="true">
+            <button mat-flat-button (click)="nouveau()"><mat-icon>add</mat-icon>Créer ce {{ libelle() }}</button>
+          </gs-etat-vide>
+        } @else if (client) {
+          <gs-etat-vide icone="contacts" titre="Aucun client enregistré" texte="Une vente de comptoir n’en a pas besoin : un client sert à nommer une facture, ou à vendre à crédit.">
+            <button mat-flat-button (click)="nouveau()"><mat-icon>add</mat-icon>Ajouter le premier client</button>
+          </gs-etat-vide>
         } @else {
-          <p class="mt-2 text-sm">
-            @if (client) {
-              Aucun client enregistré.<br />
-              Une vente de comptoir n’en a pas besoin — un client sert à nommer une facture.
-            } @else {
-              Aucun fournisseur enregistré.<br />
-              Il en faut un pour passer une commande d’approvisionnement.
-            }
-          </p>
-          <button mat-flat-button class="mt-4" (click)="nouveau()">
-            <mat-icon>add</mat-icon>
-            Ajouter le premier {{ libelle() }}
-          </button>
+          <gs-etat-vide icone="local_shipping" titre="Aucun fournisseur enregistré" texte="Il en faut un pour passer une commande d’approvisionnement.">
+            <button mat-flat-button (click)="nouveau()"><mat-icon>add</mat-icon>Ajouter le premier fournisseur</button>
+          </gs-etat-vide>
         }
-      </div>
+      </gs-section>
     } @else {
-      <ul class="flex list-none flex-col gap-2 p-0">
+      <ul class="cartes">
         @for (t of liste; track t.id) {
-          <li>
-            <button
-              type="button"
-              class="carte carte-cliquable flex w-full items-center gap-3 p-3 text-left"
-              style="color: var(--mat-sys-on-surface)"
-              [style.border-color]="s.id === t.id ? 'var(--mat-sys-primary)' : 'var(--mat-sys-outline-variant)'"
-              (click)="modifier(t)"
-            >
-              <span
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-medium"
-                style="background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container)"
-              >
+          <li class="tiers carte-cliquable" [class.tiers--ouvert]="s.id === t.id" tabindex="0" (click)="modifier(t)" (keydown.enter)="modifier(t)">
+            <span class="pastille-tiers" [class.entreprise]="estEntreprise(t)" aria-hidden="true">
+              @if (estEntreprise(t)) {
+                <mat-icon>business</mat-icon>
+              } @else {
                 {{ initiales(t) }}
-              </span>
-              <span class="min-w-0 flex-1">
-                <span class="block truncate text-sm font-medium">{{ nomComplet(t) }}</span>
-                <span class="block truncate text-xs opacity-60">
-                  {{ t.tel }}
-                  @if (t.mail) {
-                    · {{ t.mail }}
-                  }
-                </span>
-                @if (t.adresse?.ville) {
-                  <span class="block truncate text-xs opacity-50">{{ t.adresse?.ville }}</span>
+              }
+            </span>
+            <span class="infos">
+              <span class="designation">{{ nomComplet(t) }}</span>
+              <span class="code">
+                {{ t.tel }}
+                @if (t.mail) {
+                  · {{ t.mail }}
                 }
               </span>
-              <mat-icon class="shrink-0 opacity-40">edit</mat-icon>
-            </button>
+              @if (t.adresse?.ville) {
+                <span class="code">{{ t.adresse?.ville }}</span>
+              }
+            </span>
+            <mat-icon class="gs-encre-3" aria-hidden="true">chevron_right</mat-icon>
           </li>
         }
       </ul>
 
-      <p class="mt-3 text-center text-xs opacity-50">
+      <p class="pied gs-encre-3">
         {{ liste.length }} {{ libelle() }}{{ liste.length > 1 ? 's' : '' }}
         @if (total() > liste.length) {
           sur {{ total() }} — affinez la recherche
@@ -126,45 +106,45 @@
 
   @if (ouvert) {
     <aside class="min-w-0">
-      <div class="carte lg:sticky lg:top-0">
-        <header
-          class="flex items-center gap-2 border-b px-4 py-3"
-          style="border-color: var(--mat-sys-outline-variant)"
-        >
-          <span class="flex-1 font-medium">
+      <div class="volet lg:sticky lg:top-0">
+        <header class="volet-entete">
+          <span class="flex-1 font-semibold">
             {{ modification() ? 'Modifier la fiche' : 'Nouveau ' + libelle() }}
           </span>
-          <button mat-icon-button (click)="fermer()" aria-label="Fermer">
+          <button mat-icon-button (click)="fermer()" aria-label="Fermer la fiche">
             <mat-icon>close</mat-icon>
           </button>
         </header>
 
-        <div class="max-h-[70dvh] overflow-y-auto px-4 py-3">
-          <div class="flex gap-2">
-            <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
-              <mat-label>Nom</mat-label>
-              <input matInput [ngModel]="s.nom" (ngModelChange)="champ('nom', $event)" />
-            </mat-form-field>
-            <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
-              <mat-label>Prénom</mat-label>
-              <input matInput [ngModel]="s.prenom" (ngModelChange)="champ('prenom', $event)" />
-            </mat-form-field>
-          </div>
+        <div class="volet-corps">
+          <gs-selecteur aria-label="Nature" [options]="natures" [valeur]="s.nature" (valeurChange)="champ('nature', $event)" />
 
-          <mat-form-field appearance="outline" class="mt-4 w-full" subscriptSizing="dynamic">
+          @if (s.nature === 'entreprise') {
+            <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+              <mat-label>Raison sociale</mat-label>
+              <mat-icon matPrefix>business</mat-icon>
+              <input matInput [ngModel]="s.nom" (ngModelChange)="champ('nom', $event)" placeholder="Cimencam, BTP Wouri SARL…" />
+            </mat-form-field>
+          } @else {
+            <div class="deux">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Prénom</mat-label>
+                <input matInput [ngModel]="s.prenom" (ngModelChange)="champ('prenom', $event)" />
+              </mat-form-field>
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Nom</mat-label>
+                <input matInput [ngModel]="s.nom" (ngModelChange)="champ('nom', $event)" />
+              </mat-form-field>
+            </div>
+          }
+
+          <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
             <mat-label>Téléphone</mat-label>
             <mat-icon matPrefix>call</mat-icon>
-            <input
-              matInput
-              type="tel"
-              inputmode="tel"
-              [ngModel]="s.tel"
-              (ngModelChange)="champ('tel', $event)"
-              placeholder="690 00 00 00"
-            />
+            <input matInput type="tel" inputmode="tel" [ngModel]="s.tel" (ngModelChange)="champ('tel', $event)" placeholder="690 00 00 00" />
           </mat-form-field>
 
-          <mat-form-field appearance="outline" class="mt-4 w-full" subscriptSizing="dynamic">
+          <mat-form-field appearance="outline" class="w-full">
             <mat-label>Courriel</mat-label>
             <mat-icon matPrefix>mail</mat-icon>
             <input
@@ -181,50 +161,41 @@
             }
           </mat-form-field>
 
-          <h3 class="mb-2 mt-6 text-xs font-medium uppercase tracking-wide opacity-60">
-            Adresse — facultative
-          </h3>
+          <p class="gs-etiquette">Adresse — facultative</p>
           <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
             <mat-label>Rue, quartier</mat-label>
             <input matInput [ngModel]="s.rue" (ngModelChange)="champ('rue', $event)" />
           </mat-form-field>
-          <div class="mt-4 flex gap-2">
-            <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
+          <div class="deux">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Ville</mat-label>
               <input matInput [ngModel]="s.ville" (ngModelChange)="champ('ville', $event)" />
             </mat-form-field>
-            <mat-form-field appearance="outline" class="flex-1" subscriptSizing="dynamic">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
               <mat-label>Pays</mat-label>
               <input matInput [ngModel]="s.pays" (ngModelChange)="champ('pays', $event)" />
             </mat-form-field>
           </div>
 
           @if (erreurVolet(); as message) {
-            <p class="mt-4 rounded px-3 py-2 text-sm" role="alert"
-               style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
-              {{ message }}
+            <p class="message-erreur" role="alert">
+              <mat-icon aria-hidden="true">error_outline</mat-icon>
+              <span>{{ message }}</span>
             </p>
           }
 
-          <button
-            mat-flat-button
-            class="mt-4 !h-12 w-full"
-            [disabled]="!complet() || envoiEnCours()"
-            (click)="enregistrer()"
-          >
+          <button mat-flat-button class="!h-12 w-full" [disabled]="!complet() || envoiEnCours()" (click)="enregistrer()">
             {{ envoiEnCours() ? 'Enregistrement…' : modification() ? 'Enregistrer' : 'Ajouter' }}
           </button>
 
           @if (!complet()) {
-            <p class="mt-2 text-center text-xs opacity-60">
-              Nom, prénom, téléphone et courriel sont tous exigés.
+            <p class="gs-encre-3 m-0 text-center text-xs">
+              {{ s.nature === 'entreprise' ? 'Raison sociale' : 'Prénom, nom' }}, téléphone et courriel sont exigés.
             </p>
           }
 
           @if (modification() && peutSupprimer()) {
-            <button mat-button class="mt-2 w-full" (click)="supprimer()">
-              Supprimer cette fiche
-            </button>
+            <button mat-button class="w-full" (click)="supprimer()">Supprimer cette fiche</button>
           }
         </div>
       </div>
