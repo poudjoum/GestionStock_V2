@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 
 import '../api/api.dart';
 import '../api/modeles.dart';
+import '../design/composants.dart';
+import '../design/jetons.dart';
 import '../outils.dart';
 import '../session.dart';
 
@@ -76,14 +78,12 @@ class _EcranScannerState extends State<EcranScanner> {
   Future<void> _montrer({ResultatScan? succes, String? erreur}) {
     return showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
       builder: (context) => _Resultat(succes: succes, erreur: erreur),
     ).whenComplete(() => _dernierCode = null);
   }
 
   @override
   Widget build(BuildContext context) {
-    final couleurs = Theme.of(context).colorScheme;
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -109,7 +109,9 @@ class _EcranScannerState extends State<EcranScanner> {
               height: 240,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.white, width: 3),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(Rayons.grand),
+                // Le reste de l'image s'assombrit : l'oeil va au cadre.
+                boxShadow: const [BoxShadow(color: Colors.black45, spreadRadius: 2000)],
               ),
             ),
           ),
@@ -118,16 +120,12 @@ class _EcranScannerState extends State<EcranScanner> {
           left: 16,
           right: 16,
           top: 16,
-          child: Material(
-            color: Colors.black54,
-            borderRadius: BorderRadius.circular(12),
-            child: const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                'Visez le QR imprimé en bas de votre ticket de caisse',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white),
-              ),
+          child: const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text(
+              'Visez le QR imprimé en bas de votre ticket de caisse',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -136,10 +134,14 @@ class _EcranScannerState extends State<EcranScanner> {
           right: 16,
           bottom: 24,
           child: _envoi
-              ? Center(child: CircularProgressIndicator(color: couleurs.onPrimary))
-              : FilledButton.tonalIcon(
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
+              : FilledButton.icon(
                   onPressed: _saisirLeCode,
-                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    backgroundColor: Colors.white,
+                    foregroundColor: Jetons.clair.encre,
+                  ),
                   icon: const Icon(Icons.keyboard),
                   label: const Text('Taper le code du ticket'),
                 ),
@@ -183,11 +185,8 @@ class _SaisieDuCodeState extends State<_SaisieDuCode> {
         controller: _champ,
         autofocus: true,
         textCapitalization: TextCapitalization.characters,
-        decoration: InputDecoration(
-          hintText: 'XXXX-XXXX-XXXX',
-          errorText: _erreur,
-          border: const OutlineInputBorder(),
-        ),
+        style: const TextStyle(fontFamily: Polices.code, fontWeight: FontWeight.w500, letterSpacing: 1.5),
+        decoration: InputDecoration(hintText: 'XXXX-XXXX-XXXX', errorText: _erreur),
         onSubmitted: (_) => _valider(),
       ),
       actions: [
@@ -207,7 +206,7 @@ class _Resultat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
+    final j = context.jetons;
     final ok = succes != null;
     return SafeArea(
       child: Padding(
@@ -215,16 +214,21 @@ class _Resultat extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(ok ? Icons.celebration : Icons.info_outline, size: 48, color: ok ? couleurs.primary : couleurs.error),
-            const SizedBox(height: 12),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(color: ok ? j.petroleDoux : j.dangerFond, shape: BoxShape.circle),
+              child: Icon(ok ? Icons.celebration : Icons.info_outline, size: 36, color: ok ? j.petrole : j.danger),
+            ),
+            const SizedBox(height: 16),
             if (ok) ...[
-              Text('+${succes!.pointsGagnes} points',
-                  style: theme.textTheme.displaySmall?.copyWith(color: couleurs.primary, fontWeight: FontWeight.w600)),
+              Text('+${nombre(succes!.pointsGagnes)} points',
+                  style: theme.textTheme.displaySmall?.copyWith(color: j.petrole)),
               const SizedBox(height: 4),
               Text('chez ${succes!.nomMagasin}', style: theme.textTheme.titleMedium),
               const SizedBox(height: 8),
               Text('Achat de ${francs(succes!.montant)} · solde dans ce magasin : ${nombre(succes!.soldeMagasin)} points',
-                  textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
+                  textAlign: TextAlign.center, style: theme.textTheme.bodyMedium?.copyWith(color: j.encre2)),
             ] else
               Text(erreur ?? 'Ce ticket n’a pas pu être enregistré.',
                   textAlign: TextAlign.center, style: theme.textTheme.titleMedium),

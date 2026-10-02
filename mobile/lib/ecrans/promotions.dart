@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../api/api.dart';
 import '../api/modeles.dart';
+import '../design/composants.dart';
+import '../design/jetons.dart';
 import '../outils.dart';
 import '../session.dart';
 
@@ -61,7 +63,7 @@ class _EcranPromotionsState extends State<EcranPromotions> {
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   itemCount: campagnes.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 16),
+                  separatorBuilder: (_, _) => const SizedBox(height: 20),
                   itemBuilder: (_, i) => _CarteCampagne(campagne: campagnes[i]),
                 ),
         );
@@ -78,7 +80,8 @@ class _CarteCampagne extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
+    final j = context.jetons;
+    final reste = resteJusquA(campagne.dateFin);
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -87,66 +90,57 @@ class _CarteCampagne extends StatelessWidget {
           if (campagne.image != null)
             AspectRatio(aspectRatio: 16 / 9, child: imageDuServeur(campagne.image)),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: couleurs.surfaceContainerHighest,
-                  child: ClipOval(
-                    child: SizedBox.square(
-                      dimension: 36,
-                      child: imageDuServeur(campagne.logoMagasin,
-                          fit: BoxFit.contain, sinon: Icon(Icons.storefront, color: couleurs.primary)),
-                    ),
-                  ),
-                ),
+                AvatarMagasin(logo: campagne.logoMagasin, taille: 36),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(campagne.nomMagasin, style: theme.textTheme.labelLarge),
+                      Text(campagne.nomMagasin,
+                          style: theme.textTheme.labelLarge, maxLines: 1, overflow: TextOverflow.ellipsis),
                       if (campagne.villeMagasin != null)
-                        Text(campagne.villeMagasin!,
-                            style: theme.textTheme.bodySmall?.copyWith(color: couleurs.onSurfaceVariant)),
+                        Text(campagne.villeMagasin!, style: theme.textTheme.bodySmall?.copyWith(color: j.encre3)),
                     ],
                   ),
                 ),
-                Chip(
-                  label: Text(resteJusquA(campagne.dateFin)),
-                  avatar: const Icon(Icons.schedule, size: 16),
-                  visualDensity: VisualDensity.compact,
-                  backgroundColor: couleurs.tertiaryContainer,
-                  labelStyle: TextStyle(color: couleurs.onTertiaryContainer),
-                  side: BorderSide.none,
-                ),
+                if (reste.isNotEmpty)
+                  Statut(
+                    ton: reste == 'Dernier jour' ? Ton.alerte : Ton.promo,
+                    icone: Icons.schedule,
+                    libelle: reste,
+                  ),
               ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Text(campagne.titre, style: theme.textTheme.titleLarge),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Text(campagne.titre, style: theme.textTheme.headlineSmall),
           ),
           if (campagne.message != null && campagne.message!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-              child: Text(campagne.message!, style: theme.textTheme.bodyMedium),
+              child: Text(campagne.message!, style: theme.textTheme.bodyMedium?.copyWith(color: j.encre2, height: 1.45)),
             ),
           if (campagne.articles.isNotEmpty) ...[
             const SizedBox(height: 8),
             for (final article in campagne.articles) _LigneArticle(article: article),
           ],
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+          // Ce que la campagne rapporte en plus : le geste a faire apres l'achat.
+          Container(
+            margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(color: j.petroleDoux, borderRadius: BorderRadius.circular(Rayons.champ)),
             child: Row(
               children: [
-                Icon(Icons.stars, size: 18, color: couleurs.primary),
-                const SizedBox(width: 6),
+                Icon(Icons.stars, size: 20, color: j.petrole),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Vos achats rapportent des points jusqu’au ${jour(campagne.dateFin)}. Scannez votre ticket !',
-                    style: theme.textTheme.bodySmall?.copyWith(color: couleurs.primary),
+                    style: theme.textTheme.bodySmall?.copyWith(color: j.encre, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
@@ -158,6 +152,8 @@ class _CarteCampagne extends StatelessWidget {
   }
 }
 
+/// Un article en promotion. Le prix promotionnel est le plus gros de la ligne, en petrole ; le
+/// prix normal, barre, en dessous.
 class _LigneArticle extends StatelessWidget {
   const _LigneArticle({required this.article});
 
@@ -166,37 +162,55 @@ class _LigneArticle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final couleurs = theme.colorScheme;
-    return ListTile(
-      leading: Container(
-        width: 48,
-        height: 48,
-        decoration: BoxDecoration(
-          color: couleurs.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: imageDuServeur(article.photo, sinon: Icon(Icons.inventory_2_outlined, color: couleurs.outline)),
-      ),
-      title: Text(article.designation, maxLines: 2, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        francs(article.prixNormalTtc),
-        style: TextStyle(decoration: TextDecoration.lineThrough, color: couleurs.onSurfaceVariant),
-      ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
+    final j = context.jetons;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
         children: [
-          Text(francs(article.prixPromoTtc),
-              style: theme.textTheme.titleMedium?.copyWith(color: couleurs.primary, fontWeight: FontWeight.w600)),
-          if (article.remisePourcent > 0)
-            Container(
-              margin: const EdgeInsets.only(top: 2),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(color: couleurs.primary, borderRadius: BorderRadius.circular(4)),
-              child: Text('−${article.remisePourcent} %',
-                  style: theme.textTheme.labelSmall?.copyWith(color: couleurs.onPrimary)),
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(color: j.surface2, borderRadius: BorderRadius.circular(Rayons.champ)),
+            clipBehavior: Clip.antiAlias,
+            child: imageDuServeur(article.photo, sinon: Icon(Icons.inventory_2_outlined, color: j.encre3)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(article.designation,
+                    maxLines: 2, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 2),
+                Text(
+                  francs(article.prixNormalTtc),
+                  style: theme.textTheme.bodySmall?.copyWith(decoration: TextDecoration.lineThrough, color: j.encre3),
+                ),
+              ],
             ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(francs(article.prixPromoTtc),
+                  style: TextStyle(
+                    fontFamily: Polices.titre,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: j.petrole,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  )),
+              if (article.remisePourcent > 0)
+                Container(
+                  margin: const EdgeInsets.only(top: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: Jetons.petroleProfond, borderRadius: BorderRadius.circular(4)),
+                  child: Text('−${article.remisePourcent} %',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -208,19 +222,9 @@ class _Squelette extends StatelessWidget {
   const _Squelette();
 
   @override
-  Widget build(BuildContext context) {
-    final fond = Theme.of(context).colorScheme.surfaceContainerHighest;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        for (var i = 0; i < 3; i++)
-          Container(
-            height: 220,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(color: fond, borderRadius: BorderRadius.circular(12)),
-          ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.all(16),
+        physics: const NeverScrollableScrollPhysics(),
+        children: const [Squelette(hauteur: 260, marge: 20), Squelette(hauteur: 260, marge: 20)],
+      );
 }
