@@ -1,4 +1,6 @@
-<div class="mx-auto w-full max-w-6xl p-4">
+<div class="page">
+  <gs-en-tete-page titre="Le magasin" sousTitre="Ce qu’impriment les tickets et les factures : le nom, le logo, les mentions, la TVA." />
+
   @if (chargement()) {
     <div class="grid gap-4 lg:grid-cols-[1fr_auto]">
       <div class="carte p-5">
@@ -17,8 +19,8 @@
           premiere qu'on voit sur le papier.
         -->
         <section class="carte p-5">
-          <h2 class="mb-1 text-xs uppercase tracking-wide opacity-60">Logo</h2>
-          <p class="mb-4 text-sm opacity-70">
+          <h2 class="gs-etiquette mb-1 mt-0">Logo</h2>
+          <p class="mb-4 gs-encre-2 text-sm">
             Réduit à 384 points de large, la largeur du papier de caisse. Une image simple, très
             contrastée, sort le mieux d’une thermique : elle n’imprime qu’en noir.
           </p>
@@ -26,7 +28,7 @@
           <div class="flex flex-wrap items-center gap-4">
             <div
               class="flex h-20 w-32 shrink-0 items-center justify-center rounded-lg border"
-              style="background: #fff; border-color: var(--mat-sys-outline-variant)"
+              style="background: #fff; border-color: var(--gs-trait)"
             >
               @if (brouillon().logo) {
                 <img
@@ -59,7 +61,7 @@
         </section>
 
         <section class="carte p-5">
-          <h2 class="mb-4 text-xs uppercase tracking-wide opacity-60">Le magasin</h2>
+          <h2 class="gs-etiquette mb-4 mt-0">Le magasin</h2>
 
           <mat-form-field class="w-full">
             <mat-label>Nom</mat-label>
@@ -128,8 +130,8 @@
         </section>
 
         <section class="carte p-5">
-          <h2 class="mb-1 text-xs uppercase tracking-wide opacity-60">Mentions légales</h2>
-          <p class="mb-4 text-sm opacity-70">
+          <h2 class="gs-etiquette mb-1 mt-0">Mentions légales</h2>
+          <p class="mb-4 gs-encre-2 text-sm">
             Elles s’impriment sous l’adresse, sur chaque ticket et chaque facture.
           </p>
 
@@ -158,7 +160,7 @@
         </section>
 
         <section class="carte p-5">
-          <h2 class="mb-4 text-xs uppercase tracking-wide opacity-60">TVA</h2>
+          <h2 class="gs-etiquette mb-4 mt-0">TVA</h2>
 
           <mat-slide-toggle
             [ngModel]="brouillon().assujettieTva !== false"
@@ -168,7 +170,7 @@
             Cette entreprise collecte la TVA
           </mat-slide-toggle>
 
-          <p class="mb-4 mt-2 text-sm opacity-70">
+          <p class="mb-4 mt-2 gs-encre-2 text-sm">
             Décochée, aucune ligne ne porte de TVA — quel que soit le taux d’un article — et les
             documents remis au client portent la mention « TVA non applicable ».
           </p>
@@ -194,8 +196,8 @@
 
         <section class="carte flex flex-wrap items-center justify-between gap-3 p-5">
           <div>
-            <h2 class="mb-1 text-xs uppercase tracking-wide opacity-60">Fidélité</h2>
-            <p class="text-sm opacity-70">
+            <h2 class="gs-etiquette mb-1 mt-0">Fidélité</h2>
+            <p class="gs-encre-2 text-sm">
               Ce que rapportent les tickets et ce que valent les points se règlent dans le
               programme de fidélité.
             </p>
@@ -207,29 +209,14 @@
         </section>
 
         @if (erreur()) {
-          <div
-            class="carte flex items-start gap-3 p-4"
-            style="
-              background: var(--mat-sys-error-container);
-              color: var(--mat-sys-on-error-container);
-              border-color: transparent;
-            "
-            role="alert"
-          >
-            <mat-icon>error_outline</mat-icon>
-            <span class="text-sm">{{ erreur() }}</span>
-          </div>
+          <p class="message-erreur" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ erreur() }}</span>
+          </p>
         }
 
         <!-- Colle en bas : on ne fait jamais défiler un formulaire pour retrouver « Enregistrer ». -->
-        <div
-          class="sticky bottom-0 -mx-4 flex items-center justify-end gap-3 border-t px-4 py-3"
-          style="
-            background: var(--mat-sys-surface);
-            border-color: var(--mat-sys-outline-variant);
-            padding-bottom: calc(0.75rem + var(--marge-bas));
-          "
-        >
+        <div class="barre-enregistrer">
           <button
             mat-flat-button
             type="button"
@@ -246,11 +233,11 @@
         a droite, sans rien faire defiler.
       -->
       <aside class="lg:sticky lg:top-4">
-        <h2 class="mb-2 text-xs uppercase tracking-wide opacity-60">Aperçu du ticket</h2>
+        <h2 class="gs-etiquette mb-2 mt-0">Aperçu du ticket</h2>
         <div class="inline-block rounded-lg p-2 shadow-lg" style="background: #fff">
           <app-ticket [facture]="apercu" [entreprise]="magasin()" [enCampagne]="true" />
         </div>
-        <p class="mt-2 max-w-72 text-xs opacity-60">
+        <p class="mt-2 max-w-72 gs-encre-3 text-xs">
           Une vente d’exemple, sur une bande de 72 mm — la largeur réellement imprimée d’un
           rouleau de 80 mm.
         </p>

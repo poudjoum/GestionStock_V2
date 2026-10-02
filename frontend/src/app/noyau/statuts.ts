@@ -2,97 +2,10 @@ import type { LigneInventaireDto } from './api';
 
 export type StatutStock = NonNullable<LigneInventaireDto['statut']>;
 
-export interface Pastille {
-  libelle: string;
-  fond: string;
-  texte: string;
-  icone: string;
-}
-
-/**
- * Ce que chaque statut dit, et de quelle couleur on le dit.
- *
- * Partage entre le tableau de bord et l'ecran de stock : deux tables de couleurs finiraient par
- * diverger, et le meme article s'afficherait en orange ici et en rouge la.
- *
- * Le negatif prend la couleur d'erreur pleine, et non son conteneur : il ne demande pas une
- * commande au fournisseur mais un comptage sur l'etagere, et c'est le seul statut qui signale une
- * incoherence plutot qu'un manque.
- */
-export const PASTILLES_STOCK: Record<StatutStock, Pastille> = {
-  NEGATIF: {
-    libelle: 'Négatif',
-    fond: 'var(--mat-sys-error)',
-    texte: 'var(--mat-sys-on-error)',
-    icone: 'priority_high',
-  },
-  RUPTURE: {
-    libelle: 'Rupture',
-    fond: 'var(--mat-sys-error-container)',
-    texte: 'var(--mat-sys-on-error-container)',
-    icone: 'remove_shopping_cart',
-  },
-  SOUS_SEUIL: {
-    libelle: 'Sous le seuil',
-    fond: 'var(--mat-sys-tertiary-container)',
-    texte: 'var(--mat-sys-on-tertiary-container)',
-    icone: 'trending_down',
-  },
-  SUFFISANT: {
-    libelle: 'Suffisant',
-    fond: 'var(--mat-sys-secondary-container)',
-    texte: 'var(--mat-sys-on-secondary-container)',
-    icone: 'check',
-  },
-  SANS_SEUIL: {
-    libelle: 'Non surveillé',
-    fond: 'var(--mat-sys-surface-container-high)',
-    texte: 'var(--mat-sys-on-surface-variant)',
-    icone: 'remove',
-  },
-};
-
-export function pastilleDe(ligne: LigneInventaireDto): Pastille {
-  return PASTILLES_STOCK[ligne.statut ?? 'SANS_SEUIL'];
-}
-
-export type StatutCampagne = 'A_VENIR' | 'EN_COURS' | 'TERMINEE' | 'ARRETEE';
-
-/**
- * Les statuts d'une campagne. Le vert pour celle qui tourne : c'est elle qui fait vendre, et
- * celle qu'on cherche des yeux dans la liste.
- */
-export const PASTILLES_CAMPAGNE: Record<StatutCampagne, Pastille> = {
-  EN_COURS: {
-    libelle: 'En cours',
-    fond: 'var(--mat-sys-primary-container)',
-    texte: 'var(--mat-sys-on-primary-container)',
-    icone: 'campaign',
-  },
-  A_VENIR: {
-    libelle: 'À venir',
-    fond: 'var(--mat-sys-tertiary-container)',
-    texte: 'var(--mat-sys-on-tertiary-container)',
-    icone: 'schedule',
-  },
-  TERMINEE: {
-    libelle: 'Terminée',
-    fond: 'var(--mat-sys-surface-container-high)',
-    texte: 'var(--mat-sys-on-surface-variant)',
-    icone: 'done',
-  },
-  ARRETEE: {
-    libelle: 'Arrêtée',
-    fond: 'var(--mat-sys-error-container)',
-    texte: 'var(--mat-sys-on-error-container)',
-    icone: 'block',
-  },
-};
-
 /**
  * Les statuts dits par les composants du design system : un ton, une icone et un mot, pour
- * `<gs-statut>`. Les tables `PASTILLES_*` ci-dessus restent pour les ecrans pas encore passes
- * aux composants.
+ * `<gs-statut>`. Une seule table par objet : deux finiraient par diverger, et le meme article
+ * s'afficherait en orange ici et en rouge la.
  */
 export interface StatutAffiche {
   libelle: string;
@@ -136,3 +49,16 @@ export function statutDeFacture(facture: {
       return { libelle: 'Impayée', ton: 'danger', icone: 'schedule' };
   }
 }
+
+export type StatutCampagne = 'A_VENIR' | 'EN_COURS' | 'TERMINEE' | 'ARRETEE';
+
+/**
+ * Les statuts d'une campagne. Le ton promotion pour celle qui tourne : c'est elle qui fait vendre,
+ * et celle qu'on cherche des yeux dans la liste. Une campagne arretee n'est pas une alarme.
+ */
+export const STATUTS_CAMPAGNE: Record<StatutCampagne, StatutAffiche> = {
+  EN_COURS: { libelle: 'En cours', ton: 'promo', icone: 'campaign' },
+  A_VENIR: { libelle: 'À venir', ton: 'ok', icone: 'schedule' },
+  TERMINEE: { libelle: 'Terminée', ton: 'neutre', icone: 'done' },
+  ARRETEE: { libelle: 'Arrêtée', ton: 'neutre', icone: 'block' },
+};

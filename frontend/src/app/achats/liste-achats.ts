@@ -1,15 +1,16 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
-import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
+import { Subject, debounceTime, distinctUntilChanged, forkJoin, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { A_RECEVOIR, Achats, BROUILLONS, CommandeFourDto } from './achats.service';
 import type { Page } from '../noyau/api';
+import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut } from '../design';
 
 /** Les deux moments d'une commande, et les deux seuls qui appellent un geste. */
 type Vue = 'brouillons' | 'attendues';
@@ -23,19 +24,27 @@ type Vue = 'brouillons' | 'attendues';
  * l'historique, et il n'y a rien à y faire.
  *
  * La vue par défaut est « à recevoir » : on décharge un camion tous les jours, on passe une
- * commande de temps en temps. Le bouton pour en passer une reste visible dans les deux.
+ * commande de temps en temps. Mais si rien n'est attendu et que des brouillons attendent, on ouvre
+ * sur eux : un onglet vide à l'arrivée, avec deux commandes à côté, faisait croire qu'il n'y avait
+ * rien. Chaque onglet porte son compte pour la même raison.
  */
 @Component({
   selector: 'app-liste-achats',
   imports: [
+    DatePipe,
     FormsModule,
     MatButtonModule,
-    MatButtonToggleModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    EnTetePage,
+    EtatVide,
+    Section,
+    Selecteur,
+    Statut,
   ],
   templateUrl: './liste-achats.html',
+  styleUrl: './liste-achats.css',
 })
 export class ListeAchats {
   private readonly service = inject(Achats);
@@ -50,14 +59,24 @@ export class ListeAchats {
   protected readonly chargement = signal(true);
   protected readonly erreur = signal<string | null>(null);
 
+  /** Le nombre de commandes de chaque onglet, sans recherche : ce qui attend un geste. */
+  protected readonly comptes = signal<Record<Vue, number | null>>({ brouillons: null, attendues: null });
+
   protected readonly brouillons = computed(() => this.vue() === 'brouillons');
+
+  protected readonly vues = computed<OptionSelecteur<Vue>[]>(() => [
+    { valeur: 'attendues', libelle: 'À recevoir', compteur: this.comptes().attendues },
+    { valeur: 'brouillons', libelle: 'En préparation', compteur: this.comptes().brouillons },
+  ]);
 
   constructor() {
     const vue = this.route.snapshot.queryParamMap.get('vue');
     if (vue === 'brouillons' || vue === 'attendues') {
       this.vue.set(vue);
+      this.charger();
+    } else {
+      this.premierChargement();
     }
-    this.charger();
 
     this.frappe
       .pipe(
@@ -111,6 +130,25 @@ export class ListeAchats {
     return this.brouillons() ? BROUILLONS : A_RECEVOIR;
   }
 
+  /** Les deux onglets d'un coup : leurs comptes, et le bon onglet ouvert d'emblée. */
+  private premierChargement(): void {
+    forkJoin({
+      attendues: this.service.lister(A_RECEVOIR, ''),
+      brouillons: this.service.lister(BROUILLONS, ''),
+    }).subscribe({
+      next: ({ attendues, brouillons }) => {
+        this.comptes.set({
+          attendues: attendues.totalElements ?? 0,
+          brouillons: brouillons.totalElements ?? 0,
+        });
+        const surBrouillons = !attendues.totalElements && !!brouillons.totalElements;
+        this.vue.set(surBrouillons ? 'brouillons' : 'attendues');
+        this.afficher(surBrouillons ? brouillons : attendues);
+      },
+      error: () => this.echouer(),
+    });
+  }
+
   private charger(): void {
     this.chargement.set(true);
     this.erreur.set(null);
@@ -124,6 +162,10 @@ export class ListeAchats {
     this.commandes.set(page.content ?? []);
     this.total.set(page.totalElements ?? 0);
     this.chargement.set(false);
+    // Sans recherche, le total de la page est le compte de l'onglet.
+    if (!this.recherche()) {
+      this.comptes.update((c) => ({ ...c, [this.vue()]: page.totalElements ?? 0 }));
+    }
   }
 
   private echouer(): void {

@@ -11,7 +11,8 @@ import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap 
 import { Campagnes, CampagneDto } from './campagnes.service';
 import { Entreprise } from '../noyau/entreprise';
 import { messageDErreur } from '../noyau/erreurs';
-import { PASTILLES_CAMPAGNE } from '../noyau/statuts';
+import { STATUTS_CAMPAGNE } from '../noyau/statuts';
+import { EnTetePage, EtatVide, OptionSelecteur, Selecteur, Statut } from '../design';
 import { preparerUneImage } from '../parametres/logo';
 import { jourLocal, prixPromotionnel, PromotionArticleDto } from '../comptoir/prix-promotionnel';
 import type { ArticleDto } from '../noyau/api';
@@ -47,8 +48,13 @@ function campagneVierge(): CampagneDto {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    EnTetePage,
+    EtatVide,
+    Selecteur,
+    Statut,
   ],
   templateUrl: './campagnes.html',
+  styleUrl: './campagnes.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CampagnesEcran implements OnInit {
@@ -56,7 +62,13 @@ export class CampagnesEcran implements OnInit {
   private readonly magasin = inject(Entreprise);
   private readonly snack = inject(MatSnackBar);
 
-  protected readonly pastilles = PASTILLES_CAMPAGNE;
+  protected readonly statuts = STATUTS_CAMPAGNE;
+
+  /** Pourcentage ou prix fixe : deux facons de dire le meme prix, au choix du gerant. */
+  protected readonly typesRemise: OptionSelecteur<PromotionArticleDto['typeRemise']>[] = [
+    { valeur: 'POURCENTAGE', libelle: '%' },
+    { valeur: 'PRIX_FIXE', libelle: 'Prix' },
+  ];
 
   protected readonly chargement = signal(true);
   protected readonly erreurDeChargement = signal<string | null>(null);

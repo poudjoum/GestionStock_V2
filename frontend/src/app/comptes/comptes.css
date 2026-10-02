@@ -1,0 +1,53 @@
+/* Un compte ferme reste dans la liste, en retrait : il est l'auteur de ventes passees. */
+.compte--ferme .pastille-compte {
+  background: var(--gs-surface-2);
+  color: var(--gs-encre-3);
+}
+
+.compte--ferme .ouvrir {
+  opacity: 0.6;
+}
+
+.compte--ouvert {
+  border-color: var(--gs-accent) !important;
+  box-shadow: 0 0 0 1px var(--gs-accent);
+}
+
+.pastille-compte {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gs-accent-doux);
+  color: var(--gs-sur-accent-doux);
+  font-size: var(--gs-texte-sm);
+  font-weight: 700;
+}
+
+.ouvrir {
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ouvrir .designation {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.volet-entete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--gs-trait);
+}

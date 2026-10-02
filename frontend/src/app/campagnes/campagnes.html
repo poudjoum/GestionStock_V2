@@ -1,74 +1,65 @@
-<div class="mx-auto w-full max-w-7xl p-4">
+@let ouverte = brouillon();
+
+<div class="page">
+  <!-- L'en-tete disparait sur telephone quand une campagne est ouverte : un ecran, un geste. -->
+  <gs-en-tete-page
+    titre="Campagnes"
+    sousTitre="Des articles moins chers sur une période, annoncés dans l’application des clients."
+    [class.max-lg:hidden]="ouverte"
+  >
+    <button mat-flat-button type="button" (click)="nouvelle()">
+      <mat-icon>add</mat-icon>
+      Nouvelle campagne
+    </button>
+  </gs-en-tete-page>
+
   @if (chargement()) {
     <div class="grid gap-4 lg:grid-cols-[22rem_1fr]">
-      <div class="carte p-3">
+      <div class="grid gap-2">
         @for (i of [1, 2, 3, 4]; track i) {
-          <div class="squelette mb-3 h-16 w-full"></div>
+          <div class="squelette h-16"></div>
         }
       </div>
       <div class="squelette hidden h-96 lg:block"></div>
     </div>
   } @else if (erreurDeChargement(); as message) {
-    <div
-      class="carte flex items-start gap-3 p-4"
-      role="alert"
-      style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); border-color: transparent"
-    >
-      <mat-icon>error_outline</mat-icon>
-      <span class="text-sm">{{ message }}</span>
-    </div>
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
   } @else {
     <div class="grid items-start gap-4 lg:grid-cols-[22rem_1fr]">
-      <!-- La liste. Cachee sur telephone quand une campagne est ouverte : un ecran, un geste. -->
-      <section class="carte overflow-hidden" [class.hidden]="brouillon()" [class.lg:block]="brouillon()">
-        <div
-          class="flex items-center gap-2 border-b px-4 py-3"
-          style="border-color: var(--mat-sys-outline-variant)"
-        >
-          <h2 class="flex-1 text-xs uppercase tracking-wide opacity-60">Campagnes</h2>
-          <button mat-flat-button type="button" (click)="nouvelle()">
-            <mat-icon>add</mat-icon>
-            Nouvelle
-          </button>
-        </div>
-
+      <!-- La liste. Cachee sur telephone quand une campagne est ouverte. -->
+      <section class="min-w-0" [class.max-lg:hidden]="ouverte">
         @if (campagnes().length === 0) {
-          <div class="px-6 py-10 text-center">
-            <mat-icon class="!h-10 !w-10 !text-4xl opacity-40">campaign</mat-icon>
-            <p class="mt-2 text-sm font-medium">Aucune campagne pour l’instant</p>
-            <p class="mt-1 text-sm opacity-70">
-              Une campagne met des articles en promotion sur une période. Pendant ce temps, la
-              caisse les vend moins cher, vos clients la voient dans l’application, et leurs
-              tickets rapportent des points.
-            </p>
+          <div class="carte">
+            <gs-etat-vide
+              icone="campaign"
+              titre="Aucune campagne pour l’instant"
+              texte="Une campagne met des articles en promotion sur une période. Pendant ce temps, la caisse les vend moins cher, vos clients la voient dans l’application, et leurs tickets rapportent des points."
+            >
+              <button mat-flat-button type="button" (click)="nouvelle()">
+                <mat-icon>add</mat-icon>
+                Créer la première
+              </button>
+            </gs-etat-vide>
           </div>
         } @else {
-          <ul class="m-0 list-none p-0">
+          <ul class="cartes">
             @for (c of campagnes(); track c.id) {
-              <li>
-                <button
-                  type="button"
-                  class="flex w-full cursor-pointer items-start gap-3 border-b px-4 py-3 text-left"
-                  style="border-color: var(--mat-sys-outline-variant); background: transparent; color: inherit"
-                  [style.background]="brouillon()?.id === c.id ? 'var(--mat-sys-secondary-container)' : 'transparent'"
-                  (click)="ouvrir(c)"
-                >
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-medium">{{ c.titre }}</span>
-                    <span class="block text-xs opacity-60">
+              <li class="!p-0" [class.campagne--ouverte]="ouverte?.id === c.id">
+                <button type="button" class="campagne carte-cliquable gs-focus" (click)="ouvrir(c)">
+                  <span class="infos">
+                    <span class="designation">{{ c.titre }}</span>
+                    <span class="code">
                       Du {{ c.dateDebut | date: 'd MMM' }} au {{ c.dateFin | date: 'd MMM y' }}
                       · {{ c.promotions.length }} article{{ c.promotions.length > 1 ? 's' : '' }}
                     </span>
                   </span>
                   @if (c.statut; as statut) {
-                    <span
-                      class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                      [style.background]="pastilles[statut].fond"
-                      [style.color]="pastilles[statut].texte"
-                    >
-                      <mat-icon class="!h-3.5 !w-3.5 !text-sm">{{ pastilles[statut].icone }}</mat-icon>
-                      {{ pastilles[statut].libelle }}
-                    </span>
+                    <gs-statut [ton]="statuts[statut].ton" [icone]="statuts[statut].icone">
+                      {{ statuts[statut].libelle }}
+                    </gs-statut>
                   }
                 </button>
               </li>
@@ -78,37 +69,35 @@
       </section>
 
       <!-- La campagne ouverte. -->
-      @if (brouillon(); as c) {
-        <div class="flex flex-col gap-4">
+      @if (ouverte; as c) {
+        <div class="grid min-w-0 gap-4">
           <section class="carte p-5">
             <div class="mb-4 flex items-center gap-2">
               <button mat-icon-button type="button" class="lg:!hidden" (click)="fermer()" aria-label="Revenir à la liste">
                 <mat-icon>arrow_back</mat-icon>
               </button>
-              <h2 class="flex-1 text-lg font-medium">
+              <h2 class="titre-campagne">
                 {{ c.id ? c.titre || 'Campagne' : 'Nouvelle campagne' }}
               </h2>
               @if (c.statut; as statut) {
-                <span
-                  class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
-                  [style.background]="pastilles[statut].fond"
-                  [style.color]="pastilles[statut].texte"
-                >
-                  <mat-icon class="!h-4 !w-4 !text-base">{{ pastilles[statut].icone }}</mat-icon>
-                  {{ pastilles[statut].libelle }}
-                </span>
+                <gs-statut [ton]="statuts[statut].ton" [icone]="statuts[statut].icone">
+                  {{ statuts[statut].libelle }}
+                </gs-statut>
               }
             </div>
 
             @if (lectureSeule()) {
-              <p class="mb-4 rounded px-3 py-2 text-sm" style="background: var(--mat-sys-surface-container-high)">
-                Une campagne {{ c.statut === 'ARRETEE' ? 'arrêtée' : 'terminée' }} ne se modifie plus : des
-                tickets et des factures citent ses prix.
+              <p class="note">
+                <mat-icon aria-hidden="true">lock</mat-icon>
+                <span>
+                  Une campagne {{ c.statut === 'ARRETEE' ? 'arrêtée' : 'terminée' }} ne se modifie plus : des
+                  tickets et des factures citent ses prix.
+                </span>
               </p>
             }
 
             <fieldset class="m-0 border-0 p-0" [disabled]="lectureSeule()">
-              <mat-form-field class="w-full">
+              <mat-form-field appearance="outline" class="w-full">
                 <mat-label>Titre</mat-label>
                 <input
                   matInput
@@ -121,7 +110,7 @@
                 />
               </mat-form-field>
 
-              <mat-form-field class="w-full">
+              <mat-form-field appearance="outline" class="w-full">
                 <mat-label>Message aux clients</mat-label>
                 <textarea
                   matInput
@@ -137,7 +126,7 @@
               </mat-form-field>
 
               <div class="mt-2 grid gap-x-4 sm:grid-cols-2">
-                <mat-form-field>
+                <mat-form-field appearance="outline">
                   <mat-label>Premier jour</mat-label>
                   <input
                     matInput
@@ -152,7 +141,7 @@
                     <mat-hint>Commencée : le début ne bouge plus</mat-hint>
                   }
                 </mat-form-field>
-                <mat-form-field>
+                <mat-form-field appearance="outline">
                   <mat-label>Dernier jour</mat-label>
                   <input
                     matInput
@@ -168,14 +157,11 @@
               </div>
 
               <div class="mt-4 flex flex-wrap items-center gap-4">
-                <div
-                  class="flex h-24 w-40 shrink-0 items-center justify-center overflow-hidden rounded-lg border"
-                  style="border-color: var(--mat-sys-outline-variant); background: var(--mat-sys-surface-container)"
-                >
+                <div class="affiche">
                   @if (c.image) {
-                    <img [src]="c.image" alt="Affiche de la campagne" class="h-full w-full object-cover" />
+                    <img [src]="c.image" alt="Affiche de la campagne" />
                   } @else {
-                    <mat-icon class="opacity-40">image</mat-icon>
+                    <mat-icon class="gs-encre-3" aria-hidden="true">image</mat-icon>
                   }
                 </div>
                 @if (!lectureSeule()) {
@@ -195,15 +181,15 @@
           </section>
 
           <section class="carte p-5">
-            <h3 class="mb-1 text-xs uppercase tracking-wide opacity-60">Articles en promotion</h3>
-            <p class="mb-4 text-sm opacity-70">
+            <h3 class="gs-etiquette m-0">Articles en promotion</h3>
+            <p class="gs-encre-2 mb-4 mt-1 text-sm">
               Vendus à ce prix en caisse pendant la campagne. Un article n’est en promotion que dans
               une campagne à la fois.
             </p>
 
             @if (!lectureSeule()) {
               <div class="relative">
-                <mat-form-field class="w-full">
+                <mat-form-field appearance="outline" class="w-full">
                   <mat-label>Ajouter un article</mat-label>
                   <mat-icon matPrefix>search</mat-icon>
                   <input
@@ -216,27 +202,17 @@
                   />
                 </mat-form-field>
                 @if (resultats().length) {
-                  <ul
-                    class="absolute left-0 right-0 top-14 z-10 m-0 list-none rounded-lg border p-1 shadow-lg"
-                    style="background: var(--mat-sys-surface-container); border-color: var(--mat-sys-outline-variant)"
-                  >
+                  <ul class="propositions">
                     @for (a of resultats(); track a.id) {
                       <li>
-                        <button
-                          type="button"
-                          class="flex w-full cursor-pointer items-center gap-3 rounded px-3 py-2 text-left"
-                          style="background: transparent; color: inherit"
-                          [disabled]="dejaAjoute(a)"
-                          [style.opacity]="dejaAjoute(a) ? 0.5 : 1"
-                          (click)="ajouter(a)"
-                        >
+                        <button type="button" class="gs-focus" [disabled]="dejaAjoute(a)" (click)="ajouter(a)">
                           <span class="min-w-0 flex-1">
                             <span class="block truncate text-sm">{{ a.designation }}</span>
-                            <span class="block text-xs opacity-60">{{ a.codeArticle }}</span>
+                            <span class="gs-encre-3 block text-xs">{{ a.codeArticle }}</span>
                           </span>
                           <span class="nombre text-sm">{{ a.prixUnitaireHt | number: '1.0-0' }} F HT</span>
                           @if (dejaAjoute(a)) {
-                            <mat-icon class="!h-5 !w-5 !text-xl">check</mat-icon>
+                            <mat-icon aria-label="Déjà dans la campagne">check</mat-icon>
                           }
                         </button>
                       </li>
@@ -247,46 +223,40 @@
             }
 
             @if (c.promotions.length === 0) {
-              <p class="rounded px-3 py-6 text-center text-sm opacity-70" style="background: var(--mat-sys-surface-container)">
-                Aucun article : la campagne sera un simple message, et ses tickets rapporteront des
-                points. Cherchez un article pour le mettre en promotion.
+              <p class="note">
+                <mat-icon aria-hidden="true">info</mat-icon>
+                <span>
+                  Aucun article : la campagne sera un simple message, et ses tickets rapporteront des
+                  points. Cherchez un article pour le mettre en promotion.
+                </span>
               </p>
             } @else {
-              <ul class="m-0 flex list-none flex-col gap-2 p-0">
+              <ul class="promotions">
                 @for (p of c.promotions; track p.idArticle; let i = $index) {
-                  <li
-                    class="grid items-center gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_auto_8rem_9rem_auto]"
-                    style="border-color: var(--mat-sys-outline-variant)"
-                  >
+                  <li>
                     <span class="min-w-0">
-                      <span class="block truncate text-sm font-medium">{{ p.designation }}</span>
-                      <span class="nombre block text-xs opacity-60">
+                      <span class="block truncate text-sm font-semibold">{{ p.designation }}</span>
+                      <span class="nombre gs-encre-3 block text-xs">
                         {{ p.prixNormalHt | number: '1.0-0' }} F HT · {{ ttc(p.prixNormalHt ?? 0, p) | number: '1.0-0' }} F en rayon
                       </span>
                     </span>
 
-                    <!-- Pourcentage ou prix fixe : deux facons de dire le meme prix, au choix du gerant. -->
-                    <span class="inline-flex overflow-hidden rounded-full border" style="border-color: var(--mat-sys-outline-variant)">
-                      @for (t of [{ v: 'POURCENTAGE', l: '%' }, { v: 'PRIX_FIXE', l: 'Prix' }]; track t.v) {
-                        <button
-                          type="button"
-                          class="cursor-pointer px-3 py-1.5 text-sm"
-                          [disabled]="lectureSeule()"
-                          [attr.aria-pressed]="p.typeRemise === t.v"
-                          [style.background]="p.typeRemise === t.v ? 'var(--mat-sys-secondary-container)' : 'transparent'"
-                          [style.color]="p.typeRemise === t.v ? 'var(--mat-sys-on-secondary-container)' : 'inherit'"
-                          (click)="changerType(i, p, $any(t.v))"
-                        >
-                          {{ t.l }}
-                        </button>
-                      }
-                    </span>
+                    @if (lectureSeule()) {
+                      <span class="gs-encre-3 text-sm">{{ p.typeRemise === 'POURCENTAGE' ? 'Pourcentage' : 'Prix fixe' }}</span>
+                    } @else {
+                      <gs-selecteur
+                        [attr.aria-label]="'Type de réduction de ' + p.designation"
+                        [options]="typesRemise"
+                        [valeur]="p.typeRemise ?? 'POURCENTAGE'"
+                        (valeurChange)="changerType(i, p, $event)"
+                      />
+                    }
 
-                    <mat-form-field class="!-mb-5" subscriptSizing="dynamic">
+                    <mat-form-field appearance="outline" subscriptSizing="dynamic">
                       <input
                         matInput
                         type="number"
-                        [min]="p.typeRemise === 'POURCENTAGE' ? 1 : 1"
+                        min="1"
                         [max]="p.typeRemise === 'POURCENTAGE' ? 99 : (p.prixNormalHt ?? null)"
                         [disabled]="lectureSeule()"
                         [ngModel]="p.valeur"
@@ -298,16 +268,12 @@
                     </mat-form-field>
 
                     <!-- Le prix qu'on decide vraiment : celui de l'etiquette. -->
-                    <span class="nombre text-right">
+                    <span class="text-right">
                       @if (prixPromo(p) < (p.prixNormalHt ?? 0)) {
-                        <span class="block text-base font-medium" style="color: var(--mat-sys-primary)">
-                          {{ ttc(prixPromo(p), p) | number: '1.0-0' }} F
-                        </span>
-                        <span class="block text-xs opacity-60">en rayon</span>
+                        <span class="prix-promo nombre">{{ ttc(prixPromo(p), p) | number: '1.0-0' }} F</span>
+                        <span class="gs-encre-3 block text-xs">en rayon</span>
                       } @else {
-                        <span class="block text-xs" style="color: var(--mat-sys-error)">
-                          Pas moins cher
-                        </span>
+                        <gs-statut ton="danger" icone="block">Pas moins cher</gs-statut>
                       }
                     </span>
 
@@ -323,13 +289,9 @@
           </section>
 
           @if (erreur(); as message) {
-            <div
-              class="carte flex items-start gap-3 p-4"
-              role="alert"
-              style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container); border-color: transparent"
-            >
-              <mat-icon>error_outline</mat-icon>
-              <div class="text-sm">
+            <div class="message-erreur" role="alert">
+              <mat-icon aria-hidden="true">error_outline</mat-icon>
+              <div>
                 <p class="m-0">{{ message }}</p>
                 @if (erreurs().length) {
                   <ul class="mb-0 mt-1 pl-5">
@@ -343,19 +305,9 @@
           }
 
           <!-- Colle en bas : on ne fait jamais défiler un formulaire pour retrouver « Enregistrer ». -->
-          <div
-            class="sticky bottom-0 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t px-4 py-3"
-            style="background: var(--mat-sys-surface); border-color: var(--mat-sys-outline-variant); padding-bottom: calc(0.75rem + var(--marge-bas))"
-          >
+          <div class="barre-enregistrer">
             @if (arretable()) {
-              <button
-                mat-button
-                type="button"
-                class="mr-auto"
-                [style.color]="'var(--mat-sys-error)'"
-                [disabled]="envoi()"
-                (click)="arreter()"
-              >
+              <button mat-button type="button" class="danger mr-auto" [disabled]="envoi()" (click)="arreter()">
                 <mat-icon>block</mat-icon>
                 {{ confirmerArret() ? 'Confirmer : les prix normaux reprennent' : 'Arrêter la campagne' }}
               </button>
@@ -368,9 +320,8 @@
           </div>
         </div>
       } @else {
-        <div class="carte hidden flex-col items-center justify-center p-10 text-center lg:flex">
-          <mat-icon class="!h-10 !w-10 !text-4xl opacity-40">campaign</mat-icon>
-          <p class="mt-2 text-sm opacity-70">Choisissez une campagne, ou créez-en une.</p>
+        <div class="carte hidden lg:block">
+          <gs-etat-vide icone="campaign" titre="Choisissez une campagne" texte="Ou créez-en une avec « Nouvelle campagne »." />
         </div>
       }
     </div>

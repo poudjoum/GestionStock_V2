@@ -9,6 +9,7 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { messageDErreur } from '../noyau/erreurs';
 import { PolitiqueFidelite, PolitiqueFideliteDto } from './politique-fidelite.service';
+import { EnTetePage, Statut } from '../design';
 
 /** Les achats d'un client imaginaire, pour la simulation : un mois de courses ordinaire. */
 const DEPENSE_EXEMPLE = 100_000;
@@ -24,6 +25,8 @@ const DEPENSE_EXEMPLE = 100_000;
 @Component({
   selector: 'app-programme-fidelite',
   imports: [
+    EnTetePage,
+    Statut,
     DecimalPipe,
     FormsModule,
     MatButtonModule,
