@@ -170,5 +170,7 @@ function titrePour(url: string): string {
 function groupePour(url: string): string | null {
   const chemin = '/' + (url.split('?')[0].split('/')[1] ?? '');
   const entree = MENU.find((e) => e.chemin === chemin);
-  return GROUPES.find((g) => g.id === entree?.groupe)?.libelle ?? null;
+  const groupe = GROUPES.find((g) => g.id === entree?.groupe)?.libelle ?? null;
+  // « Stock › Stock » ne dirait rien : le groupe ne se repete pas quand il porte le nom de la page.
+  return groupe && groupe !== entree?.libelle ? groupe : null;
 }

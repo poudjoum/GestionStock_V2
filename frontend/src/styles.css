@@ -35,8 +35,10 @@
 
 /* Les jetons de design, puis les classes utilitaires qui les emploient. */
 @import './design/jetons.css';
-@import './design/utilitaires.css';
-@import './design/ecrans.css';
+/* Dans la couche « components » : les classes utilitaires de Tailwind (`md:hidden`…) doivent
+   pouvoir les surcharger, sans quoi une carte de telephone s'affichait aussi sur grand ecran. */
+@import './design/utilitaires.css' layer(components);
+@import './design/ecrans.css' layer(components);
 
 /*
  * Ce que la feuille de Google posait avec la fonte, et qu'elle seule posait.
