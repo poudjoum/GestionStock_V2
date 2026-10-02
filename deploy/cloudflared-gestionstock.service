@@ -20,7 +20,7 @@
 #   sudo systemctl enable --now cloudflared-gestionstock
 
 [Unit]
-Description=Tunnel Cloudflare GestionStock (stock.tontinepro.uk)
+Description=Tunnel Cloudflare GestionStock (stock et gestionstock.tontinepro.uk)
 Documentation=https://github.com/poudjoum/GestionStock_V2
 # Demarrer apres Docker evite une fenetre de 502 au demarrage. Ce n'est qu'un confort,
 # cloudflared reessayant a chaque requete.

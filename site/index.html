@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GestionStock — le stock, la caisse et la fidélité de votre magasin</title>
+    <meta
+      name="description"
+      content="GestionStock réunit la caisse, le stock, les achats, les factures et la fidélité des clients d’un magasin. Une application qui vend même sans internet, et une appli Android pour vos clients."
+    />
+    <meta name="theme-color" content="#0f3d26" />
+    <meta property="og:title" content="GestionStock" />
+    <meta property="og:description" content="Le stock, la caisse et la fidélité de votre magasin, au même endroit." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://gestionstock.tontinepro.uk/" />
+    <link rel="icon" href="/images/logo.svg" type="image/svg+xml" />
+    <link rel="preload" href="/polices/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="saut" href="#contenu">Aller au contenu</a>
+
+    <header class="entete">
+      <div class="conteneur">
+        <a class="marque" href="/" aria-label="GestionStock, accueil">
+          <img src="/images/logo.svg" alt="" width="32" height="32" />
+          GestionStock
+        </a>
+        <nav class="navigation" aria-label="Sections">
+          <a href="#fonctionnalites">Fonctionnalités</a>
+          <a href="#clients">Application clients</a>
+          <a href="#equipe">Votre équipe</a>
+          <a href="/docs/">Documentation</a>
+        </nav>
+        <a class="bouton" href="https://stock.tontinepro.uk/">Ouvrir GestionStock</a>
+      </div>
+    </header>
+
+    <main id="contenu">
+      <!-- Ce que c'est, en une phrase, et ou cliquer. -->
+      <section class="ouverture">
+        <div class="conteneur">
+          <div>
+            <p class="surtitre">Pour les quincailleries et les commerces de détail</p>
+            <h1>Le stock, la caisse et la fidélité de votre magasin, au même endroit.</h1>
+            <p class="chapeau">
+              Vendez au comptoir, même quand internet tombe. Sachez ce qui manque avant que le rayon
+              soit vide. Faites revenir vos clients avec des promotions et des points qu’ils
+              suivent sur leur téléphone.
+            </p>
+            <div class="actions">
+              <a class="bouton bouton--clair bouton--grand" href="https://stock.tontinepro.uk/">
+                Ouvrir GestionStock
+                <svg aria-hidden="true"><use href="/images/icones.svg#fleche" /></svg>
+              </a>
+              <a class="bouton bouton--contour bouton--grand" href="/docs/">
+                <svg aria-hidden="true"><use href="/images/icones.svg#livre" /></svg>
+                Lire la documentation
+              </a>
+            </div>
+            <ul class="preuves">
+              <li><svg aria-hidden="true"><use href="/images/icones.svg#coche" /></svg>Fonctionne sans internet</li>
+              <li><svg aria-hidden="true"><use href="/images/icones.svg#coche" /></svg>Sur ordinateur, tablette et téléphone</li>
+              <li><svg aria-hidden="true"><use href="/images/icones.svg#coche" /></svg>En francs CFA, TVA comprise</li>
+            </ul>
+          </div>
+
+          <!-- Le comptoir, dessine : le geste principal de l'application. -->
+          <div class="maquette" role="img" aria-label="L’écran de vente : une grille d’articles, et le ticket avec son total et le bouton Encaisser.">
+            <div class="maquette-barre" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="maquette-corps" aria-hidden="true">
+              <div class="maquette-articles">
+                <div class="maquette-recherche">Chercher un article ou scanner…</div>
+                <div class="maquette-article promo"><b>Ciment 50 kg</b><i>4 050 F</i></div>
+                <div class="maquette-article"><b>Fer à béton de 10</b><i>3 500 F</i></div>
+                <div class="maquette-article"><b>Tôle bac 3 m</b><i>7 200 F</i></div>
+                <div class="maquette-article"><b>Pointes de 80, 1 kg</b><i>1 300 F</i></div>
+                <div class="maquette-article"><b>Peinture blanche 20 L</b><i>28 000 F</i></div>
+                <div class="maquette-article"><b>Tuyau PVC 100</b><i>5 400 F</i></div>
+              </div>
+              <div class="maquette-ticket">
+                <p><span>Ciment 50 kg × 10</span><span>40 500</span></p>
+                <p><span>Fer à béton × 12</span><span>42 000</span></p>
+                <p><span>Pointes × 2</span><span>2 600</span></p>
+                <div class="maquette-total">
+                  <small>Total TTC</small>
+                  <strong>85 100 F</strong>
+                </div>
+                <div class="maquette-valider">Encaisser</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ce que l'application fait, rangé comme le magasin le pense. -->
+      <section class="section" id="fonctionnalites">
+        <div class="conteneur">
+          <div class="section-titre">
+            <span class="etiquette">Fonctionnalités</span>
+            <h2>Tout ce que le magasin fait dans la journée</h2>
+            <p>Du camion qu’on décharge au ticket qu’on imprime, chaque geste a son écran — pensé pour celui qui le fait, debout au comptoir ou assis au bureau.</p>
+          </div>
+
+          <div class="grille">
+            <article class="carte">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#caisse" /></svg></span>
+              <h3>Vendre au comptoir</h3>
+              <p>Une grille d’articles, un ticket toujours visible, le rendu de monnaie calculé.</p>
+              <ul>
+                <li>Espèces, Mobile Money, virement, chèque, bon d’achat</li>
+                <li>Ticket imprimé sur rouleau de 80 mm, avec son QR</li>
+                <li><strong>Sans internet</strong>, la vente continue et part plus tard</li>
+              </ul>
+            </article>
+            <article class="carte">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#carton" /></svg></span>
+              <h3>Suivre le stock</h3>
+              <p>Ce qui est en rupture, ce qui passe sous le seuil, ce que vaut le magasin.</p>
+              <ul>
+                <li>Seuil d’alerte par article, alertes sur le téléphone</li>
+                <li>Inventaire à la douchette, écarts rattrapés en un geste</li>
+                <li>Catalogue importé depuis un classeur Excel</li>
+              </ul>
+            </article>
+            <article class="carte">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#camion" /></svg></span>
+              <h3>Commander et recevoir</h3>
+              <p>Les commandes aux fournisseurs, de la préparation au déchargement.</p>
+              <ul>
+                <li>Prix d’achat saisis : le coût moyen reste juste</li>
+                <li>Réception partielle, reliquat suivi ou clôturé</li>
+                <li>Fournisseurs particuliers ou entreprises</li>
+              </ul>
+            </article>
+            <article class="carte">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#facture" /></svg></span>
+              <h3>Factures et caisse</h3>
+              <p>Ce qui a été encaissé, ce qui reste dû, et par quel moyen.</p>
+              <ul>
+                <li>Factures envoyées par courriel au client</li>
+                <li>Vente à crédit, encaissements en plusieurs fois</li>
+                <li>État de caisse du jour, de la semaine, du mois</li>
+              </ul>
+            </article>
+            <article class="carte">
+              <span class="pastille-icone pastille-icone--petrole"><svg aria-hidden="true"><use href="/images/icones.svg#porte-voix" /></svg></span>
+              <h3>Campagnes et fidélité</h3>
+              <p>Des promotions qui passent en caisse, des points qui font revenir.</p>
+              <ul>
+                <li>Prix réduit en pourcentage ou prix fixe, sur une période</li>
+                <li>Points sur les achats faits pendant une campagne</li>
+                <li>Votre propre barème : points, valeur, minimum, validité</li>
+              </ul>
+            </article>
+            <article class="carte">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#graphique" /></svg></span>
+              <h3>L’accueil du gérant</h3>
+              <p>En arrivant : la recette, ce qui attend d’être encaissé, ce qui manque en rayon, ce que vaut le stock.</p>
+              <ul>
+                <li>Chaque rôle arrive sur son écran de travail</li>
+                <li>Installable comme une application, sur PC ou téléphone</li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- L'application des clients. -->
+      <section class="section section--surface" id="clients">
+        <div class="conteneur fidelite">
+          <div>
+            <span class="etiquette etiquette--petrole">Application Android pour vos clients</span>
+            <h2>Vos clients suivent vos promotions et leurs points</h2>
+            <p class="section-titre" style="margin: 14px 0 0; color: var(--encre-2); font-size: 18px">
+              GestionStock Fidélité est gratuite pour vos clients. Elle montre les campagnes en cours
+              dans les magasins partenaires, et transforme leurs tickets de caisse en bons d’achat.
+            </p>
+            <ol class="etapes">
+              <li>
+                <strong>Le client achète pendant une campagne</strong>
+                <span>Le ticket imprimé porte un QR code, toujours.</span>
+              </li>
+              <li>
+                <strong>Il scanne son ticket avec l’application</strong>
+                <span>Les points s’ajoutent à son solde dans votre magasin — sur ce qu’il a vraiment payé, pas sur la part réglée par un bon.</span>
+              </li>
+              <li>
+                <strong>Il échange ses points contre un bon d’achat</strong>
+                <span>Il le montre en caisse : le caissier le déduit du total, comme un moyen de paiement.</span>
+              </li>
+            </ol>
+            <div class="telechargement" id="telechargement">
+              <img src="/images/icone-fidelite.png" alt="" width="56" height="56" />
+              <div>
+                <a class="bouton bouton--grand" id="lien-apk" href="/telechargements/gestionstock-fidelite.apk" download>
+                  <svg aria-hidden="true"><use href="/images/icones.svg#telecharger" /></svg>
+                  Télécharger pour Android
+                </a>
+                <small id="note-apk">Fichier APK — Android 7 ou plus récent</small>
+              </div>
+            </div>
+          </div>
+          <div class="telephones">
+            <img src="/images/telephone-promotions.webp" alt="L’écran Promotions : une campagne, un article à prix réduit et le rappel de scanner son ticket." width="540" height="1092" loading="lazy" />
+            <img src="/images/telephone-points.webp" alt="L’écran Mes points : la carte de fidélité, le solde par magasin et les tickets scannés." width="540" height="1092" loading="lazy" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Les roles : qui fait quoi. -->
+      <section class="section" id="equipe">
+        <div class="conteneur">
+          <div class="section-titre">
+            <span class="etiquette">Votre équipe</span>
+            <h2>Chacun voit ce qui le regarde</h2>
+            <p>Un compte par personne, un rôle par métier. Le caissier ne voit pas la valeur du stock, le magasinier ne touche pas à la caisse.</p>
+          </div>
+          <div class="roles">
+            <div class="role">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#reglages" /></svg></span>
+              <div><strong>Administrateur</strong><span>Règle le magasin, ouvre et ferme les comptes de l’équipe.</span></div>
+            </div>
+            <div class="role">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#graphique" /></svg></span>
+              <div><strong>Gérant</strong><span>Voit tout le magasin, décide des campagnes et du programme de fidélité.</span></div>
+            </div>
+            <div class="role">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#caisse" /></svg></span>
+              <div><strong>Caissier</strong><span>Vend au comptoir, encaisse, gère les clients.</span></div>
+            </div>
+            <div class="role">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#carton" /></svg></span>
+              <div><strong>Magasinier</strong><span>Tient le catalogue, reçoit les commandes, fait l’inventaire.</span></div>
+            </div>
+            <div class="role">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#facture" /></svg></span>
+              <div><strong>Comptable</strong><span>Suit les factures, les encaissements et l’état de caisse.</span></div>
+            </div>
+            <div class="role">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#cadenas" /></svg></span>
+              <div><strong>Un compte se ferme, il ne s’efface pas</strong><span>L’employé parti reste l’auteur de ses ventes : l’historique reste lisible.</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" style="padding-top: 0">
+        <div class="conteneur">
+          <div class="appel">
+            <h2>Prêt à ouvrir la caisse ?</h2>
+            <p>Connectez-vous avec l’identifiant reçu par courriel. La documentation vous guide pas à pas, du premier article à la première campagne.</p>
+            <div class="actions">
+              <a class="bouton bouton--clair bouton--grand" href="https://stock.tontinepro.uk/">Ouvrir GestionStock</a>
+              <a class="bouton bouton--contour bouton--grand" href="/docs/">Lire la documentation</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="pied">
+      <div class="conteneur">
+        <a class="marque" href="/"><img src="/images/logo.svg" alt="" width="28" height="28" />GestionStock</a>
+        <span>Un produit Jumpytech</span>
+        <nav aria-label="Liens utiles">
+          <a href="/docs/">Documentation</a>
+          <a href="https://stock.tontinepro.uk/confidentialite.html">Confidentialité</a>
+          <a href="https://stock.tontinepro.uk/">Se connecter</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      // L'APK n'est pas dans le depot : il est depose sur le serveur a chaque version. Tant qu'il
+      // n'y est pas, le bouton ne mene pas a une page d'erreur — il dit ou se procurer l'appli.
+      fetch('/telechargements/gestionstock-fidelite.apk', { method: 'HEAD' })
+        .then((r) => {
+          if (!r.ok) throw new Error();
+        })
+        .catch(() => {
+          const lien = document.getElementById('lien-apk');
+          lien.removeAttribute('href');
+          lien.setAttribute('aria-disabled', 'true');
+          lien.style.opacity = '0.55';
+          lien.style.cursor = 'default';
+          document.getElementById('note-apk').textContent =
+            'Bientôt disponible ici — demandez-la à votre magasin en attendant.';
+        });
+    </script>
+  </body>
+</html>

@@ -1479,6 +1479,33 @@ cloudflared --config ~/.cloudflared/<projet>-config.yml tunnel route dns --overw
 ADRESSE_PUBLIQUE=https://stock.tontinepro.uk
 ```
 
+### Le site de presentation
+
+La page d'accueil et la documentation (`site/`) sont publiees sur
+**https://gestionstock.tontinepro.uk**, par le meme tunnel `gestionstock`. Des fichiers statiques
+servis par le conteneur `gestionstock-site` (nginx, port 9094), monte depuis le depot : le
+deploiement continu qui tire master les met a jour, sans rien reconstruire.
+
+Le site vit a cote de l'application et ne la connait pas : une faute ici ne touche pas la caisse.
+
+**Le mettre en ligne** — une fois, apres le premier deploiement qui contient `site/` :
+
+```bash
+cd ~/apps/gestionstock/source
+mkdir -p ~/apps/gestionstock/telechargements
+cp deploy/cloudflared-gestionstock.yml ~/.cloudflared/gestionstock-config.yml
+cloudflared --config ~/.cloudflared/gestionstock-config.yml tunnel route dns gestionstock gestionstock.tontinepro.uk
+sudo systemctl restart cloudflared-gestionstock
+```
+
+**L'APK de l'application des clients** n'est pas dans le depot. A chaque version, le deposer sous
+ce nom exact ; tant qu'il n'y est pas, le bouton du site dit de la demander au magasin :
+
+```bash
+scp mobile/build/app/outputs/flutter-apk/app-release.apk \
+    jumpy@192.168.1.100:apps/gestionstock/telechargements/gestionstock-fidelite.apk
+```
+
 `ADRESSE_PUBLIQUE` figure dans le courriel d'acces envoye au gerant a l'inscription de son
 commerce : sans elle, il recoit un identifiant et un mot de passe sans savoir ou les presenter.
 

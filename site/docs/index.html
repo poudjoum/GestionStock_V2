@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Documentation — GestionStock</title>
+    <meta name="description" content="Le guide de GestionStock : mettre en place le magasin, vendre au comptoir, suivre le stock, commander, encaisser, lancer une campagne et gérer la fidélité." />
+    <meta name="theme-color" content="#0f3d26" />
+    <link rel="icon" href="/images/logo.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="saut" href="#contenu">Aller au contenu</a>
+
+    <header class="entete">
+      <div class="conteneur">
+        <a class="marque" href="/" aria-label="GestionStock, accueil">
+          <img src="/images/logo.svg" alt="" width="32" height="32" />
+          GestionStock
+        </a>
+        <nav class="navigation" aria-label="Sections">
+          <a href="/#fonctionnalites">Fonctionnalités</a>
+          <a href="/#clients">Application clients</a>
+          <a href="/docs/" aria-current="page">Documentation</a>
+        </nav>
+        <a class="bouton" href="https://stock.tontinepro.uk/">Ouvrir GestionStock</a>
+      </div>
+    </header>
+
+    <div class="conteneur doc">
+      <nav class="sommaire" aria-label="Sommaire">
+        <p>Sommaire</p>
+        <ol>
+          <li><a href="#prise-en-main">Prise en main</a></li>
+          <li><a href="#magasin">Mettre en place le magasin</a></li>
+          <li><a href="#comptoir">Vendre au comptoir</a></li>
+          <li><a href="#stock">Le stock et l’inventaire</a></li>
+          <li><a href="#achats">Commander et recevoir</a></li>
+          <li><a href="#factures">Factures et caisse</a></li>
+          <li><a href="#repertoire">Clients et fournisseurs</a></li>
+          <li><a href="#campagnes">Campagnes</a></li>
+          <li><a href="#fidelite">Programme de fidélité</a></li>
+          <li><a href="#appli">L’application des clients</a></li>
+          <li><a href="#equipe">L’équipe et les comptes</a></li>
+          <li><a href="#alertes">Les alertes</a></li>
+          <li><a href="#questions">Questions fréquentes</a></li>
+        </ol>
+      </nav>
+
+      <main class="article-doc" id="contenu">
+        <header>
+          <span class="etiquette">Documentation</span>
+          <h1>Le guide de GestionStock</h1>
+          <p>Du premier article importé à la première campagne : ce que fait chaque écran, qui s’en sert, et ce qu’il faut savoir avant d’appuyer sur le bouton.</p>
+        </header>
+
+        <!-- 1 ------------------------------------------------------------------------------- -->
+        <section id="prise-en-main">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#fleche" /></svg></span>Prise en main</h2>
+          <h3>Se connecter</h3>
+          <p>
+            GestionStock s’ouvre dans le navigateur, à l’adresse
+            <a href="https://stock.tontinepro.uk/">stock.tontinepro.uk</a>. Le gérant reçoit ses
+            accès par courriel à l’ouverture du commerce : un identifiant et un mot de passe
+            provisoire.
+          </p>
+          <p>
+            À la première connexion, l’application demande de <strong>choisir un mot de passe
+            neuf</strong> avant d’aller plus loin : le provisoire est passé par une boîte aux
+            lettres, il ne doit pas rester en service.
+          </p>
+          <h3>Où l’on arrive</h3>
+          <p>Chacun arrive sur l’écran de son métier, sans clic de plus :</p>
+          <ul>
+            <li>l’<strong>administrateur</strong>, le <strong>gérant</strong> et le <strong>comptable</strong> sur l’<strong>Accueil</strong> : la recette, ce qui reste à encaisser, ce qui manque en rayon, ce que vaut le stock ;</li>
+            <li>le <strong>caissier</strong> directement sur l’écran de vente ;</li>
+            <li>le <strong>magasinier</strong> sur l’état du stock.</li>
+          </ul>
+          <h3>Installer l’application</h3>
+          <p>
+            GestionStock s’installe comme une application, sans passer par un magasin
+            d’applications. Sur ordinateur, cliquez sur l’icône d’installation dans la barre
+            d’adresse de Chrome ou d’Edge ; sur téléphone Android, ouvrez le menu du navigateur puis
+            <strong>Installer l’application</strong>. Elle s’ouvre alors en plein écran, avec son
+            icône, et la caisse reste utilisable sans réseau.
+          </p>
+          <div class="encadre">
+            <svg aria-hidden="true"><use href="/images/icones.svg#telephone" /></svg>
+            <p>Sur téléphone, le menu se trouve en bas : les gestes de tous les jours dans la barre, le reste derrière le bouton <strong>Menu</strong>.</p>
+          </div>
+        </section>
+
+        <!-- 2 ------------------------------------------------------------------------------- -->
+        <section id="magasin">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#reglages" /></svg></span>Mettre en place le magasin</h2>
+          <ul class="qui"><li>Administrateur</li><li>Gérant pour le catalogue</li></ul>
+          <h3>Le magasin</h3>
+          <p>
+            Dans <strong>Réglages › Le magasin</strong> : le nom, l’adresse, le téléphone, le logo,
+            les mentions légales (NIU, registre du commerce) et la TVA. C’est ce qu’impriment les
+            tickets et les factures — l’aperçu du ticket, à droite, change pendant que vous tapez.
+          </p>
+          <p>
+            La TVA est réglée à <strong>19,25 %</strong> par défaut, celle du Cameroun. Un magasin
+            qui n’y est pas assujetti la désactive ici ; un article peut aussi porter son propre
+            taux, qui l’emporte sur celui du magasin.
+          </p>
+          <h3>Importer le catalogue</h3>
+          <p>Saisir six cents articles à la main décourage n’importe qui. <strong>Catalogue › Importer</strong> le remplit depuis un classeur Excel, en trois temps :</p>
+          <ol>
+            <li><strong>Télécharger le modèle.</strong> Les colonnes sont imposées : code, désignation, prix HT, taux de TVA, seuil d’alerte, catégorie. Le code est celui que lira la douchette : mettez le code-barres quand il y en a un.</li>
+            <li><strong>Déposer le fichier rempli</strong> (format <code>.xlsx</code>).</li>
+            <li><strong>Lire le rapport, puis confirmer.</strong> Rien n’entre avant votre confirmation. Le rapport dit ligne par ligne ce qui sera créé, modifié ou refusé, et pourquoi.</li>
+          </ol>
+          <div class="encadre">
+            <svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg>
+            <p>Le rapport n’est pas une estimation : la simulation passe par le même code que l’import réel. Ce qui est montré est exactement ce qui entrera.</p>
+          </div>
+          <h3>Les seuils d’alerte</h3>
+          <p>
+            Chaque article peut avoir un <strong>seuil d’alerte</strong> : la quantité en dessous de
+            laquelle il faut recommander. Un article sans seuil n’est pas surveillé — il ne
+            déclenche aucune alerte, même à zéro.
+          </p>
+        </section>
+
+        <!-- 3 ------------------------------------------------------------------------------- -->
+        <section id="comptoir">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#caisse" /></svg></span>Vendre au comptoir</h2>
+          <ul class="qui"><li>Caissier</li><li>Gérant</li><li>Administrateur</li></ul>
+          <h3>Composer le panier</h3>
+          <p>
+            Touchez un article dans la grille, cherchez-le par son nom, ou scannez son code-barres
+            avec une douchette : elle tape le code et valide, le champ reprend la main tout seul
+            pour l’article suivant. Les rayons, en haut de la grille, filtrent par catégorie. Les
+            articles en promotion affichent déjà leur prix réduit.
+          </p>
+          <p>Le ticket reste visible à droite (en bas sur téléphone) : quantités, total TTC et bouton <strong>Encaisser</strong>.</p>
+          <h3>Encaisser</h3>
+          <p>Choisissez le moyen de paiement :</p>
+          <div class="tableau-cadre">
+            <table class="tableau">
+              <thead><tr><th>Moyen</th><th>Ce qu’il faut savoir</th></tr></thead>
+              <tbody>
+                <tr><td>Espèces</td><td>L’écran propose les montants qu’un client tend vraisemblablement (5 000, 10 000, l’arrondi au millier supérieur…) et calcule la monnaie à rendre.</td></tr>
+                <tr><td>Mobile Money</td><td>Orange Money, MTN MoMo : enregistré comme tel dans l’état de caisse.</td></tr>
+                <tr><td>Virement, chèque</td><td>Pour les clients entreprises, souvent avec une facture nominative.</td></tr>
+                <tr><td>Bon d’achat</td><td>Le bon d’un client de l’application, saisi <strong>avant</strong> le moyen de paiement : tapez son code ou lisez son QR à la douchette. Il se déduit d’abord, le client paie le reste. Il ne rend pas la monnaie, et ne se lit qu’avec le réseau.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Pour une facture au nom d’un client — une entreprise, une vente à crédit —, choisissez le client avant d’encaisser. Une vente de comptoir ordinaire n’en a pas besoin.</p>
+          <h3>Le ticket</h3>
+          <p>
+            Le ticket s’imprime sur un rouleau de 80 mm. Il porte <strong>toujours</strong> un QR
+            code et, en clair dessous, un code de douze caractères : c’est ce que le client scanne
+            dans l’application pour recevoir ses points.
+          </p>
+          <h3>Quand internet tombe</h3>
+          <div class="encadre encadre--petrole">
+            <svg aria-hidden="true"><use href="/images/icones.svg#hors-ligne" /></svg>
+            <p>
+              <strong>La vente continue.</strong> Les articles se trouvent dans une copie du
+              catalogue gardée sur l’appareil. La vente est gardée elle aussi, avec ce que le client
+              a payé, et part au serveur dès que le réseau revient. Le client repart avec un ticket
+              provisoire ; la facture est émise à l’arrivée de la vente.
+            </p>
+          </div>
+        </section>
+
+        <!-- 4 ------------------------------------------------------------------------------- -->
+        <section id="stock">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#carton" /></svg></span>Le stock et l’inventaire</h2>
+          <ul class="qui"><li>Magasinier</li><li>Gérant</li><li>Comptable (consultation)</li></ul>
+          <h3>Lire l’état du stock</h3>
+          <p>Chaque article porte un statut, toujours dit par une icône et un mot :</p>
+          <div class="tableau-cadre">
+            <table class="tableau">
+              <thead><tr><th>Statut</th><th>Ce qu’il veut dire</th><th>Que faire</th></tr></thead>
+              <tbody>
+                <tr><td>Rupture</td><td>Plus rien en rayon.</td><td>Commander.</td></tr>
+                <tr><td>Sous le seuil</td><td>Il en reste, moins que le seuil d’alerte.</td><td>Commander bientôt.</td></tr>
+                <tr><td>Négatif</td><td>On a vendu plus que ce que le stock connaissait.</td><td>Compter l’étagère : une réception n’a pas été saisie, ou un comptage est faux.</td></tr>
+                <tr><td>Suffisant</td><td>Au-dessus du seuil.</td><td>Rien.</td></tr>
+                <tr><td>Non surveillé</td><td>L’article n’a pas de seuil.</td><td>Lui en donner un s’il compte.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>La valeur du stock se calcule au coût moyen d’achat, alimenté par les prix saisis à chaque commande fournisseur.</p>
+          <h3>Faire l’inventaire</h3>
+          <ol>
+            <li>Ouvrez <strong>Stock › Inventaire</strong>. Le compteur de ce qui reste à compter reste visible en haut.</li>
+            <li>Scannez l’article, tapez la quantité comptée, validez : le champ reprend la main pour le suivant.</li>
+            <li>Une fois tout compté, passez aux <strong>écarts</strong> : ce que le stock croyait, ce que vous avez compté, la différence.</li>
+            <li><strong>Valider et corriger le stock</strong> pose les mouvements de correction.</li>
+          </ol>
+          <div class="encadre encadre--alerte">
+            <svg aria-hidden="true"><use href="/images/icones.svg#alerte" /></svg>
+            <p>Tant qu’on n’a pas validé, rien ne touche au stock et tout se reprend. Après la validation, les corrections sont posées : l’écran dit d’abord ce qu’il va faire.</p>
+          </div>
+        </section>
+
+        <!-- 5 ------------------------------------------------------------------------------- -->
+        <section id="achats">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#camion" /></svg></span>Commander et recevoir</h2>
+          <ul class="qui"><li>Magasinier</li><li>Gérant</li></ul>
+          <p>L’écran <strong>Achats</strong> a deux onglets, chacun avec son compte : <strong>À recevoir</strong> (ce qui est commandé et attendu) et <strong>En préparation</strong> (les brouillons).</p>
+          <h3>Préparer une commande</h3>
+          <ol>
+            <li><strong>Nouvelle commande</strong>, choisissez le fournisseur, ajoutez les articles.</li>
+            <li>Pour chaque ligne, la quantité et le <strong>prix d’achat</strong>.</li>
+            <li>Enregistrez : c’est un brouillon, il se corrige ligne par ligne.</li>
+            <li><strong>Valider</strong> passe la commande au fournisseur : les lignes ne bougent plus.</li>
+          </ol>
+          <div class="encadre encadre--alerte">
+            <svg aria-hidden="true"><use href="/images/icones.svg#alerte" /></svg>
+            <p><strong>Le prix saisi est le prix d’achat, pas le prix de vente.</strong> Il alimente le coût moyen de l’article, donc la valeur du stock. Le champ reste vide exprès : le pré-remplir avec le prix de vente gonflerait la valeur du magasin sans que personne ne s’en aperçoive.</p>
+          </div>
+          <h3>Recevoir la marchandise</h3>
+          <p>
+            Ouvrez la commande attendue et saisissez, ligne par ligne, la quantité <strong>de cette
+            arrivée</strong> — ce qui a été compté au déchargement, jamais le cumul. Une livraison
+            incomplète laisse la commande en <strong>reliquat</strong> : elle reste dans « À
+            recevoir » pour la suite.
+          </p>
+          <p>Si le reliquat n’arrivera jamais, <strong>clôturez-le</strong> avec son motif. Rien n’entre en stock : clôturer, c’est constater une absence.</p>
+        </section>
+
+        <!-- 6 ------------------------------------------------------------------------------- -->
+        <section id="factures">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#facture" /></svg></span>Factures et caisse</h2>
+          <ul class="qui"><li>Comptable</li><li>Gérant</li><li>Caissier pour l’état de caisse</li></ul>
+          <h3>Les factures</h3>
+          <p>
+            Chaque vente produit une facture. L’écran <strong>Factures</strong> les liste avec ce
+            qu’il reste à encaisser : <em>Réglée</em>, <em>Partielle</em> ou <em>Impayée</em>. Le
+            détail s’ouvre dans un volet à droite : on passe d’une facture à l’autre sans perdre sa
+            place dans la liste.
+          </p>
+          <p>Une vente à crédit s’encaisse en plusieurs fois : chaque règlement s’ajoute à la facture, avec son moyen de paiement, jusqu’à ce qu’elle soit réglée.</p>
+          <p>Quand le client a une adresse de courriel, sa facture lui est envoyée automatiquement.</p>
+          <h3>L’état de caisse</h3>
+          <p>
+            Ce qui est entré, et par quel moyen : <strong>aujourd’hui</strong>, <strong>la
+            semaine</strong> ou <strong>le mois</strong>, en un bouton. Les bons d’achat des clients
+            y figurent à part : c’est une remise accordée, pas de l’argent encaissé.
+          </p>
+        </section>
+
+        <!-- 7 ------------------------------------------------------------------------------- -->
+        <section id="repertoire">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#equipe" /></svg></span>Clients et fournisseurs</h2>
+          <ul class="qui"><li>Caissier pour les clients</li><li>Magasinier pour les fournisseurs</li><li>Gérant</li></ul>
+          <p>Une fiche est soit un <strong>particulier</strong> (prénom et nom), soit une <strong>entreprise</strong> (raison sociale seule). Le téléphone et le courriel sont exigés.</p>
+          <p>Un nouveau fournisseur s’ouvre en « Entreprise », un nouveau client en « Particulier » : c’est le cas le plus fréquent, l’autre est à un clic.</p>
+        </section>
+
+        <!-- 8 ------------------------------------------------------------------------------- -->
+        <section id="campagnes">
+          <h2><span class="pastille-icone pastille-icone--petrole"><svg aria-hidden="true"><use href="/images/icones.svg#porte-voix" /></svg></span>Campagnes</h2>
+          <ul class="qui"><li>Gérant</li><li>Administrateur</li></ul>
+          <p>Une campagne met des articles en promotion sur une période. Pendant ce temps :</p>
+          <ul>
+            <li>la caisse les vend <strong>au prix réduit</strong>, automatiquement ;</li>
+            <li>vos clients la voient dans l’application GestionStock Fidélité ;</li>
+            <li>les tickets des achats faits pendant la campagne <strong>rapportent des points</strong>.</li>
+          </ul>
+          <h3>Créer une campagne</h3>
+          <ol>
+            <li><strong>Nouvelle campagne</strong> : un titre (« Spécial rentrée »), le message que liront les clients, le premier et le dernier jour, une affiche si vous en avez une.</li>
+            <li>Ajoutez les articles. Pour chacun, la réduction <strong>en pourcentage</strong> ou <strong>en prix fixe</strong> : à côté s’affiche le prix qui sera en rayon, TVA comprise — c’est ce prix-là que vous décidez.</li>
+            <li><strong>Créer la campagne.</strong></li>
+          </ol>
+          <div class="encadre">
+            <svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg>
+            <p>Un article n’est en promotion que dans une campagne à la fois. Une campagne sans article est possible : c’est un simple message, et ses tickets rapportent quand même des points.</p>
+          </div>
+          <h3>Pendant et après</h3>
+          <p>
+            Une campagne <strong>en cours</strong> ne change plus de premier jour. Elle peut être
+            <strong>arrêtée</strong> avant la fin : les prix normaux reprennent aussitôt en caisse
+            (l’écran demande de confirmer). Une campagne terminée ou arrêtée ne se modifie plus :
+            des tickets et des factures citent ses prix.
+          </p>
+        </section>
+
+        <!-- 9 ------------------------------------------------------------------------------- -->
+        <section id="fidelite">
+          <h2><span class="pastille-icone pastille-icone--petrole"><svg aria-hidden="true"><use href="/images/icones.svg#etoile" /></svg></span>Programme de fidélité</h2>
+          <ul class="qui"><li>Gérant</li><li>Administrateur</li></ul>
+          <p>Chaque magasin fixe ses propres règles dans <strong>Clients et promos › Fidélité</strong> :</p>
+          <div class="tableau-cadre">
+            <table class="tableau">
+              <thead><tr><th>Réglage</th><th>Ce qu’il décide</th></tr></thead>
+              <tbody>
+                <tr><td>Montant pour 1 point</td><td>Un point par tranche entière de ce montant, payée TTC sur un même ticket. À 1 000 F, un ticket de 23 500 F rapporte 23 points.</td></tr>
+                <tr><td>Valeur d’un point</td><td>Ce que vaut un point en bon d’achat, en francs.</td></tr>
+                <tr><td>Minimum pour un bon</td><td>Le nombre de points à atteindre avant de pouvoir demander un bon.</td></tr>
+                <tr><td>Validité d’un bon</td><td>Le nombre de jours pendant lesquels un bon s’utilise.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>À droite, l’écran calcule <strong>ce que vous rendez</strong> : la part des achats de vos clients qui leur revient en bons, avec l’exemple d’un client qui dépense 100 000 F. Un interrupteur met le programme en pause : les tickets ne rapportent plus rien, les points déjà gagnés restent échangeables.</p>
+          <h3>Les règles, côté client</h3>
+          <ul>
+            <li>Seuls les achats faits <strong>pendant une campagne</strong> rapportent des points, et le ticket se scanne jusqu’au dernier jour de cette campagne.</li>
+            <li>Un ticket ne se scanne qu’une fois.</li>
+            <li>Les points ne portent que sur ce que le client a <strong>réellement payé</strong> : la part réglée par un bon d’achat n’en rapporte pas.</li>
+            <li>Les points d’un magasin ne se dépensent que dans ce magasin.</li>
+            <li>Un changement de règles vaut pour l’avenir : les bons déjà émis gardent leur montant et leur date d’expiration.</li>
+          </ul>
+        </section>
+
+        <!-- 10 ------------------------------------------------------------------------------ -->
+        <section id="appli">
+          <h2><span class="pastille-icone pastille-icone--petrole"><svg aria-hidden="true"><use href="/images/icones.svg#telephone" /></svg></span>L’application des clients</h2>
+          <p>
+            <strong>GestionStock Fidélité</strong> est l’application Android de vos clients. Elle
+            se <a href="/#telechargement">télécharge depuis ce site</a> (Android 7 ou plus
+            récent ; autorisez l’installation depuis le navigateur quand le téléphone le demande).
+          </p>
+          <div class="tableau-cadre">
+            <table class="tableau">
+              <thead><tr><th>Onglet</th><th>Ce qu’on y fait</th></tr></thead>
+              <tbody>
+                <tr><td>Promos</td><td>Les campagnes en cours de tous les magasins partenaires, avec les prix réduits. Ouvert sans compte.</td></tr>
+                <tr><td>Scanner</td><td>Scanner le QR du ticket — ou taper le code imprimé dessous si la caméra n’y arrive pas.</td></tr>
+                <tr><td>Mes points</td><td>Le total, le solde par magasin, ce qui manque avant un bon, et l’échange des points contre un bon.</td></tr>
+                <tr><td>Mes bons</td><td>Les bons d’achat. Touché, un bon s’ouvre en grand avec son QR, à montrer au caissier.</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p>Le compte se crée avec un numéro de téléphone et un mot de passe ; le prénom est facultatif.</p>
+        </section>
+
+        <!-- 11 ------------------------------------------------------------------------------ -->
+        <section id="equipe">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#cadenas" /></svg></span>L’équipe et les comptes</h2>
+          <ul class="qui"><li>Administrateur</li></ul>
+          <p>Ce que chaque rôle peut ouvrir :</p>
+          <div class="tableau-cadre">
+            <table class="tableau">
+              <thead>
+                <tr><th>Écran</th><th>Admin.</th><th>Gérant</th><th>Caissier</th><th>Magasinier</th><th>Comptable</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Accueil</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td><td class="oui">oui</td></tr>
+                <tr><td>Vendre</td><td class="oui">oui</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td></tr>
+                <tr><td>Factures</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td><td class="oui">oui</td></tr>
+                <tr><td>État de caisse</td><td class="oui">oui</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="oui">oui</td></tr>
+                <tr><td>Stock</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="oui">oui</td><td class="oui">oui</td></tr>
+                <tr><td>Catalogue, inventaire</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="oui">oui</td><td class="non">—</td></tr>
+                <tr><td>Achats, fournisseurs</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="oui">oui</td><td class="non">—</td></tr>
+                <tr><td>Clients</td><td class="oui">oui</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td></tr>
+                <tr><td>Campagnes, fidélité</td><td class="oui">oui</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td><td class="non">—</td></tr>
+                <tr><td>Le magasin, comptes</td><td class="oui">oui</td><td class="non">—</td><td class="non">—</td><td class="non">—</td><td class="non">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Gérer les comptes</h3>
+          <ul>
+            <li><strong>Les rôles</strong> : la liste choisie remplace les rôles actuels — décocher en retire un. Une personne peut en cumuler plusieurs.</li>
+            <li><strong>Fermer un compte</strong> plutôt que le supprimer : l’employé parti reste l’auteur de ses ventes, et l’historique reste lisible. On ne ferme pas son propre accès.</li>
+            <li><strong>Réinitialiser un mot de passe</strong> : huit caractères au moins, à transmettre de vive voix — il n’est jamais envoyé par courriel. Les sessions ouvertes du compte sont fermées.</li>
+          </ul>
+        </section>
+
+        <!-- 12 ------------------------------------------------------------------------------ -->
+        <section id="alertes">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#alerte" /></svg></span>Les alertes</h2>
+          <p>
+            La cloche, en haut de l’écran, rassemble les alertes : un article qui passe sous son
+            seuil, une facture émise, un compte créé. Dans <strong>Notifications</strong>,
+            le bouton <strong>Activer</strong> les fait arriver aussi sur le
+            téléphone ou l’ordinateur, même application fermée.
+          </p>
+        </section>
+
+        <!-- 13 ------------------------------------------------------------------------------ -->
+        <section id="questions">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg></span>Questions fréquentes</h2>
+          <h3>Le navigateur affiche « connexion non sécurisée » sur le réseau du magasin</h3>
+          <p>Utilisez l’adresse <a href="https://stock.tontinepro.uk/">stock.tontinepro.uk</a> : son certificat est reconnu partout. L’adresse locale du serveur demande d’installer une autorité de certification sur chaque appareil.</p>
+          <h3>Un article a un stock négatif</h3>
+          <p>On a vendu plus que ce que le stock connaissait. Le plus souvent, une réception n’a pas été saisie. Comptez l’étagère et corrigez par un inventaire.</p>
+          <h3>Un client n’a pas reçu ses points</h3>
+          <p>Vérifiez que l’achat a eu lieu pendant une campagne, que le programme de fidélité n’est pas en pause, et que le ticket n’a pas déjà été scanné. Le montant payé par bon d’achat ne rapporte pas de points.</p>
+          <h3>La caisse a vendu sans réseau : la vente est-elle perdue ?</h3>
+          <p>Non. Elle est gardée sur l’appareil et part dès que le réseau revient. Ne videz pas les données du navigateur tant que des ventes attendent.</p>
+        </section>
+      </main>
+    </div>
+
+    <footer class="pied">
+      <div class="conteneur">
+        <a class="marque" href="/"><img src="/images/logo.svg" alt="" width="28" height="28" />GestionStock</a>
+        <span>Un produit Jumpytech</span>
+        <nav aria-label="Liens utiles">
+          <a href="/">Accueil</a>
+          <a href="https://stock.tontinepro.uk/confidentialite.html">Confidentialité</a>
+          <a href="https://stock.tontinepro.uk/">Se connecter</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script>
+      // Le sommaire suit la lecture : la section a l'ecran est soulignee.
+      const liens = new Map([...document.querySelectorAll('.sommaire a')].map((a) => [a.hash.slice(1), a]));
+      const observateur = new IntersectionObserver(
+        (entrees) => {
+          for (const e of entrees) {
+            if (e.isIntersecting) {
+              liens.forEach((a) => a.classList.remove('actif'));
+              liens.get(e.target.id)?.classList.add('actif');
+            }
+          }
+        },
+        { rootMargin: '-20% 0px -70% 0px' },
+      );
+      document.querySelectorAll('.article-doc section[id]').forEach((s) => observateur.observe(s));
+    </script>
+  </body>
+</html>
