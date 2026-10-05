@@ -277,6 +277,10 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, API + "/stock/**")
                             .hasAnyRole(ADMIN, MANAGER, MAGASINIER, COMPTABLE)
 
+                        // Le rappel d'un lot nomme les clients qui l'ont achete, avec leur
+                        // telephone : c'est au gerant de les appeler, pas au comptoir.
+                        .requestMatchers(HttpMethod.GET, API + "/lots/*/rappel").hasAnyRole(ADMIN, MANAGER)
+
                         // La recette du jour n'est pas une information pour tout le monde : la
                         // regle generale ouvre les lectures a tout compte connecte, ce qui
                         // montrerait le chiffre d'affaires au magasinier.

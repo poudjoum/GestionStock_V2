@@ -230,6 +230,9 @@ public class CommandeFourServiceImpl implements CommandeFourService {
                     .quantite(Conditionnements.enUnitesDeBase(recue, ligne.getContenance()))
                     .motif(MotifMvtStk.LIVRAISON_COMMANDE)
                     .idSite(commande.getSite() == null ? null : commande.getSite().getId())
+                    // Ignores pour un article non suivi ; exiges pour un article suivi.
+                    .numeroLot(reception.getNumeroLot())
+                    .datePeremption(reception.getDatePeremption())
                     .build());
             ligne.setQuantiteLivree(dejaLivre(ligne).add(recue));
             ligneCmndeFourRepository.save(ligne);

@@ -8,6 +8,10 @@ import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.CodeBarresRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.LotRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.MvtStkRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Lot;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.service.ConditionnementService;
 import com.jumpy.tech.gestionstock.gestiondestock.service.ArticleService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.ArticleValidators;
@@ -28,10 +32,15 @@ public class ArticleServiceImpl implements ArticleService {
     private final Cloisonnement cloisonnement;
     private final ConditionnementService conditionnementService;
     private final CodeBarresRepository codeBarresRepository;
+    private final LotRepository lotRepository;
+    private final MvtStkRepository mvtStkRepository;
 
     public ArticleServiceImpl(ArticleRepository articleRepository, Cloisonnement cloisonnement,
                               ConditionnementService conditionnementService,
-                              CodeBarresRepository codeBarresRepository){
+                              CodeBarresRepository codeBarresRepository,
+                              LotRepository lotRepository, MvtStkRepository mvtStkRepository){
+        this.lotRepository=lotRepository;
+        this.mvtStkRepository=mvtStkRepository;
         this.articleRepository=articleRepository;
         this.cloisonnement=cloisonnement;
         this.conditionnementService=conditionnementService;
@@ -55,12 +64,41 @@ public class ArticleServiceImpl implements ArticleService {
             if (dto.getUniteBase() == null) {
                 article.setUniteBase(existant.getUniteBase());
             }
+            // De meme pour le suivi par lot : un ecran qui ne le connait pas ne le decoche pas.
+            if (dto.getSuiviLot() == null) {
+                article.setSuiviLot(existant.isSuiviLot());
+                article.setTypeDate(existant.getTypeDate());
+                article.setDelaiAlertePeremption(existant.getDelaiAlertePeremption());
+            } else if (existant.isSuiviLot() && !article.isSuiviLot()) {
+                verifierAucunLotEnStock(existant);
+            }
         } else if (cloisonnement.filtre()) {
             // L'entreprise vient du compte, jamais du corps de la requete.
             article.setIdEntreprise(cloisonnement.entrepriseCourante());
         }
+        if (!article.isSuiviLot()) {
+            // Sans suivi, pas de lot, donc pas de date a surveiller.
+            article.setTypeDate(null);
+            article.setDelaiAlertePeremption(null);
+        }
         verifierCodeLibre(article);
         return completer(ArticleDto.fromEntity(articleRepository.save(article)));
+    }
+
+    /**
+     * Decocher le suivi d'un article dont des lots sont en rayon perdrait leurs dates : plus rien ne
+     * dirait ce qui perime, ni a qui le lot a ete vendu s'il etait rappele.
+     */
+    private void verifierAucunLotEnStock(Article article) {
+        List<Long> ids = lotRepository.findAllByArticleIdOrderByDatePeremptionAscIdAsc(article.getId()).stream()
+                .map(Lot::getId).toList();
+        boolean enStock = !ids.isEmpty() && mvtStkRepository.stocksDesLots(ids, TypeMvtStk.ENTREE).stream()
+                .anyMatch(ligne -> ((java.math.BigDecimal) ligne[2]).signum() > 0);
+        if (enStock) {
+            throw new InvalidEntityException("L'article n'est pas valide", ErrorCodes.ARTICLE_NOT_VALID,
+                    List.of("« " + article.getDesignation() + " » a encore des lots en stock : "
+                            + "écoulez-les avant d'arrêter le suivi par lot"));
+        }
     }
 
     /**

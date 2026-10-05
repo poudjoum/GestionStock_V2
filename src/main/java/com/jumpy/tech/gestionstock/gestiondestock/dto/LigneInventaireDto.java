@@ -26,6 +26,9 @@ public class LigneInventaireDto {
     /** En unites de base. */
     private BigDecimal quantite;
     private UniteMesure uniteBase;
+    /** Suivi par lot : une entree a la main demande son lot, une sortie peut le designer. */
+    private boolean suiviLot;
+    private com.jumpy.tech.gestionstock.gestiondestock.entities.TypeDate typeDate;
     /**
      * Les conditionnements actifs de l'article : la quantite se lit aussi en cartons, et c'est en
      * cartons qu'on declare une casse ou qu'on compte une reserve.

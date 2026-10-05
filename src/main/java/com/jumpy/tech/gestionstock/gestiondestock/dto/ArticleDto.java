@@ -24,6 +24,11 @@ public class ArticleDto {
     private Long idEntreprise;
     /** L'unite du stock. Absente a la modification, celle de l'article est gardee. */
     private UniteMesure uniteBase;
+    /** Suivi par lot. Absent a la modification, la valeur de l'article est gardee. */
+    private Boolean suiviLot;
+    private com.jumpy.tech.gestionstock.gestiondestock.entities.TypeDate typeDate;
+    /** Jours d'alerte avant la date ; nul, le reglage du magasin. */
+    private Integer delaiAlertePeremption;
     /**
      * En lecture seulement, et seulement sur les routes du catalogue : ils se gerent sur
      * /articles/{id}/conditionnements et /articles/{id}/codes-barres. Nuls ailleurs — une ligne
@@ -48,6 +53,9 @@ public class ArticleDto {
                 .seuilAlerte(art.getSeuilAlerte())
                 .idEntreprise(art.getIdEntreprise())
                 .uniteBase(art.getUniteBase())
+                .suiviLot(art.isSuiviLot())
+                .typeDate(art.getTypeDate())
+                .delaiAlertePeremption(art.getDelaiAlertePeremption())
                 .category(CategoryDto.fromEntity(art.getCategory()))
                 .build();
 
@@ -70,6 +78,9 @@ public class ArticleDto {
         art.setSeuilAlerte(dto.getSeuilAlerte());
         art.setIdEntreprise(dto.getIdEntreprise());
         art.setUniteBase(dto.getUniteBase() == null ? UniteMesure.PIECE : dto.getUniteBase());
+        art.setSuiviLot(Boolean.TRUE.equals(dto.getSuiviLot()));
+        art.setTypeDate(dto.getTypeDate());
+        art.setDelaiAlertePeremption(dto.getDelaiAlertePeremption());
         return art;
     }
 }

@@ -17,4 +17,11 @@ public class LigneReceptionDto {
 
     /** La quantite arrivee maintenant, pas le cumul : ce qui a ete compte au dechargement. */
     private BigDecimal quantite;
+
+    /**
+     * Le lot arrive, pour un article suivi : son numero et sa date. Une meme ligne peut arriver en
+     * plusieurs lots — une entree par lot dans la reception.
+     */
+    private String numeroLot;
+    private java.time.LocalDate datePeremption;
 }

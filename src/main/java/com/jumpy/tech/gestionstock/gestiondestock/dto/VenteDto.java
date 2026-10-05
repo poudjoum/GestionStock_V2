@@ -44,6 +44,8 @@ public class VenteDto {
     /** En lecture : le site d'ou la marchandise est partie. */
     private Long idSiteExpedition;
     private String nomSiteExpedition;
+    /** En lecture, a l'enregistrement : un lot DLUO depasse est parti, le caissier le dit au client. */
+    private List<String> avertissements;
     private List<LigneVenteDto> ligneVente;
 
     /**
