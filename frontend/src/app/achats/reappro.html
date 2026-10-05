@@ -1,0 +1,167 @@
+@let p = proposition();
+
+<div class="page">
+  <gs-en-tete-page
+    titre="Réapprovisionner"
+    [sousTitre]="p ? 'Ce qu’il faut commander pour tenir ' + p.joursCouverture + ' jours de ventes à ' + (p.nomSite ?? siteActif()?.nom ?? 'ce site') + ', au rythme des ' + p.joursObserves + ' derniers jours.' : 'Ce qu’il faut commander, au rythme des ventes.'"
+  />
+
+  @if (chargement()) {
+    <div class="grid gap-2">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="squelette h-14"></div>
+      }
+    </div>
+  } @else if (erreur(); as message) {
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  } @else if (choix().length === 0) {
+    <gs-section>
+      <gs-etat-vide
+        icone="task_alt"
+        titre="Rien à recommander"
+        texte="Le stock disponible et ce qui est déjà commandé couvrent les ventes. Les articles sans vente ni seuil d’alerte ne sont jamais proposés."
+      >
+        <a mat-button routerLink="/achats">Voir les commandes en cours</a>
+      </gs-etat-vide>
+    </gs-section>
+  } @else {
+    <p class="note">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <span>
+        {{ choix().length }} article{{ choix().length > 1 ? 's' : '' }} à recommander
+        @if (ruptures() > 0) {
+          , dont <b>{{ ruptures() }} déjà sans rien à vendre</b>
+        }
+        . Le disponible déduit ce que les commandes clients réservent, et les commandes fournisseurs en cours sont déjà comptées.
+      </span>
+    </p>
+
+    <!-- Le bureau : un tableau, on compare et on corrige ligne a ligne. -->
+    <div class="tableau-cadre hidden md:block">
+      <table class="gs-tableau">
+        <thead>
+          <tr>
+            <th class="w-10">
+              <mat-checkbox [checked]="retenues().length === choix().length" [indeterminate]="retenues().length > 0 && retenues().length < choix().length"
+                            (change)="toutCocher($event.checked)" aria-label="Tout retenir" />
+            </th>
+            <th>Article</th>
+            <th class="gs-num">Disponible</th>
+            <th class="gs-num">Vendu / jour</th>
+            <th class="gs-num">Tient</th>
+            <th>Fournisseur</th>
+            <th class="gs-num">À commander</th>
+            <th class="gs-num">Prix d’achat</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of choix(); track c.ligne.idArticle; let i = $index) {
+            <tr [class.ecartee]="!c.retenue">
+              <td>
+                <mat-checkbox [checked]="c.retenue" (change)="maj(i, { retenue: $event.checked })"
+                              [attr.aria-label]="'Retenir ' + c.ligne.designation" />
+              </td>
+              <td>
+                <span class="designation">{{ c.ligne.designation }}</span>
+                <gs-statut [ton]="raison(c.ligne).ton" [icone]="raison(c.ligne).icone">{{ raison(c.ligne).libelle }}</gs-statut>
+              </td>
+              <td class="gs-num">
+                <span class="chiffre nombre">{{ c.ligne.disponible | number: '1.0-2' }}</span>
+                <span class="detail">
+                  @if ((c.ligne.reserve ?? 0) > 0) { {{ c.ligne.reserve | number: '1.0-2' }} réservés · }
+                  @if ((c.ligne.enCommande ?? 0) > 0) { {{ c.ligne.enCommande | number: '1.0-2' }} attendus }
+                </span>
+              </td>
+              <td class="gs-num nombre">{{ c.ligne.parJour | number: '1.0-2' }}</td>
+              <td class="gs-num nombre">{{ c.ligne.couvertureJours != null ? c.ligne.couvertureJours + ' j' : '—' }}</td>
+              <td>
+                <mat-form-field appearance="outline" class="w-48" subscriptSizing="dynamic">
+                  <mat-select [value]="c.idFournisseur" (valueChange)="maj(i, { idFournisseur: $event, retenue: true })"
+                              placeholder="Choisir…" [attr.aria-label]="'Fournisseur de ' + c.ligne.designation">
+                    @for (f of fournisseurs(); track f.id) {
+                      <mat-option [value]="f.id">{{ nomFournisseur(f) }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              </td>
+              <td class="gs-num">
+                <mat-form-field appearance="outline" class="w-24" subscriptSizing="dynamic">
+                  <input matInput type="number" inputmode="decimal" min="0" [ngModel]="c.quantite"
+                         (ngModelChange)="maj(i, { quantite: nombre($event) })"
+                         [attr.aria-label]="'Quantité de ' + c.ligne.designation" />
+                </mat-form-field>
+                <span class="detail">{{ unite(c.ligne) }}</span>
+              </td>
+              <td class="gs-num">
+                <mat-form-field appearance="outline" class="w-32" subscriptSizing="dynamic">
+                  <input matInput type="number" inputmode="decimal" min="0" [ngModel]="c.prix"
+                         (ngModelChange)="maj(i, { prix: nombre($event) })"
+                         [attr.aria-label]="'Prix d’achat de ' + c.ligne.designation" />
+                  <span matTextSuffix>F</span>
+                </mat-form-field>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Le telephone : une carte par article, l'essentiel et la quantite. -->
+    <ul class="cartes md:hidden">
+      @for (c of choix(); track c.ligne.idArticle; let i = $index) {
+        <li class="!flex-col !items-stretch">
+          <div class="flex items-start gap-2">
+            <mat-checkbox [checked]="c.retenue" (change)="maj(i, { retenue: $event.checked })"
+                          [attr.aria-label]="'Retenir ' + c.ligne.designation" />
+            <span class="infos">
+              <span class="designation">{{ c.ligne.designation }}</span>
+              <span class="code">
+                {{ c.ligne.disponible | number: '1.0-2' }} disponibles · {{ c.ligne.parJour | number: '1.0-2' }} / jour
+              </span>
+              <gs-statut [ton]="raison(c.ligne).ton" [icone]="raison(c.ligne).icone">{{ raison(c.ligne).libelle }}</gs-statut>
+            </span>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <mat-form-field appearance="outline" class="min-w-40 flex-1" subscriptSizing="dynamic">
+              <mat-label>Fournisseur</mat-label>
+              <mat-select [value]="c.idFournisseur" (valueChange)="maj(i, { idFournisseur: $event, retenue: true })">
+                @for (f of fournisseurs(); track f.id) {
+                  <mat-option [value]="f.id">{{ nomFournisseur(f) }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="w-28" subscriptSizing="dynamic">
+              <mat-label>{{ unite(c.ligne) }}</mat-label>
+              <input matInput type="number" inputmode="decimal" min="0" [ngModel]="c.quantite"
+                     (ngModelChange)="maj(i, { quantite: nombre($event) })" />
+            </mat-form-field>
+          </div>
+        </li>
+      }
+    </ul>
+
+    <!-- Toujours sous les yeux : ce qui partira, et le bouton. -->
+    <div class="barre-enregistrer">
+      @if (erreurEnvoi(); as m) {
+        <p class="message-erreur w-full" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ m }}</span>
+        </p>
+      }
+      <span class="mr-auto text-sm">
+        <b class="nombre">{{ retenues().length }}</b> article{{ retenues().length > 1 ? 's' : '' }}
+        · <b class="nombre">{{ montant() | number: '1.0-0' }} F</b>
+        @if (sansFournisseur() > 0) {
+          <span class="danger"> · {{ sansFournisseur() }} sans fournisseur</span>
+        }
+      </span>
+      <button mat-flat-button class="!h-12" [disabled]="retenues().length === 0 || envoi()" (click)="creer()">
+        <mat-icon>post_add</mat-icon>
+        {{ envoi() ? 'Création…' : nombreDeCommandes() > 1 ? 'Créer ' + nombreDeCommandes() + ' commandes en préparation' : 'Créer la commande en préparation' }}
+      </button>
+    </div>
+  }
+</div>

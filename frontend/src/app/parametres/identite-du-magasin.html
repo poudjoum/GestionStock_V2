@@ -215,6 +215,28 @@
           </mat-form-field>
         </section>
 
+        <section class="carte p-5">
+          <h2 class="gs-etiquette mb-1 mt-0">Réapprovisionnement</h2>
+          <p class="mb-4 gs-encre-2 text-sm">
+            Combien de jours de ventes la proposition de commande doit couvrir, en plus du seuil
+            d’alerte. Quinze jours : deux livraisons par mois.
+          </p>
+          <mat-form-field class="w-full sm:w-64">
+            <mat-label>Couvrir</mat-label>
+            <input
+              matInput
+              type="number"
+              min="1"
+              max="365"
+              step="1"
+              [ngModel]="brouillon().joursCouverture ?? 15"
+              (ngModelChange)="changer('joursCouverture', $event)"
+              name="joursCouverture"
+            />
+            <span matTextSuffix>jours de ventes</span>
+          </mat-form-field>
+        </section>
+
         <section class="carte flex flex-wrap items-center justify-between gap-3 p-5">
           <div>
             <h2 class="gs-etiquette mb-1 mt-0">Fidélité</h2>

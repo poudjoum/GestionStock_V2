@@ -104,6 +104,10 @@
                 @if (enConditionnements(ligne, ligne.quantite); as enCartons) {
                   <span class="en-cartons">{{ enCartons }}</span>
                 }
+                <!-- Ce que les commandes clients retiennent ne se vend plus au comptoir. -->
+                @if ((ligne.reserve ?? 0) > 0) {
+                  <span class="en-cartons">dont {{ ligne.reserve | number: '1.0-3' }} réservés · {{ ligne.disponible | number: '1.0-3' }} disponibles</span>
+                }
               </td>
               <td class="gs-num gs-encre-3">{{ ligne.seuilAlerte != null ? (ligne.seuilAlerte | number: '1.0-2') : '—' }}</td>
               <td class="gs-num gs-encre-2">{{ ligne.coutMoyenAchat != null ? (ligne.coutMoyenAchat | number: '1.0-0') + ' F' : '—' }}</td>
@@ -139,6 +143,9 @@
             </span>
             @if (enConditionnements(ligne, ligne.quantite); as enCartons) {
               <span class="gs-encre-3 text-xs">{{ enCartons }}</span>
+            }
+            @if ((ligne.reserve ?? 0) > 0) {
+              <span class="gs-encre-3 text-xs">{{ ligne.reserve | number: '1.0-3' }} réservés</span>
             }
             @if (peutAjuster() && !tousSites()) {
               <button mat-button class="!-mr-2" (click)="ouvrirAjustement(ligne)">Ajuster</button>

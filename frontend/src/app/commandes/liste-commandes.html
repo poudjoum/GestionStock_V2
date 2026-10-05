@@ -1,0 +1,92 @@
+@let liste = commandes();
+
+<div class="page">
+  <gs-en-tete-page titre="Commandes clients" sousTitre="Ce qu’on a promis aux clients : la marchandise est réservée dès la validation.">
+    <button mat-flat-button (click)="nouvelle()">
+      <mat-icon>add</mat-icon>
+      Nouvelle commande
+    </button>
+  </gs-en-tete-page>
+
+  <div class="barre-outils">
+    <gs-selecteur aria-label="Commandes" [options]="vues()" [valeur]="vue()" (valeurChange)="changerVue($event)" />
+
+    <mat-form-field appearance="outline" class="recherche" subscriptSizing="dynamic">
+      <mat-label>Chercher une commande</mat-label>
+      <mat-icon matPrefix>search</mat-icon>
+      <input
+        matInput
+        inputmode="search"
+        autocapitalize="none"
+        [ngModel]="recherche()"
+        (ngModelChange)="chercher($event)"
+        placeholder="référence ou nom du client"
+      />
+      @if (recherche()) {
+        <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer la recherche">
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+    </mat-form-field>
+  </div>
+
+  @if (chargement()) {
+    <div class="grid gap-2">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="squelette h-16"></div>
+      }
+    </div>
+  } @else if (erreur(); as message) {
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  } @else if (liste.length === 0) {
+    <gs-section>
+      @if (recherche()) {
+        <gs-etat-vide icone="search_off" [titre]="'Aucune commande ne correspond à « ' + recherche() + ' »'" texte="Cherchez par la référence de la commande ou le nom du client." [filtre]="true" />
+      } @else if (vue() === 'preparation') {
+        <gs-etat-vide icone="edit_note" titre="Aucune commande en préparation" texte="Une commande se compose ici, puis se valide : la marchandise est alors réservée pour le client.">
+          <button mat-flat-button (click)="nouvelle()"><mat-icon>add</mat-icon>Prendre une commande</button>
+        </gs-etat-vide>
+      } @else if (vue() === 'a-servir') {
+        <gs-etat-vide icone="task_alt" titre="Rien à servir" texte="Toutes les commandes validées ont été servies." />
+      } @else {
+        <gs-etat-vide icone="history" titre="Aucune commande terminée" texte="Les commandes servies, closes ou annulées restent consultables ici." />
+      }
+    </gs-section>
+  } @else {
+    <ul class="cartes">
+      @for (c of liste; track c.id) {
+        <li class="!p-0">
+          <button type="button" class="commande carte-cliquable gs-focus" (click)="ouvrir(c)">
+            <span class="pastille-commande" aria-hidden="true">
+              <mat-icon>{{ statut(c).icone }}</mat-icon>
+            </span>
+            <span class="infos">
+              <span class="designation">{{ nomDuClient(c) }}</span>
+              <span class="code">
+                {{ c.code }}
+                @if (c.dateCmnde) {
+                  · {{ c.dateCmnde | date: 'd MMM y' }}
+                }
+                @if (livreAilleurs(c)) {
+                  · livrée par {{ c.nomSiteExpedition }}
+                }
+              </span>
+            </span>
+            <gs-statut [ton]="statut(c).ton" [icone]="statut(c).icone">{{ statut(c).libelle }}</gs-statut>
+            <mat-icon class="gs-encre-3 shrink-0" aria-hidden="true">chevron_right</mat-icon>
+          </button>
+        </li>
+      }
+    </ul>
+
+    <p class="pied gs-encre-3">
+      {{ liste.length }} commande{{ liste.length > 1 ? 's' : '' }}
+      @if (total() > liste.length) {
+        sur {{ total() }} — affinez la recherche
+      }
+    </p>
+  }
+</div>

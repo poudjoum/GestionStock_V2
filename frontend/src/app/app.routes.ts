@@ -51,6 +51,35 @@ export const routes: Routes = [
         loadComponent: () => import('./stock/etat-du-stock').then((m) => m.EtatDuStock),
       },
       {
+        // Les commandes des clients : les prendre, les valider (la marchandise est reservee), les
+        // servir. Les memes roles que le serveur laisse ecrire.
+        path: 'commandes',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./commandes/liste-commandes').then((m) => m.ListeCommandes),
+      },
+      {
+        path: 'commandes/nouvelle',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./commandes/commande-client').then((m) => m.CommandeClient),
+      },
+      {
+        path: 'commandes/:id',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./commandes/commande-client').then((m) => m.CommandeClient),
+      },
+      {
+        // Ce qu'il faut recommander, calcule sur les ventes.
+        path: 'reappro',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./achats/reappro').then((m) => m.Reappro),
+      },
+      {
+        // Ce que rapporte chaque article : classes ABC, couverture, dormants.
+        path: 'analyses',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],
+        loadComponent: () => import('./stock/analyses').then((m) => m.Analyses),
+      },
+      {
         // Les lots qui perissent : le magasinier les retire, le gerant rappelle.
         path: 'peremptions',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],

@@ -1,0 +1,129 @@
+@let a = analyse();
+
+<div class="page">
+  <gs-en-tete-page
+    titre="Analyses"
+    [sousTitre]="'Ce que rapporte chaque article et ce que le stock immobilise' + (tousSites() ? ', dans tous les sites.' : ' à ' + (a?.nomSite ?? 'ce site') + '.')"
+  >
+    @if (peutVoirTout()) {
+      <gs-selecteur aria-label="Analyse de" [options]="portees()" [valeur]="portee()" (valeurChange)="changerPortee($event)" />
+    }
+  </gs-en-tete-page>
+
+  <div class="barre-outils">
+    <gs-selecteur aria-label="Période" [options]="periodes" [valeur]="jours()" (valeurChange)="changerPeriode($event)" />
+  </div>
+
+  @if (chargement()) {
+    <div class="tuiles">
+      @for (i of [1, 2, 3]; track i) {
+        <div class="squelette h-28"></div>
+      }
+    </div>
+    <div class="grid gap-2">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="squelette h-14"></div>
+      }
+    </div>
+  } @else if (erreur(); as message) {
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  } @else if (!a || (a.articles ?? []).length === 0) {
+    <gs-section>
+      <gs-etat-vide icone="insights" titre="Rien à analyser sur cette période"
+                    texte="Les articles apparaissent ici dès qu’ils ont du stock ou qu’ils se vendent." />
+    </gs-section>
+  } @else {
+    <div class="tuiles">
+      <gs-tuile libelle="Chiffre d’affaires HT" icone="payments" [valeur]="a.chiffreAffaires" unite="F"
+                [detail]="'Sur ' + a.jours + ' jours'" />
+      <gs-tuile libelle="Articles qui font 80 % des ventes" icone="star" [valeur]="a.nombreA"
+                [detail]="'Classe A sur ' + (a.articles ?? []).length + ' articles : à ne jamais laisser en rupture'" />
+      <gs-tuile libelle="Stock dormant" icone="bedtime" [valeur]="a.valeurDormante" unite="F"
+                [ton]="(a.nombreDormants ?? 0) > 0 ? 'attention' : 'normal'"
+                [detail]="a.nombreDormants + ' article' + ((a.nombreDormants ?? 0) > 1 ? 's' : '') + ' en stock sans une vente sur la période'" />
+    </div>
+
+    <div class="barre-outils">
+      <gs-selecteur aria-label="Articles affichés" [options]="filtres()" [valeur]="filtre()" (valeurChange)="filtre.set($event)" />
+    </div>
+
+    @if (lignes().length === 0) {
+      <gs-section>
+        <gs-etat-vide icone="filter_alt_off" titre="Aucun article dans ce filtre" [filtre]="true" />
+      </gs-section>
+    } @else {
+      <div class="tableau-cadre hidden md:block">
+        <table class="gs-tableau">
+          <thead>
+            <tr>
+              <th>Classe</th>
+              <th>Article</th>
+              <th class="gs-num">Chiffre d’affaires</th>
+              <th class="gs-num">Part</th>
+              <th class="gs-num">Vendu</th>
+              <th class="gs-num">En stock</th>
+              <th class="gs-num">Tient</th>
+              <th>Dernière vente</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of lignes(); track l.idArticle) {
+              <tr>
+                <td><gs-statut [ton]="classe(l).ton" [icone]="classe(l).icone">{{ classe(l).libelle }}</gs-statut></td>
+                <td>
+                  <span class="designation">{{ l.designation }}</span>
+                  <span class="code gs-code">{{ l.codeArticle }}</span>
+                </td>
+                <td class="gs-num valeur">{{ l.chiffreAffaires | number: '1.0-0' }} F</td>
+                <td class="gs-num nombre">
+                  {{ l.part | number: '1.0-1' }} %
+                  <span class="barre-part" [style.width.%]="((l.part ?? 0) / partMax()) * 100" aria-hidden="true"></span>
+                </td>
+                <td class="gs-num nombre">{{ l.quantiteVendue | number: '1.0-2' }} <span class="code">{{ unites(l, l.quantiteVendue) }}</span></td>
+                <td class="gs-num nombre">
+                  {{ l.stock | number: '1.0-2' }}
+                  @if (l.valeurStock != null) { <span class="code">{{ l.valeurStock | number: '1.0-0' }} F</span> }
+                </td>
+                <td class="gs-num nombre">
+                  @if (l.dormant) {
+                    <gs-statut ton="alerte" icone="bedtime">Dort</gs-statut>
+                  } @else {
+                    {{ l.couvertureJours != null ? l.couvertureJours + ' j' : '—' }}
+                  }
+                </td>
+                <td class="gs-encre-2">{{ l.derniereVente ? (l.derniereVente | date: 'd MMM') : '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <ul class="cartes md:hidden">
+        @for (l of lignes(); track l.idArticle) {
+          <li>
+            <span class="infos">
+              <span class="designation">{{ l.designation }}</span>
+              <span class="code">
+                {{ l.part | number: '1.0-1' }} % du chiffre · stock {{ l.stock | number: '1.0-2' }}
+                @if (l.couvertureJours != null) { · tient {{ l.couvertureJours }} j }
+              </span>
+              @if (l.dormant) {
+                <gs-statut ton="alerte" icone="bedtime">Dort</gs-statut>
+              } @else {
+                <gs-statut [ton]="classe(l).ton" [icone]="classe(l).icone">Classe {{ classe(l).libelle }}</gs-statut>
+              }
+            </span>
+            <span class="chiffres">
+              <span class="quantite nombre text-base">{{ l.chiffreAffaires | number: '1.0-0' }} F</span>
+            </span>
+          </li>
+        }
+      </ul>
+
+      <p class="pied gs-encre-3">{{ lignes().length }} article{{ lignes().length > 1 ? 's' : '' }}</p>
+    }
+  }
+</div>
