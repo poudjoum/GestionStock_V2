@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -50,4 +52,9 @@ public class SeanceInventaire extends AbstractEntity {
 
     @Column(name = "id_entreprise")
     private Long idEntreprise;
+
+    /** Le site compte. Une seance ouverte a la fois par site. */
+    @ManyToOne
+    @JoinColumn(name = "id_site")
+    private Site site;
 }

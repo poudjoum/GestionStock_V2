@@ -47,5 +47,8 @@ public interface CommandeClientService {
     CommandeClientDto findById(Long id);
     CommandeClientDto findByCode(String code);
     List<CommandeClientDto> findAll();
+
+    /** Le site qui livrera la commande : le magasin, ou l'entrepot. */
+    CommandeClientDto changerSiteExpedition(Long id, Long idSite);
     void delete(Long id);
 }

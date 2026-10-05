@@ -23,6 +23,16 @@ public class CommandeClient extends AbstractEntity{
     private Instant dateCommande;
     @Column(name="idEntreprise")
     private Long idEntreprise;
+
+    /** Le magasin qui a pris la commande, et qui la vendra. */
+    @ManyToOne
+    @JoinColumn(name="id_site")
+    private Site site;
+
+    /** Le site qui la livre : le magasin, ou l'entrepot. Sa marchandise sort de la. */
+    @ManyToOne
+    @JoinColumn(name="id_site_expedition")
+    private Site siteExpedition;
     @Enumerated(EnumType.STRING)
     @Column(name="etat", nullable = false, length = 20)
     private EtatCommande etat;

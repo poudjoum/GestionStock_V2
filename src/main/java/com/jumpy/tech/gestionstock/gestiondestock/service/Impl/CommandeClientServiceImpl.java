@@ -9,6 +9,9 @@ import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Client;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.CommandeClient;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Conditionnement;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Site;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.SiteRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneCmndeClient;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
@@ -42,8 +45,13 @@ public class CommandeClientServiceImpl implements CommandeClientService {
     private ArticleRepository articleRepository;
     private LigneCmndeClientRepository ligneCmndeClientRepository;
     private final Conditionnements conditionnements;
+    private final SiteCourant siteCourant;
+    private final SiteRepository siteRepository;
     public CommandeClientServiceImpl(CommandeClientRepository commandeClientRepository, ClientRepository clientRepository,ArticleRepository articleRepository,LigneCmndeClientRepository ligneCmndeClientRepository,Cloisonnement cloisonnement,
-                                     Conditionnements conditionnements){
+                                     Conditionnements conditionnements, SiteCourant siteCourant,
+                                     SiteRepository siteRepository){
+        this.siteCourant=siteCourant;
+        this.siteRepository=siteRepository;
         this.conditionnements=conditionnements;
         this.commandeClientRepository=commandeClientRepository;
         this.articleRepository=articleRepository;
@@ -99,6 +107,16 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         if (cloisonnement.filtre()) {
             aEnregistrer.setIdEntreprise(cloisonnement.entrepriseCourante());
         }
+        Site magasin = siteCourant.site();
+        if (magasin != null && !magasin.vend()) {
+            throw new InvalidEntityException(
+                    "« " + magasin.getNom() + " » est un entrepôt : la commande se prend au magasin qui vend",
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID,
+                    List.of("Choisissez le magasin du client, puis l'entrepôt comme site qui livre"));
+        }
+        aEnregistrer.setSite(magasin);
+        aEnregistrer.setSiteExpedition(dto.getIdSiteExpedition() == null ? magasin
+                : siteDeLEntreprise(dto.getIdSiteExpedition(), aEnregistrer.getIdEntreprise()));
         CommandeClient saveCmndClt=commandeClientRepository.save(aEnregistrer);
         if(dto.getLigneCmndeClients()!=null) {
             dto.getLigneCmndeClients().forEach(ligCmdClt -> {
@@ -140,13 +158,48 @@ public class CommandeClientServiceImpl implements CommandeClientService {
                 .orElseThrow(()->new EntityNotFoundException("Aucune commande client avec le code "+code+" n'a été trouvée",ErrorCodes.COMMANDE_CLIENT_NOT_FOUND));
     }
 
+    /**
+     * Les commandes de l'entreprise. Un collaborateur attache a des sites voit celles qu'ils
+     * prennent ou qu'ils livrent : l'equipe de l'entrepot y trouve ce qu'elle a a preparer.
+     */
     @Override
     public List<CommandeClientDto> findAll() {
         return (cloisonnement.filtre()
                 ? commandeClientRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante())
                 : commandeClientRepository.findAll()).stream()
+                .filter(c -> siteCourant.voitTousLesSites()
+                        || (c.getSite() != null && siteCourant.peutVoir(c.getSite()))
+                        || (c.getSiteExpedition() != null && siteCourant.peutVoir(c.getSiteExpedition())))
                 .map(CommandeClientDto::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Change le site qui livrera : le magasin n'a pas de quoi, l'entrepot s'en charge. Tant que
+     * rien n'est parti — une commande servie en partie a deja fait sortir sa marchandise d'un site.
+     */
+    @Override
+    @Transactional
+    public CommandeClientDto changerSiteExpedition(Long id, Long idSite) {
+        CommandeClient commande = commande(id);
+        if (commande.getEtat() != EtatCommande.EN_PREPARATION && commande.getEtat() != EtatCommande.VALIDEE) {
+            throw new InvalidEntityException(
+                    "Une commande " + commande.getEtat() + " ne change plus de site de livraison",
+                    ErrorCodes.COMMANDE_CLIENT_NOT_VALID);
+        }
+        commande.setSiteExpedition(siteDeLEntreprise(idSite, commande.getIdEntreprise()));
+        return CommandeClientDto.fromEntity(commandeClientRepository.save(commande));
+    }
+
+    /**
+     * Un site actif de l'entreprise. Le magasin peut faire livrer par un site ou il ne travaille
+     * pas — c'est tout l'interet de l'entrepot ; c'est l'equipe de ce site qui servira.
+     */
+    private Site siteDeLEntreprise(Long idSite, Long idEntreprise) {
+        return siteRepository.findById(idSite)
+                .filter(s -> java.util.Objects.equals(s.getIdEntreprise(), idEntreprise) && s.isActif())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun site avec l'identifiant " + idSite + " n'a été trouvé", ErrorCodes.SITE_NOT_FOUND));
     }
 
     /**

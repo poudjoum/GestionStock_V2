@@ -35,6 +35,15 @@ public class VenteDto {
     private Long idEntreprise;
     /** Nul pour une vente au comptoir ; renseigne quand la vente sert une commande client. */
     private Long idCommandeClient;
+    /**
+     * Le magasin qui vend. A l'envoi d'une vente faite hors ligne, celui ou se trouvait le poste ;
+     * au comptoir, le site actif fait foi.
+     */
+    private Long idSite;
+    private String nomSite;
+    /** En lecture : le site d'ou la marchandise est partie. */
+    private Long idSiteExpedition;
+    private String nomSiteExpedition;
     private List<LigneVenteDto> ligneVente;
 
     /**
@@ -68,6 +77,10 @@ public class VenteDto {
                 .client(ClientDto.fromEntity(vente.getClient()))
                 .idEntreprise(vente.getIdEntreprise())
                 .idCommandeClient(vente.getCommandeClient() == null ? null : vente.getCommandeClient().getId())
+                .idSite(vente.getSite() == null ? null : vente.getSite().getId())
+                .nomSite(vente.getSite() == null ? null : vente.getSite().getNom())
+                .idSiteExpedition(vente.getSiteExpedition() == null ? null : vente.getSiteExpedition().getId())
+                .nomSiteExpedition(vente.getSiteExpedition() == null ? null : vente.getSiteExpedition().getNom())
                 .build();
     }
     public static Vente toEntity(VenteDto dto) {

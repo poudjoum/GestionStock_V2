@@ -42,4 +42,33 @@ public interface MvtStkRepository extends JpaRepository<MvtStk, Long> {
             "where m.articles.id in :idsArticles group by m.articles.id")
     java.util.List<Object[]> stocksReels(@Param("idsArticles") java.util.Collection<Long> idsArticles,
                                          @Param("entree") TypeMvtStk entree);
+
+    /** La meme somme, dans un seul site : c'est le stock que le magasin a sous la main. */
+    @Query("select coalesce(sum(m.quantite), 0) from MvtStk m " +
+            "where m.articles.id = :idArticle and m.site.id = :idSite and m.typMvt = :typeMvt")
+    BigDecimal sommeParTypeDansSite(@Param("idArticle") Long idArticle, @Param("idSite") Long idSite,
+                                    @Param("typeMvt") TypeMvtStk typeMvt);
+
+    /** Le stock de plusieurs articles dans un site, en une requete. */
+    @Query("select m.articles.id, coalesce(sum(case when m.typMvt = :entree then m.quantite " +
+            "else -m.quantite end), 0) from MvtStk m " +
+            "where m.articles.id in :idsArticles and m.site.id = :idSite group by m.articles.id")
+    java.util.List<Object[]> stocksReelsDansSite(@Param("idsArticles") java.util.Collection<Long> idsArticles,
+                                                 @Param("idSite") Long idSite,
+                                                 @Param("entree") TypeMvtStk entree);
+
+    /** Le stock de plusieurs articles, site par site : article, site, quantite. */
+    @Query("select m.articles.id, m.site.id, coalesce(sum(case when m.typMvt = :entree then m.quantite " +
+            "else -m.quantite end), 0) from MvtStk m " +
+            "where m.articles.id in :idsArticles and m.site is not null group by m.articles.id, m.site.id")
+    java.util.List<Object[]> stocksParSite(@Param("idsArticles") java.util.Collection<Long> idsArticles,
+                                           @Param("entree") TypeMvtStk entree);
+
+    /**
+     * Les articles qui ont encore du stock dans un site — positif ou negatif. Un site ne se ferme
+     * pas tant qu'il en reste : sa marchandise disparaitrait des comptes sans etre sortie.
+     */
+    @Query("select m.articles.id from MvtStk m where m.site.id = :idSite group by m.articles.id " +
+            "having coalesce(sum(case when m.typMvt = :entree then m.quantite else -m.quantite end), 0) <> 0")
+    java.util.List<Long> articlesEnStockDansSite(@Param("idSite") Long idSite, @Param("entree") TypeMvtStk entree);
 }

@@ -41,11 +41,14 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     private final Cloisonnement cloisonnement;
     private MvtStkService mvtStkService;
     private final Conditionnements conditionnements;
+    private final com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant siteCourant;
 
     public CommandeFourServiceImpl(CommandeFourRepository commandeFourRepository, ArticleRepository articleRepository,
                                    LigneCmndeFourRepository ligneCmndeFourRepository, FournisseurRepository fournisseurRepository,
                                    MvtStkService mvtStkService, Cloisonnement cloisonnement,
-                                   Conditionnements conditionnements){
+                                   Conditionnements conditionnements,
+                                   com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant siteCourant){
+        this.siteCourant=siteCourant;
         this.conditionnements=conditionnements;
         this.cloisonnement=cloisonnement;
         this.commandeFourRepository=commandeFourRepository;
@@ -101,6 +104,9 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         if (cloisonnement.filtre()) {
             aEnregistrer.setIdEntreprise(cloisonnement.entrepriseCourante());
         }
+        // Livree au site actif, ou a celui qu'on designe — l'un des siens : on ne fait pas livrer
+        // un depot ou l'on ne travaille pas sans que son equipe le sache.
+        aEnregistrer.setSite(dto.getIdSite() == null ? siteCourant.site() : siteCourant.accessible(dto.getIdSite()));
         CommandeFour saveCmndFour=commandeFourRepository.save(aEnregistrer);
         if(dto.getLigneCmndeFournisseur()!=null) {
             dto.getLigneCmndeFournisseur().forEach(ligCmdFour -> {
@@ -223,6 +229,7 @@ public class CommandeFourServiceImpl implements CommandeFourService {
                     .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
                     .quantite(Conditionnements.enUnitesDeBase(recue, ligne.getContenance()))
                     .motif(MotifMvtStk.LIVRAISON_COMMANDE)
+                    .idSite(commande.getSite() == null ? null : commande.getSite().getId())
                     .build());
             ligne.setQuantiteLivree(dejaLivre(ligne).add(recue));
             ligneCmndeFourRepository.save(ligne);

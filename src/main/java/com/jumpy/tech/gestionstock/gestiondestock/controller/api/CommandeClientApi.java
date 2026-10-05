@@ -46,6 +46,11 @@ public interface CommandeClientApi {
      *
      * Rien ne sort du magasin : ce qui n'a pas ete vendu n'a jamais quitte le stock.
      */
+    /** Le site qui livrera : `PATCH .../expedition/7`. */
+    @PatchMapping(value = APP_ROOT+"/commandes-clients/{idCommandClient}/expedition/{idSite}",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<CommandeClientDto> changerSiteExpedition(@PathVariable("idCommandClient") Long id,
+                                                           @PathVariable("idSite") Long idSite);
+
     @PostMapping(value = APP_ROOT+"/commandes-clients/{idCommandClient}/cloture",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CommandeClientDto> cloturer(@PathVariable Long idCommandClient,
                                                @RequestBody ClotureDto cloture);

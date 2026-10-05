@@ -41,4 +41,9 @@ public class MvtStk extends  AbstractEntity{
     // cloisonnement qui compare des identifiants ne peut pas vivre avec deux types.
     @Column(name="idEntreprise")
     private Long idEntreprise;
+
+    /** Le site dont le stock bouge. Nul pour les donnees anterieures au cloisonnement. */
+    @ManyToOne
+    @JoinColumn(name="id_site")
+    private Site site;
 }

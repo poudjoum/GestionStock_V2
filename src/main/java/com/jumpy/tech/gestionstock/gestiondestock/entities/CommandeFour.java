@@ -24,6 +24,11 @@ public class CommandeFour extends AbstractEntity{
     private Instant dateCommande;
     @Column(name="idEntreprise")
     private Long idEntreprise;
+
+    /** Le site ou la marchandise sera livree. */
+    @ManyToOne
+    @JoinColumn(name="id_site")
+    private Site site;
     // En clair et non en rang : une enumeration mappee en ORDINAL se reinterprete toute seule le
     // jour ou l'on intercale un etat, et l'historique change de sens sans que rien ne bouge.
     @Enumerated(EnumType.STRING)

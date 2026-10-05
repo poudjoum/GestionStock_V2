@@ -45,6 +45,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder encodeur;
     private final Cloisonnement cloisonnement;
+    private final com.jumpy.tech.gestionstock.gestiondestock.service.SiteService sites;
     private final EnvoiRepository envoiRepository;
     /** L'adresse a laquelle le gerant ouvrira l'application. Vide, le courriel n'en parle pas. */
     private final String adressePublique;
@@ -55,7 +56,9 @@ public class EntrepriseServiceImpl implements EntrepriseService {
                                  PasswordEncoder encodeur,
                                  Cloisonnement cloisonnement,
                                  EnvoiRepository envoiRepository,
-                                 @Value("${app.adressePublique:}") String adressePublique){
+                                 @Value("${app.adressePublique:}") String adressePublique,
+                                 com.jumpy.tech.gestionstock.gestiondestock.service.SiteService sites){
+        this.sites=sites;
         this.envoiRepository=envoiRepository;
         this.adressePublique=adressePublique;
         this.entrepriseRepository=entrepriseRepository;
@@ -116,6 +119,8 @@ public class EntrepriseServiceImpl implements EntrepriseService {
             aInscrire.setAbonnementEcheance(LocalDate.now().plusYears(1));
         }
         Entreprise entreprise = entrepriseRepository.save(aInscrire);
+        // Son magasin, ne en meme temps qu'elle : sans site, il n'y aurait nulle part ou stocker.
+        sites.creerSitePrincipal(entreprise.getId());
 
         Utilisateur compte = UserDto.toEntity(administrateur);
         compte.setId(null);
@@ -145,6 +150,7 @@ public class EntrepriseServiceImpl implements EntrepriseService {
              throw new InvalidEntityException("L'entreprise n'est pas valide", ErrorCodes.ENTREPRISE_NOT_VALID,errors);
          }
          Entreprise savedEntreprise=entrepriseRepository.save(EntrepriseDto.toEntity(dto));
+         sites.creerSitePrincipal(savedEntreprise.getId());
 
 
         return EntrepriseDto.fromEntity(savedEntreprise);

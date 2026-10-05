@@ -57,11 +57,14 @@ public class UserServiceImpl implements UserService {
     private final Cloisonnement cloisonnement;
     private final ServiceDeRafraichissement rafraichissement;
     private final NotificationService notifications;
+    private final com.jumpy.tech.gestionstock.gestiondestock.repository.SiteRepository siteRepository;
 
     public UserServiceImpl(UtilisateurRepository userRepository, RoleRepository roleRepository,
                            EntrepriseRepository entrepriseRepository, PasswordEncoder encodeur,
                            Cloisonnement cloisonnement, ServiceDeRafraichissement rafraichissement,
-                           NotificationService notifications) {
+                           NotificationService notifications,
+                           com.jumpy.tech.gestionstock.gestiondestock.repository.SiteRepository siteRepository) {
+        this.siteRepository = siteRepository;
         this.notifications = notifications;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -291,6 +294,36 @@ public class UserServiceImpl implements UserService {
         verifierPouvoirSur(utilisateur);
         verifierRolesAttribuables(roles);
         utilisateur.setRoles(vises);
+        return UserDto.fromEntity(userRepository.save(utilisateur));
+    }
+
+    /**
+     * Les sites d'un collaborateur. Ils sont de son entreprise, et le site ou il arrive est l'un
+     * d'eux : arriver chaque matin sur un site qui lui est ferme ne lui servirait a rien.
+     */
+    @Override
+    @Transactional
+    public UserDto changerSites(Long id, com.jumpy.tech.gestionstock.gestiondestock.dto.SitesDuCompteDto demande) {
+        Utilisateur utilisateur = utilisateur(id);
+        verifierPouvoirSur(utilisateur);
+        Long entreprise = utilisateur.getEntreprise() == null ? null : utilisateur.getEntreprise().getId();
+        List<Long> ids = demande == null || demande.idsSites() == null ? List.of() : demande.idsSites();
+        Set<com.jumpy.tech.gestionstock.gestiondestock.entities.Site> sites = new HashSet<>();
+        for (Long idSite : ids) {
+            sites.add(siteRepository.findById(idSite)
+                    .filter(s -> java.util.Objects.equals(s.getIdEntreprise(), entreprise) && s.isActif())
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Aucun site avec l'identifiant " + idSite + " n'a été trouvé", ErrorCodes.SITE_NOT_FOUND)));
+        }
+        Long idDefaut = demande == null ? null : demande.idSiteDefaut();
+        com.jumpy.tech.gestionstock.gestiondestock.entities.Site parDefaut = null;
+        if (idDefaut != null) {
+            parDefaut = sites.stream().filter(s -> s.getId().equals(idDefaut)).findFirst()
+                    .orElseThrow(() -> new InvalidEntityException(
+                            "Le site d'arrivée doit être l'un de ses sites", ErrorCodes.SITE_NOT_VALID));
+        }
+        utilisateur.setSites(sites);
+        utilisateur.setSiteDefaut(parDefaut);
         return UserDto.fromEntity(userRepository.save(utilisateur));
     }
 

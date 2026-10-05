@@ -2,6 +2,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
 import com.jumpy.tech.gestionstock.gestiondestock.controller.api.MvtStkControllerApi;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.StockSiteDto;
+import com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
@@ -19,9 +21,16 @@ import java.util.stream.Collectors;
 public class MvtStkController implements MvtStkControllerApi {
 
     private final MvtStkService mvtStkService;
+    private final SiteCourant siteCourant;
 
-    public MvtStkController(MvtStkService mvtStkService) {
+    public MvtStkController(MvtStkService mvtStkService, SiteCourant siteCourant) {
         this.mvtStkService = mvtStkService;
+        this.siteCourant = siteCourant;
+    }
+
+    @Override
+    public ResponseEntity<List<StockSiteDto>> stocksParSite(Long idArticle) {
+        return ResponseEntity.ok(mvtStkService.stocksParSite(idArticle));
     }
 
     @Override
@@ -53,6 +62,11 @@ public class MvtStkController implements MvtStkControllerApi {
     private MvtStkDto saisieManuelle(MvtStkDto dto, TypeMvtStk sens) {
         if (dto == null) {
             return null;
+        }
+        // Le site demande doit etre l'un des siens : la casse du magasin d'a cote ne se declare pas
+        // d'ici. Sans site, le service prend le site actif.
+        if (dto.getIdSite() != null) {
+            siteCourant.accessible(dto.getIdSite());
         }
         MotifMvtStk motif = dto.getMotif();
         if (motif == null) {
