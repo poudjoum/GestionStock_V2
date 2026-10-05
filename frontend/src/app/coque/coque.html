@@ -31,22 +31,41 @@
   -->
   <ng-template #listeDuMenu>
     @for (groupe of groupes(); track groupe.id) {
-      <div class="menu-groupe">
-        @if (groupe.libelle) {
-          <span class="menu-groupe-nom">{{ groupe.libelle }}</span>
-        }
-        @for (entree of groupe.entrees; track entree.chemin) {
-          <a
-            class="menu-entree"
-            [routerLink]="entree.chemin"
-            routerLinkActive="actif"
-            ariaCurrentWhenActive="page"
-            (click)="feuilleOuverte.set(false)"
+      @let ouvert = !groupe.id || estOuvert(groupe.id);
+      <div class="menu-groupe" [class.ouvert]="ouvert">
+        <!--
+          Le nom du groupe se deplie et se replie : le menu s'allonge a chaque lot, et tout
+          deplie, il faisait defiler la colonne pour trouver les reglages.
+        -->
+        @if (groupe.id && groupe.libelle) {
+          <button
+            type="button"
+            class="menu-groupe-nom"
+            [class.contient-la-page]="!ouvert && groupe.id === groupeActif()"
+            [attr.aria-expanded]="ouvert"
+            [attr.aria-controls]="'groupe-' + groupe.id"
+            (click)="basculer(groupe.id)"
           >
-            <mat-icon aria-hidden="true">{{ entree.icone }}</mat-icon>
-            {{ entree.libelle }}
-          </a>
+            <span class="flex-1">{{ groupe.libelle }}</span>
+            <mat-icon class="chevron" aria-hidden="true">expand_more</mat-icon>
+          </button>
         }
+        <div class="menu-groupe-corps" [id]="'groupe-' + groupe.id" [attr.inert]="ouvert ? null : ''">
+          <div class="menu-groupe-entrees">
+            @for (entree of groupe.entrees; track entree.chemin) {
+              <a
+                class="menu-entree"
+                [routerLink]="entree.chemin"
+                routerLinkActive="actif"
+                ariaCurrentWhenActive="page"
+                (click)="feuilleOuverte.set(false)"
+              >
+                <mat-icon aria-hidden="true">{{ entree.icone }}</mat-icon>
+                {{ entree.libelle }}
+              </a>
+            }
+          </div>
+        </div>
       </div>
     }
   </ng-template>
