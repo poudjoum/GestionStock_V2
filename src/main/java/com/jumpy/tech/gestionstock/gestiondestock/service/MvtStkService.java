@@ -14,8 +14,17 @@ import java.util.List;
  */
 public interface MvtStkService {
 
-    /** Entrees moins sorties. Zero si l'article n'a jamais bouge. */
+    /**
+     * Entrees moins sorties, dans le site actif — ou dans tous les sites, hors de toute entreprise.
+     * Zero si l'article n'a jamais bouge.
+     */
     BigDecimal stockReelArticle(Long idArticle);
+
+    /** Le stock de l'article dans ce site. */
+    BigDecimal stockReelDansSite(Long idArticle, Long idSite);
+
+    /** Le stock de l'article site par site : ou est la marchandise. */
+    List<com.jumpy.tech.gestionstock.gestiondestock.dto.StockSiteDto> stocksParSite(Long idArticle);
 
     /** L'historique d'un article, du plus recent au plus ancien. */
     List<MvtStkDto> mvtStkArticle(Long idArticle);
@@ -59,4 +68,7 @@ public interface MvtStkService {
      * n'empecherait rien — cela laisserait seulement le logiciel dans son erreur.
      */
     MvtStkDto corrigerAuComptage(Long idArticle, java.math.BigDecimal ecart);
+
+    /** Le meme rattrapage, dans le site compte par l'inventaire. */
+    MvtStkDto corrigerAuComptage(Long idArticle, java.math.BigDecimal ecart, Long idSite);
 }

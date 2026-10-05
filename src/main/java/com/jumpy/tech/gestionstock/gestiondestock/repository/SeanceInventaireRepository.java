@@ -17,6 +17,11 @@ public interface SeanceInventaireRepository extends JpaRepository<SeanceInventai
 
     Page<SeanceInventaire> findAllByIdEntreprise(Long idEntreprise, Pageable pageable);
 
+    /** La seance ouverte d'un site : il n'y en a qu'une a la fois. */
+    Optional<SeanceInventaire> findByStatutAndSiteId(StatutSeanceInventaire statut, Long idSite);
+
+    Page<SeanceInventaire> findAllBySiteId(Long idSite, Pageable pageable);
+
     /**
      * Le prochain rang, pris dans la sequence de la base.
      *

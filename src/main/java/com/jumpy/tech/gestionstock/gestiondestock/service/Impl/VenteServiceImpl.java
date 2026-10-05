@@ -2,6 +2,8 @@ package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.conditionnement.Conditionnements;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Conditionnement;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Site;
+import com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.PromotionArticle;
 import com.jumpy.tech.gestionstock.gestiondestock.promotion.PrixDuJour;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
@@ -76,6 +78,7 @@ public class VenteServiceImpl implements VenteService {
     private final FactureService factureService;
     private final PrixDuJour prixDuJour;
     private final Conditionnements conditionnements;
+    private final SiteCourant siteCourant;
 
     public VenteServiceImpl(VenteRepository venteRepository, ArticleRepository articleRepository,
                             LigneVenteRepository ligneVenteRepository,
@@ -87,7 +90,9 @@ public class VenteServiceImpl implements VenteService {
                             MvtStkService mvtStkService,
                             FactureService factureService,
                             PrixDuJour prixDuJour,
-                            Conditionnements conditionnements) {
+                            Conditionnements conditionnements,
+                            SiteCourant siteCourant) {
+        this.siteCourant = siteCourant;
         this.conditionnements = conditionnements;
         this.factureService = factureService;
         this.prixDuJour = prixDuJour;
@@ -238,6 +243,9 @@ public class VenteServiceImpl implements VenteService {
         // Une vente directe a lieu maintenant ; une vente synchronisee porte la date qu'elle
         // avait sur le poste, et la date envoyee ne fait donc foi que dans ce second cas.
         aEnregistrer.setDatevente(quand == null ? Instant.now() : quand);
+        Site magasin = magasinDeLaVente(dto, quand);
+        aEnregistrer.setSite(magasin);
+        aEnregistrer.setSiteExpedition(magasin);
         aEnregistrer.setCodeTicket(codeDeTicket(dto.getCodeTicket()));
         // Le client est facultatif : la vente de comptoir anonyme reste le cas ordinaire.
         if (dto.getClient() != null && dto.getClient().getId() != null) {
@@ -301,6 +309,28 @@ public class VenteServiceImpl implements VenteService {
     }
 
     /**
+     * Le magasin ou la vente a lieu.
+     *
+     * Au comptoir, le site actif — et il doit vendre : un entrepot livre, il n'encaisse pas.
+     * Hors ligne, celui ou se trouvait le poste, qu'il envoie avec la vente : le caissier a pu
+     * changer de site depuis, la vente n'en a pas moins eu lieu la ou elle a eu lieu. Elle n'est
+     * alors pas refusee pour un entrepot : elle est faite, la refuser la laisserait en file pour
+     * toujours.
+     */
+    private Site magasinDeLaVente(VenteDto dto, Instant quand) {
+        Site site = quand != null && dto.getIdSite() != null
+                ? siteCourant.accessible(dto.getIdSite())
+                : siteCourant.site();
+        if (site != null && quand == null && !site.vend()) {
+            throw new InvalidEntityException(
+                    "« " + site.getNom() + " » est un entrepôt : il ne vend pas au comptoir",
+                    ErrorCodes.VENTE_NOT_VALID,
+                    List.of("Choisissez un magasin, ou faites une commande client livrée depuis l'entrepôt"));
+        }
+        return site;
+    }
+
+    /**
      * Le code de ticket de la vente : celui du poste de vente, ou un neuf.
      *
      * Celui du poste est garde tel quel des qu'il a la bonne forme — il est deja imprime sur le
@@ -347,6 +377,7 @@ public class VenteServiceImpl implements VenteService {
                 .quantite(enStock(ligne))
                 .motif(MotifMvtStk.VENTE)
                 .idEntreprise(vente.getIdEntreprise())
+                .idSite(idSite(vente.getSiteExpedition()))
                 .build();
         if (quand == null) {
             mvtStkService.sortieStock(mouvement);
@@ -397,6 +428,7 @@ public class VenteServiceImpl implements VenteService {
                 .article(ArticleDto.builder().Id(article.getId()).build())
                 .quantite(Conditionnements.enUnitesDeBase(quantite, contenance))
                 .motif(MotifMvtStk.VENTE)
+                .idSite(idSite(vente.getSiteExpedition()))
                 .build());
 
         LigneVente nouvelle = new LigneVente();
@@ -485,11 +517,20 @@ public class VenteServiceImpl implements VenteService {
                     ErrorCodes.COMMANDE_CLIENT_NOT_VALID);
         }
 
+        // La vente est celle du magasin qui a pris la commande ; la marchandise part du site qui la
+        // livre, et c'est son equipe qui la sert : elle doit y travailler.
+        Site expedition = commande.getSiteExpedition() != null ? commande.getSiteExpedition() : commande.getSite();
+        if (expedition != null) {
+            siteCourant.accessible(expedition.getId());
+        }
+
         Vente vente = new Vente();
         vente.setCode(commande.getCode());
         vente.setDatevente(Instant.now());
         vente.setIdEntreprise(commande.getIdEntreprise());
         vente.setCommandeClient(commande);
+        vente.setSite(commande.getSite());
+        vente.setSiteExpedition(expedition);
         // Le client de la commande devient celui de la vente : la lecture n'a ensuite qu'un seul
         // chemin a suivre, que la vente vienne du comptoir ou d'une commande.
         vente.setClient(commande.getClient());
@@ -518,6 +559,7 @@ public class VenteServiceImpl implements VenteService {
                     .article(ArticleDto.builder().Id(ligneCommande.getArticles().getId()).build())
                     .quantite(enStock(ligneVente))
                     .motif(MotifMvtStk.VENTE)
+                    .idSite(idSite(expedition))
                     .build());
 
             ligneCommande.setQuantiteLivree(dejaServi(ligneCommande).add(quantite));
@@ -602,6 +644,8 @@ public class VenteServiceImpl implements VenteService {
                         .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
                         .quantite(enStock(ligne))
                         .motif(MotifMvtStk.ANNULATION_VENTE)
+                        // La marchandise rendue retourne la d'ou elle est partie.
+                        .idSite(idSite(vente.getSiteExpedition()))
                         .build()));
 
         // La vente reste en base : une recette encaissee puis rendue doit pouvoir se retrouver.
@@ -648,7 +692,12 @@ public class VenteServiceImpl implements VenteService {
                 .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
                 .quantite(Conditionnements.enUnitesDeBase(quantite, ligne.getContenance()))
                 .motif(MotifMvtStk.CORRECTION_VENTE)
+                .idSite(idSite(ligne.getVente() == null ? null : ligne.getVente().getSiteExpedition()))
                 .build();
+    }
+
+    private static Long idSite(Site site) {
+        return site == null ? null : site.getId();
     }
 
     /** Ce que la ligne a fait sortir du stock, en unites de base. */

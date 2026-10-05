@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { Accueil, EtatDeCaisseDto, EtatDuStockDto, FactureDto } from './accueil.service';
+import { Sites } from '../noyau/sites';
 import { Session } from '../noyau/session';
 import type { LigneInventaireDto } from '../noyau/api';
 import { libelleDuMode } from '../noyau/reglements';
@@ -40,6 +41,7 @@ import { EnTetePage, EtatVide, Section, Statut, Tuile } from '../design';
 export class TableauDeBord implements OnInit {
   private readonly service = inject(Accueil);
   private readonly session = inject(Session);
+  protected readonly plusieursSites = inject(Sites).plusieurs;
 
   protected readonly stock = signal<EtatDuStockDto | null>(null);
   protected readonly caisse = signal<EtatDeCaisseDto | null>(null);

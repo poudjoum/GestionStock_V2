@@ -75,7 +75,7 @@
                 }
               </span>
               <span class="code">{{ compte.username }}@if (compte.numTel) { · {{ compte.numTel }} }</span>
-              <span class="code">{{ libelleDesRoles(compte) }}</span>
+              <span class="code">{{ libelleDesRoles(compte) }}{{ sitesDe(compte) }}</span>
             </button>
 
             @if (!compte.actif) {
@@ -235,6 +235,41 @@
           >
             Enregistrer les rôles
           </button>
+
+          <!--
+            Ses sites, des qu'il y en a plusieurs. Le caissier du magasin ne vend pas le stock de
+            l'entrepot ; le magasinier qui tourne entre deux depots les a tous les deux.
+          -->
+          @if (sitesDeLEntreprise().length > 1) {
+            <h3 class="gs-etiquette mb-0 mt-4">Sites</h3>
+            @if (voitTout()) {
+              <p class="gs-encre-3 m-0 text-xs">Administrateur ou gérant : il voit tous les sites. Le site d’arrivée reste utile.</p>
+            }
+            <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+              <mat-label>Où il travaille</mat-label>
+              <mat-select multiple [value]="sitesChoisis()" (valueChange)="choisirSites($event)">
+                @for (s of sitesDeLEntreprise(); track s.id) {
+                  <mat-option [value]="s.id">{{ s.nom }}</mat-option>
+                }
+              </mat-select>
+              <mat-hint>Aucun : il travaille au site principal</mat-hint>
+            </mat-form-field>
+            @if (sitesChoisis().length > 1) {
+              <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+                <mat-label>Il arrive sur</mat-label>
+                <mat-select [value]="siteDArrivee()" (valueChange)="siteDArrivee.set($event)">
+                  @for (s of sitesDeLEntreprise(); track s.id) {
+                    @if (sitesChoisis().includes(s.id!)) {
+                      <mat-option [value]="s.id">{{ s.nom }}</mat-option>
+                    }
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+            <button mat-stroked-button class="w-full" [disabled]="envoiEnCours()" (click)="enregistrerLesSites()">
+              Enregistrer les sites
+            </button>
+          }
 
           <h3 class="gs-etiquette mb-0 mt-4">Réinitialiser le mot de passe</h3>
           <mat-form-field appearance="outline" class="w-full">

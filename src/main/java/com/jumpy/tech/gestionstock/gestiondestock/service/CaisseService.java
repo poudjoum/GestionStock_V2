@@ -24,6 +24,14 @@ public interface CaisseService {
      */
     EtatDeCaisseDto etat(LocalDate debut, LocalDate fin);
 
+    /**
+     * `tousSites` : tous les magasins, pour qui voit l'entreprise entiere. Sinon la caisse du
+     * magasin actif — c'est le tiroir que le caissier recompte le soir.
+     */
+    EtatDeCaisseDto etat(LocalDate debut, LocalDate fin, boolean tousSites);
+
     /** Le detail des encaissements de la periode, du plus recent au plus ancien. */
     Page<ReglementDto> reglements(LocalDate debut, LocalDate fin, Pageable pageable);
+
+    Page<ReglementDto> reglements(LocalDate debut, LocalDate fin, Pageable pageable, boolean tousSites);
 }

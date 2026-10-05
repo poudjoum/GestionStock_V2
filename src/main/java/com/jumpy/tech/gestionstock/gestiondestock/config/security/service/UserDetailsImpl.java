@@ -31,6 +31,14 @@ public class UserDetailsImpl implements UserDetails {
     /** Un compte ferme ne se connecte plus : Spring refuse l'authentification sur `isEnabled`. */
     private boolean actif = true;
     private Collection<? extends GrantedAuthority> authorities;
+    /**
+     * Les sites ou il travaille, et celui ou il arrive. Vides pour un compte sans site attribue —
+     * il travaille alors au site principal — et pour l'administrateur ou le gerant, qui voient
+     * tout. Relus a chaque requete, comme le reste du compte : retirer un site a un caissier lui
+     * ferme la porte tout de suite.
+     */
+    private java.util.Set<Long> idsSites = java.util.Set.of();
+    private Long idSiteDefaut;
 
     public UserDetailsImpl(Long id,String username,String email,String password,Long idEntreprise,Collection<?extends GrantedAuthority> authorities){
         this(id, username, email, password, idEntreprise, true, authorities);
@@ -48,7 +56,7 @@ public class UserDetailsImpl implements UserDetails {
 
     public  static UserDetailsImpl build(Utilisateur utilisateur){
         List<GrantedAuthority> authorities=utilisateur.getRoles().stream().map(role -> new SimpleGrantedAuthority(role.getRoleName().name())).collect(Collectors.toUnmodifiableList());
-        return new UserDetailsImpl(
+        UserDetailsImpl compte = new UserDetailsImpl(
                 utilisateur.getId(),
                 utilisateur.getUsername(),
                 utilisateur.getEmail(),
@@ -70,6 +78,11 @@ public class UserDetailsImpl implements UserDetails {
                             || utilisateur.getEntreprise().accesOuvert(java.time.LocalDate.now())),
                 authorities
         );
+        compte.setIdsSites(utilisateur.getSites() == null ? java.util.Set.of()
+                : utilisateur.getSites().stream().filter(s -> s.isActif()).map(s -> s.getId())
+                        .collect(Collectors.toUnmodifiableSet()));
+        compte.setIdSiteDefaut(utilisateur.getSiteDefaut() == null ? null : utilisateur.getSiteDefaut().getId());
+        return compte;
     }
 
     /** Le role d'un client de l'application mobile. Il n'ouvre que l'espace fidelite. */

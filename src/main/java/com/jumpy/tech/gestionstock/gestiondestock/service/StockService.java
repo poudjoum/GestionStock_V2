@@ -19,6 +19,12 @@ public interface StockService {
     EtatDuStockDto etat();
 
     /**
+     * `tousSites` : l'entreprise entiere, pour qui la voit — l'administrateur, le gerant, le
+     * comptable. Sinon le site actif.
+     */
+    EtatDuStockDto etat(boolean tousSites);
+
+    /**
      * L'inventaire, article par article, filtrable par `q` sur le code et la designation.
      *
      * Le filtre n'est pas un ornement : un magasinier debout dans les rayons cherche un article,
@@ -26,9 +32,14 @@ public interface StockService {
      */
     Page<LigneInventaireDto> inventaire(String q, Pageable pageable);
 
+    Page<LigneInventaireDto> inventaire(String q, Pageable pageable, boolean tousSites);
+
     /**
      * Les seuls articles a recommander : ceux qui sont tombes a zero, et ceux passes sous leur
      * seuil. C'est la liste qu'on emporte chez le fournisseur.
      */
     List<LigneInventaireDto> alertes();
+
+    /** En vue « tous sites », une ligne par article et par site en difficulte : on sait ou aller. */
+    List<LigneInventaireDto> alertes(boolean tousSites);
 }

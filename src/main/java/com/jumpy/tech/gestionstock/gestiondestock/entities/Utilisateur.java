@@ -66,6 +66,20 @@ public class Utilisateur extends AbstractEntity{
    @Builder.Default
     private Set<Role> roles=new HashSet<>();
 
+    /**
+     * Les sites ou il travaille. Vide : le site principal. L'administrateur et le gerant voient
+     * tous les sites, quoi que dise cette liste.
+     */
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name="utilisateur_site",joinColumns = @JoinColumn(name="id_utilisateur"),inverseJoinColumns = @JoinColumn(name="id_site"))
+    @Builder.Default
+    private Set<Site> sites=new HashSet<>();
+
+    /** Le site sur lequel il arrive. */
+    @ManyToOne
+    @JoinColumn(name="id_site_defaut")
+    private Site siteDefaut;
+
     // Appele par /api/auth/signup. Son corps etait vide : l'inscription enregistrait un
     // utilisateur sans identifiant ni mot de passe, que la connexion ne retrouvait jamais.
     public Utilisateur(String username, String email, String motdepasse) {

@@ -3,8 +3,14 @@
 <div class="page">
   <gs-en-tete-page
     titre="Caisse"
-    [sousTitre]="'Ce qui est entré du ' + (debut() | date: 'd MMMM') + ' au ' + (fin() | date: 'd MMMM y') + ', moyen par moyen.'"
-  />
+    [sousTitre]="'Ce qui est entré ' + (tousSites() ? 'dans tous les magasins' : 'à ' + (siteActif()?.nom ?? 'ce magasin')) + ', du ' + (debut() | date: 'd MMMM') + ' au ' + (fin() | date: 'd MMMM y') + '.'"
+  >
+    <!-- La caisse d'un magasin, c'est son tiroir ; le gerant peut aussi lire la recette de tous. -->
+    @if (peutVoirTout()) {
+      <gs-selecteur aria-label="Caisse de" [options]="portees()" [valeur]="portee()"
+                    (valeurChange)="changerPortee($event)" />
+    }
+  </gs-en-tete-page>
 
   <div class="barre-outils">
     <!-- Les periodes courantes en un geste ; les dates pour tout le reste. -->

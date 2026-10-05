@@ -47,6 +47,9 @@ public class UserDto {
     private EntrepriseDto entreprise;
 
     private List<RoleDto> roles;
+    /** Les sites ou il travaille ; vide, le site principal. */
+    private List<SiteDto> sites;
+    private Long idSiteDefaut;
 
     public static UserDto fromEntity(Utilisateur ut) {
         if(ut==null) {
@@ -73,6 +76,11 @@ public class UserDto {
 
         RoleDto::fromEntity)
                                 .collect(Collectors.toList()):null)
+                .sites(ut.getSites() == null ? List.of() : ut.getSites().stream()
+                        .map(SiteDto::fromEntity)
+                        .sorted(java.util.Comparator.comparing(SiteDto::getNom))
+                        .collect(Collectors.toList()))
+                .idSiteDefaut(ut.getSiteDefaut() == null ? null : ut.getSiteDefaut().getId())
                 .build();
     }
 

@@ -16,15 +16,16 @@ export class Stock {
   private readonly http = inject(HttpClient);
 
   /** L'inventaire, filtre par `q` sur le code et la designation. */
-  inventaire(q: string, page = 0, taille = 25): Observable<Page<LigneInventaireDto>> {
+  /** `tousSites` : l'entreprise entiere, avec la repartition par site — pour qui la voit. */
+  inventaire(q: string, page = 0, taille = 25, tousSites = false): Observable<Page<LigneInventaireDto>> {
     return this.http.get<Page<LigneInventaireDto>>(`${RACINE}/inventaire`, {
-      params: { q, page, size: taille, sort: 'designation,asc' },
+      params: { q, page, size: taille, sort: 'designation,asc', tousSites },
     });
   }
 
-  /** Ce qu'il faut recommander, et ce qu'il faut compter. */
-  alertes(): Observable<LigneInventaireDto[]> {
-    return this.http.get<LigneInventaireDto[]>(`${RACINE}/alertes`);
+  /** Ce qu'il faut recommander, et ce qu'il faut compter. En « tous sites », une ligne par site. */
+  alertes(tousSites = false): Observable<LigneInventaireDto[]> {
+    return this.http.get<LigneInventaireDto[]>(`${RACINE}/alertes`, { params: { tousSites } });
   }
 
   /**

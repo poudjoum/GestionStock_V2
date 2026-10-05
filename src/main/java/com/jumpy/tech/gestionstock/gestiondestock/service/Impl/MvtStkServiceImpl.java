@@ -16,6 +16,12 @@ import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.MvtStkRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleSiteRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.SiteRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.StockSiteDto;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.ArticleSite;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Site;
+import com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant;
 import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
 import com.jumpy.tech.gestionstock.gestiondestock.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -40,11 +48,18 @@ public class MvtStkServiceImpl implements MvtStkService {
     private final Cloisonnement cloisonnement;
     private final NotificationService notifications;
     private final Conditionnements conditionnements;
+    private final SiteCourant siteCourant;
+    private final SiteRepository siteRepository;
+    private final ArticleSiteRepository articleSiteRepository;
 
     public MvtStkServiceImpl(MvtStkRepository mvtStkRepository, ArticleRepository articleRepository,
                              Cloisonnement cloisonnement, NotificationService notifications,
-                             Conditionnements conditionnements) {
+                             Conditionnements conditionnements, SiteCourant siteCourant,
+                             SiteRepository siteRepository, ArticleSiteRepository articleSiteRepository) {
         this.conditionnements = conditionnements;
+        this.siteCourant = siteCourant;
+        this.siteRepository = siteRepository;
+        this.articleSiteRepository = articleSiteRepository;
         this.mvtStkRepository = mvtStkRepository;
         this.articleRepository = articleRepository;
         this.cloisonnement = cloisonnement;
@@ -54,7 +69,34 @@ public class MvtStkServiceImpl implements MvtStkService {
     @Override
     public BigDecimal stockReelArticle(Long idArticle) {
         Article article = article(idArticle);
-        return stockReel(article.getId());
+        return stockReel(article.getId(), siteCourant.site());
+    }
+
+    @Override
+    public BigDecimal stockReelDansSite(Long idArticle, Long idSite) {
+        Article article = article(idArticle);
+        return stockReel(article.getId(), siteDuMouvement(article, idSite));
+    }
+
+    /**
+     * Le stock dans chaque site de l'entreprise, y compris ceux qui n'en ont pas : on cherche
+     * aussi ou la marchandise manque. Limite aux sites que l'appelant peut voir.
+     */
+    @Override
+    public List<StockSiteDto> stocksParSite(Long idArticle) {
+        Article article = article(idArticle);
+        Map<Long, BigDecimal> parSite = mvtStkRepository
+                .stocksParSite(List.of(article.getId()), TypeMvtStk.ENTREE).stream()
+                .collect(Collectors.toMap(l -> (Long) l[1], l -> (BigDecimal) l[2]));
+        if (article.getIdEntreprise() == null) {
+            return List.of();
+        }
+        return siteRepository.findAllByIdEntrepriseOrderByPrincipalDescNomAsc(article.getIdEntreprise()).stream()
+                .filter(s -> s.isActif() || parSite.containsKey(s.getId()))
+                .filter(siteCourant::peutVoir)
+                .map(s -> new StockSiteDto(s.getId(), s.getNom(), s.getType(),
+                        parSite.getOrDefault(s.getId(), BigDecimal.ZERO)))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -95,6 +137,12 @@ public class MvtStkServiceImpl implements MvtStkService {
     @Override
     @Transactional
     public MvtStkDto corrigerAuComptage(Long idArticle, BigDecimal ecart) {
+        return corrigerAuComptage(idArticle, ecart, null);
+    }
+
+    @Override
+    @Transactional
+    public MvtStkDto corrigerAuComptage(Long idArticle, BigDecimal ecart, Long idSite) {
         if (ecart == null || ecart.signum() == 0) {
             return null;
         }
@@ -102,6 +150,7 @@ public class MvtStkServiceImpl implements MvtStkService {
                 .article(ArticleDto.builder().Id(idArticle).build())
                 .quantite(ecart.abs())
                 .motif(MotifMvtStk.INVENTAIRE)
+                .idSite(idSite)
                 .build();
         // `false` : un rattrapage ne s'oppose pas au stock. Si le logiciel croit avoir trois
         // unites et qu'on n'en trouve aucune, il faut bien en sortir trois d'un stock qui, sur
@@ -131,12 +180,15 @@ public class MvtStkServiceImpl implements MvtStkService {
             quantite = Conditionnements.enUnitesDeBase(quantite, Conditionnements.contenance(conditionnement));
         }
 
+        Site site = siteDuMouvement(article, dto.getIdSite());
+
         if (sens == TypeMvtStk.SORTIE && opposerLeStock) {
-            verifierStockDisponible(article, quantite);
+            verifierStockDisponible(article, site, quantite);
         }
 
         MvtStk mvtStk = new MvtStk();
         mvtStk.setArticles(article);
+        mvtStk.setSite(site);
         mvtStk.setQuantite(quantite);
         mvtStk.setTypMvt(sens);
         // Un mouvement sans motif connu est une saisie a la main : c'est le cas des deux routes
@@ -153,10 +205,11 @@ public class MvtStkServiceImpl implements MvtStkService {
         mvtStk.setDateMvt(quand);
 
         MvtStk enregistre = mvtStkRepository.save(mvtStk);
-        log.info("Mouvement {} de {} sur l'article {}", sens, quantite, article.getId());
+        log.info("Mouvement {} de {} sur l'article {} (site {})", sens, quantite, article.getId(),
+                site == null ? "-" : site.getId());
 
         if (sens == TypeMvtStk.SORTIE) {
-            alerterSiLeStockBaisseTrop(article);
+            alerterSiLeStockBaisseTrop(article, site);
         }
         return MvtStkDto.fromEntity(enregistre);
     }
@@ -171,9 +224,13 @@ public class MvtStkServiceImpl implements MvtStkService {
      * parce qu'elles n'appellent pas le meme geste — un negatif se compte sur l'etagere, une
      * rupture et un sous-seuil se commandent au fournisseur.
      */
-    private void alerterSiLeStockBaisseTrop(Article article) {
-        BigDecimal restant = stockReel(article.getId());
-        BigDecimal seuil = article.getSeuilAlerte();
+    private void alerterSiLeStockBaisseTrop(Article article, Site site) {
+        BigDecimal restant = stockReel(article.getId(), site);
+        BigDecimal seuil = seuil(article, site);
+        // Le nom du site, seulement quand il y en a plusieurs : « au Dépôt Bonabéri » dit ou aller
+        // compter, et un commerce a un seul magasin n'a pas besoin qu'on le lui rappelle.
+        String ou = site != null && siteRepository.countByIdEntrepriseAndActifTrue(article.getIdEntreprise()) > 1
+                ? " — " + site.getNom() : "";
 
         String titre;
         String corps;
@@ -187,18 +244,18 @@ public class MvtStkServiceImpl implements MvtStkService {
             // Pas une erreur a masquer : la marchandise est partie. C'est le signal qu'un
             // inventaire est a faire, et il se lit aussi sur /stock/alertes.
             log.warn("Stock negatif sur l'article {} : {}", article.getCodeArticle(), restant);
-            titre = "Stock négatif : " + article.getDesignation();
+            titre = "Stock négatif : " + article.getDesignation() + ou;
             corps = "Il est sorti plus de « " + article.getDesignation() + " » (" + article.getCodeArticle()
                     + ") que le magasin n'en avait reçu : " + restant + " en stock. "
                     + "Un comptage sur l'étagère est nécessaire.";
         } else if (restant.signum() == 0) {
             gravite = "rupture";
-            titre = "Rupture : " + article.getDesignation();
+            titre = "Rupture : " + article.getDesignation() + ou;
             corps = "« " + article.getDesignation() + " » (" + article.getCodeArticle()
                     + ") est épuisé.";
         } else if (seuil != null && restant.compareTo(seuil) <= 0) {
             gravite = "sous-seuil";
-            titre = "Sous le seuil : " + article.getDesignation();
+            titre = "Sous le seuil : " + article.getDesignation() + ou;
             corps = "Il reste " + restant + " « " + article.getDesignation() + " » ("
                     + article.getCodeArticle() + "), pour un seuil d'alerte de " + seuil + ".";
         } else {
@@ -212,7 +269,37 @@ public class MvtStkServiceImpl implements MvtStkService {
                 // pas lue, les ventes suivantes n'en ecrivent pas d'autre — sans quoi une journee
                 // de comptoir enterrerait la boite aux lettres sous le meme message. Une
                 // aggravation, elle, passe : c'est une nouvelle information.
-                "stock:" + article.getId() + ":" + gravite);
+                "stock:" + article.getId() + ":" + (site == null ? "" : site.getId() + ":") + gravite);
+    }
+
+    /** Le seuil de l'article dans ce site, a defaut celui de l'article. */
+    private BigDecimal seuil(Article article, Site site) {
+        if (site == null) {
+            return article.getSeuilAlerte();
+        }
+        return articleSiteRepository.findByArticleIdAndSiteId(article.getId(), site.getId())
+                .map(ArticleSite::getSeuilAlerte)
+                .filter(Objects::nonNull)
+                .orElse(article.getSeuilAlerte());
+    }
+
+    /**
+     * Le site d'un mouvement : celui que designe l'appelant interne — la vente, la reception —,
+     * a defaut le site actif. Il est toujours de l'entreprise de l'article : un mouvement ne fait
+     * pas passer de la marchandise chez le voisin.
+     */
+    private Site siteDuMouvement(Article article, Long idSite) {
+        if (article.getIdEntreprise() == null) {
+            return null;
+        }
+        if (idSite == null) {
+            Site actif = siteCourant.site();
+            return actif != null ? actif : siteCourant.principal(article.getIdEntreprise());
+        }
+        return siteRepository.findById(idSite)
+                .filter(s -> Objects.equals(s.getIdEntreprise(), article.getIdEntreprise()))
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun site avec l'identifiant " + idSite + " n'a été trouvé", ErrorCodes.SITE_NOT_FOUND));
     }
 
     /**
@@ -229,21 +316,28 @@ public class MvtStkServiceImpl implements MvtStkService {
         return quantite;
     }
 
-    private void verifierStockDisponible(Article article, BigDecimal quantite) {
-        BigDecimal disponible = stockReel(article.getId());
+    private void verifierStockDisponible(Article article, Site site, BigDecimal quantite) {
+        BigDecimal disponible = stockReel(article.getId(), site);
         if (disponible.compareTo(quantite) < 0) {
             throw new InvalidEntityException(
                     "Stock insuffisant pour l'article " + article.getCodeArticle()
-                            + " : " + disponible + " en magasin, " + quantite + " demandés",
+                            + " : " + disponible + (site == null ? " en magasin" : " à « " + site.getNom() + " »")
+                            + ", " + quantite + " demandés",
                     ErrorCodes.STOCK_INSUFFISANT,
                     List.of("Article " + article.getCodeArticle() + " : stock réel " + disponible
                             + ", quantité demandée " + quantite));
         }
     }
 
-    private BigDecimal stockReel(Long idArticle) {
-        BigDecimal entrees = mvtStkRepository.sommeParType(idArticle, TypeMvtStk.ENTREE);
-        BigDecimal sorties = mvtStkRepository.sommeParType(idArticle, TypeMvtStk.SORTIE);
+    /** Le stock d'un article dans un site ; dans tous, sans site. */
+    private BigDecimal stockReel(Long idArticle, Site site) {
+        if (site == null) {
+            BigDecimal entrees = mvtStkRepository.sommeParType(idArticle, TypeMvtStk.ENTREE);
+            BigDecimal sorties = mvtStkRepository.sommeParType(idArticle, TypeMvtStk.SORTIE);
+            return entrees.subtract(sorties);
+        }
+        BigDecimal entrees = mvtStkRepository.sommeParTypeDansSite(idArticle, site.getId(), TypeMvtStk.ENTREE);
+        BigDecimal sorties = mvtStkRepository.sommeParTypeDansSite(idArticle, site.getId(), TypeMvtStk.SORTIE);
         return entrees.subtract(sorties);
     }
 

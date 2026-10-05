@@ -13,6 +13,7 @@ import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MotifMvtStk, Stock } from './stock.service';
 import { Session } from '../noyau/session';
+import { Sites } from '../noyau/sites';
 import { messageDErreur } from '../noyau/erreurs';
 import { enConditionnements, symbole, unites } from '../noyau/conditionnements';
 import type { LigneInventaireDto } from '../noyau/api';
@@ -51,6 +52,15 @@ import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut } fro
   styles: `
     .unite-base {
       font-weight: 400;
+      font-size: var(--gs-texte-xs);
+      color: var(--gs-encre-3);
+    }
+
+    .repartition {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px 10px;
+      margin-top: 2px;
       font-size: var(--gs-texte-xs);
       color: var(--gs-encre-3);
     }
@@ -97,6 +107,26 @@ export class EtatDuStock implements OnInit {
   private readonly session = inject(Session);
   private readonly snack = inject(MatSnackBar);
   private readonly frappe = new Subject<string>();
+
+  private readonly sites = inject(Sites);
+  /** Le site dont on lit le stock, et la vue « tous sites » pour qui voit l'entreprise entiere. */
+  protected readonly siteActif = this.sites.actif;
+  protected readonly peutVoirTout = computed(() => this.sites.tousLesSites() && this.sites.plusieurs());
+  protected readonly tousSites = signal(false);
+  protected readonly portees = computed<OptionSelecteur<'site' | 'tous'>[]>(() => [
+    { valeur: 'site', libelle: this.siteActif()?.nom ?? 'Ce site' },
+    { valeur: 'tous', libelle: 'Tous les sites' },
+  ]);
+  protected readonly portee = computed<'site' | 'tous'>(() => (this.tousSites() ? 'tous' : 'site'));
+
+  protected changerPortee(portee: 'site' | 'tous'): void {
+    this.tousSites.set(portee === 'tous');
+    this.charger();
+    this.stock.alertes(this.tousSites()).subscribe({
+      next: (lignes) => this.nombreAlertes.set(lignes.length),
+      error: () => undefined,
+    });
+  }
 
   protected readonly symbole = symbole;
   protected readonly unites = unites;
@@ -155,7 +185,7 @@ export class EtatDuStock implements OnInit {
       .pipe(
         debounceTime(300),
         distinctUntilChanged(),
-        switchMap((q) => this.stock.inventaire(q)),
+        switchMap((q) => this.stock.inventaire(q, 0, 25, this.tousSites())),
         takeUntilDestroyed(),
       )
       .subscribe({
@@ -248,13 +278,13 @@ export class EtatDuStock implements OnInit {
     this.chargement.set(true);
     this.erreur.set(null);
     if (this.alertesSeulement()) {
-      this.stock.alertes().subscribe({
+      this.stock.alertes(this.tousSites()).subscribe({
         next: (lignes) => this.afficher(lignes, lignes.length),
         error: () => this.echouer(),
       });
       return;
     }
-    this.stock.inventaire(this.recherche()).subscribe({
+    this.stock.inventaire(this.recherche(), 0, 25, this.tousSites()).subscribe({
       next: (page) => this.afficher(page.content ?? [], page.totalElements ?? 0),
       error: () => this.echouer(),
     });

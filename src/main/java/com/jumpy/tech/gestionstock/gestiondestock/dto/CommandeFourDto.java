@@ -21,6 +21,9 @@ public class CommandeFourDto {
     private FournisseurDto fournisseur;
     private Long idEntreprise;
     private EtatCommande etat;
+    /** Le site ou elle sera livree. A la creation, facultatif : le site actif. */
+    private Long idSite;
+    private String nomSite;
     /** Renseigne quand la commande a ete cloturee sans avoir tout recu. */
     private String motifCloture;
 
@@ -35,6 +38,8 @@ public class CommandeFourDto {
                 .code(cmdeF.getCode())
                 .dateCommande(cmdeF.getDateCommande())
                 .fournisseur(FournisseurDto.fromEntity(cmdeF.getFournisseur()))
+                .idSite(cmdeF.getSite() == null ? null : cmdeF.getSite().getId())
+                .nomSite(cmdeF.getSite() == null ? null : cmdeF.getSite().getNom())
                 .idEntreprise(cmdeF.getIdEntreprise())
                 .etat(cmdeF.getEtat())
                 .motifCloture(cmdeF.getMotifCloture())

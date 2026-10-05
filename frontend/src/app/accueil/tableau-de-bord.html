@@ -73,10 +73,14 @@
             <gs-etat-vide icone="task_alt" titre="Rien à recommander" texte="Tous les articles surveillés sont au-dessus de leur seuil." />
           } @else {
             <ul class="liste">
-              @for (ligne of alertes(); track ligne.idArticle) {
+              <!-- Une ligne par article et par site : le meme article peut manquer a deux endroits. -->
+              @for (ligne of alertes(); track ligne.idArticle + ':' + (ligne.idSite ?? 0)) {
                 <li>
                   <span class="nom">
                     <span class="designation">{{ ligne.designation }}</span>
+                    @if (ligne.nomSite && plusieursSites()) {
+                      <span class="gs-encre-3 text-xs">{{ ligne.nomSite }}</span>
+                    }
                     <gs-statut [ton]="statutDuStock(ligne).ton" [icone]="statutDuStock(ligne).icone">
                       {{ statutDuStock(ligne).libelle }}
                     </gs-statut>

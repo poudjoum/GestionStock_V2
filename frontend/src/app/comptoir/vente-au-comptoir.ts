@@ -43,6 +43,7 @@ import { MODES_DE_REGLEMENT } from '../noyau/reglements';
 import { EtatVide } from '../design/etat-vide';
 import { Statut } from '../design/statut';
 import { ScanCamera, cameraDisponible } from '../design/scan-camera';
+import { Sites } from '../noyau/sites';
 import { ConditionnementDto, fractionnable, libelleDeLigne, vendables } from '../noyau/conditionnements';
 import type { ArticleDto, ClientDto, EntrepriseDto } from '../noyau/api';
 
@@ -278,6 +279,9 @@ export class VenteAuComptoir {
   /** Le champ de recherche, qu'on rend au caissier apres chaque geste : le scan suivant y va. */
   private readonly champRecherche = viewChild<ElementRef<HTMLInputElement>>('champRecherche');
 
+  private readonly sites = inject(Sites);
+  protected readonly siteActif = this.sites.actif;
+  protected readonly siteVend = this.sites.vend;
   protected readonly camera = signal(false);
   protected readonly cameraDisponible = cameraDisponible();
 
@@ -782,6 +786,9 @@ export class VenteAuComptoir {
       // `identifiantDeVente` et non `crypto.randomUUID` : cette derniere n'existe qu'en contexte
       // securise, et le magasin sert l'application en clair sur son reseau local.
       referenceClient: identifiantDeVente(),
+      // Le magasin ou la vente a lieu. Hors ligne, il part avec elle : le caissier peut changer de
+      // site avant que le reseau revienne, la vente n'en a pas moins eu lieu ici.
+      idSite: this.sites.idActif() ?? undefined,
       // Le code du QR imprime sur le ticket, tire ici pour qu'un ticket hors ligne porte deja le
       // sien : le serveur le garde tel quel.
       codeTicket: nouveauCodeDeTicket(),

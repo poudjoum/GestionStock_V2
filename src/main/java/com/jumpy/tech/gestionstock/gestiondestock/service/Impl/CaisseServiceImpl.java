@@ -37,8 +37,12 @@ public class CaisseServiceImpl implements CaisseService {
      */
     private final ZoneId fuseau;
 
+    private final com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant siteCourant;
+
     public CaisseServiceImpl(ReglementRepository reglementRepository, Cloisonnement cloisonnement,
-                             @Value("${app.fuseauHoraire:Africa/Douala}") String fuseauHoraire) {
+                             @Value("${app.fuseauHoraire:Africa/Douala}") String fuseauHoraire,
+                             com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant siteCourant) {
+        this.siteCourant = siteCourant;
         this.reglementRepository = reglementRepository;
         this.cloisonnement = cloisonnement;
         this.fuseau = ZoneId.of(fuseauHoraire);
@@ -46,11 +50,19 @@ public class CaisseServiceImpl implements CaisseService {
 
     @Override
     public EtatDeCaisseDto etat(LocalDate debut, LocalDate fin) {
+        return etat(debut, fin, false);
+    }
+
+    @Override
+    public EtatDeCaisseDto etat(LocalDate debut, LocalDate fin, boolean tousSites) {
         LocalDate du = debut == null ? aujourdhui() : debut;
         LocalDate au = fin == null ? du : fin;
         verifierPeriode(du, au);
 
-        List<Object[]> lignes = cloisonnement.filtre()
+        Long magasin = magasin(tousSites);
+        List<Object[]> lignes = magasin != null
+                ? reglementRepository.totauxParModePourSite(debutDeJournee(du), finDeJournee(au), magasin)
+                : cloisonnement.filtre()
                 ? reglementRepository.totauxParModePourEntreprise(
                         debutDeJournee(du), finDeJournee(au), cloisonnement.entrepriseCourante())
                 : reglementRepository.totauxParMode(debutDeJournee(du), finDeJournee(au));
@@ -89,15 +101,36 @@ public class CaisseServiceImpl implements CaisseService {
 
     @Override
     public Page<ReglementDto> reglements(LocalDate debut, LocalDate fin, Pageable pageable) {
+        return reglements(debut, fin, pageable, false);
+    }
+
+    @Override
+    public Page<ReglementDto> reglements(LocalDate debut, LocalDate fin, Pageable pageable, boolean tousSites) {
         LocalDate du = debut == null ? aujourdhui() : debut;
         LocalDate au = fin == null ? du : fin;
         verifierPeriode(du, au);
 
+        Long magasin = magasin(tousSites);
+        if (magasin != null) {
+            return reglementRepository.detailPourSite(debutDeJournee(du), finDeJournee(au), magasin, pageable)
+                    .map(ReglementDto::fromEntity);
+        }
         return (cloisonnement.filtre()
                 ? reglementRepository.detailPourEntreprise(
                         debutDeJournee(du), finDeJournee(au), cloisonnement.entrepriseCourante(), pageable)
                 : reglementRepository.detail(debutDeJournee(du), finDeJournee(au), pageable))
                 .map(ReglementDto::fromEntity);
+    }
+
+    /**
+     * Le magasin dont on lit la caisse, ou nul pour toute l'entreprise. Un caissier qui demande
+     * « tous les sites » lit quand meme la sienne : la recette des autres magasins n'est pas pour lui.
+     */
+    private Long magasin(boolean tousSites) {
+        if (tousSites && siteCourant.voitTousLesSites()) {
+            return null;
+        }
+        return siteCourant.idSite();
     }
 
     private void verifierPeriode(LocalDate debut, LocalDate fin) {

@@ -3,8 +3,12 @@
 <div class="page">
   <gs-en-tete-page
     titre="Stock"
-    sousTitre="Ce qu’il y a en rayon, ce que ça vaut, et ce qu’il faut recommander."
-  />
+    [sousTitre]="tousSites() ? 'L’entreprise entière, et où est la marchandise.' : 'Ce qu’il y a à ' + (siteActif()?.nom ?? 'ce site') + ', ce que ça vaut, et ce qu’il faut recommander.'"
+  >
+    @if (peutVoirTout()) {
+      <gs-selecteur aria-label="Stock de" [options]="portees()" [valeur]="portee()" (valeurChange)="changerPortee($event)" />
+    }
+  </gs-en-tete-page>
 
   <div class="barre-outils">
     <mat-form-field appearance="outline" class="recherche" subscriptSizing="dynamic">
@@ -69,7 +73,7 @@
             <th class="gs-num">Seuil</th>
             <th class="gs-num">Coût moyen</th>
             <th class="gs-num">Valeur</th>
-            @if (peutAjuster()) {
+            @if (peutAjuster() && !tousSites()) {
               <th class="w-12"><span class="sr-only">Ajuster</span></th>
             }
           </tr>
@@ -80,6 +84,16 @@
               <td>
                 <span class="designation">{{ ligne.designation }}</span>
                 <span class="code gs-code">{{ ligne.codeArticle }}</span>
+                <!-- Tous sites : ou est la marchandise. En alertes, le site qui manque. -->
+                @if (ligne.parSite?.length) {
+                  <span class="repartition">
+                    @for (s of ligne.parSite; track s.idSite) {
+                      <span>{{ s.nomSite }} <b class="nombre">{{ s.quantite | number: '1.0-3' }}</b></span>
+                    }
+                  </span>
+                } @else if (tousSites() && ligne.nomSite) {
+                  <span class="repartition"><span>{{ ligne.nomSite }}</span></span>
+                }
               </td>
               <td>
                 <gs-statut [ton]="statut(ligne).ton" [icone]="statut(ligne).icone">{{ statut(ligne).libelle }}</gs-statut>
@@ -94,7 +108,7 @@
               <td class="gs-num gs-encre-3">{{ ligne.seuilAlerte != null ? (ligne.seuilAlerte | number: '1.0-2') : '—' }}</td>
               <td class="gs-num gs-encre-2">{{ ligne.coutMoyenAchat != null ? (ligne.coutMoyenAchat | number: '1.0-0') + ' F' : '—' }}</td>
               <td class="gs-num valeur">{{ ligne.valeurAuCout != null ? (ligne.valeurAuCout | number: '1.0-0') + ' F' : '—' }}</td>
-              @if (peutAjuster()) {
+              @if (peutAjuster() && !tousSites()) {
                 <td>
                   <button mat-icon-button (click)="ouvrirAjustement(ligne)"
                           [attr.aria-label]="'Déclarer une casse, une perte ou un retour : ' + ligne.designation">
@@ -126,7 +140,7 @@
             @if (enConditionnements(ligne, ligne.quantite); as enCartons) {
               <span class="gs-encre-3 text-xs">{{ enCartons }}</span>
             }
-            @if (peutAjuster()) {
+            @if (peutAjuster() && !tousSites()) {
               <button mat-button class="!-mr-2" (click)="ouvrirAjustement(ligne)">Ajuster</button>
             }
             @if (ligne.prixUnitaireVente != null) {

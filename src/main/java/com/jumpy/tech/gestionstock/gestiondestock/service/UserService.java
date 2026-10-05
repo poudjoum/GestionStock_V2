@@ -51,6 +51,9 @@ public interface UserService {
      */
     UserDto changerRoles(Long id, List<ERole> roles);
 
+    /** Les sites ou il travaille, et celui ou il arrive. */
+    UserDto changerSites(Long id, com.jumpy.tech.gestionstock.gestiondestock.dto.SitesDuCompteDto sites);
+
     /**
      * Ouvre ou ferme un acces.
      *

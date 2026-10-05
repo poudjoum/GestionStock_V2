@@ -20,6 +20,11 @@ public interface MvtStkControllerApi {
     @GetMapping(value = APP_ROOT + "/mouvements/stockreel/{idArticle}", produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<BigDecimal> stockReelArticle(@PathVariable("idArticle") Long idArticle);
 
+    /** Ou est la marchandise : le stock de l'article dans chaque site que l'appelant voit. */
+    @GetMapping(value = APP_ROOT + "/mouvements/sites/{idArticle}", produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<java.util.List<com.jumpy.tech.gestionstock.gestiondestock.dto.StockSiteDto>> stocksParSite(
+            @PathVariable("idArticle") Long idArticle);
+
     @GetMapping(value = APP_ROOT + "/mouvements/article/{idArticle}", produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<List<MvtStkDto>> mvtStkArticle(@PathVariable("idArticle") Long idArticle);
 

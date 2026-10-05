@@ -20,6 +20,8 @@ public record SeanceInventaireDto(
         StatutSeanceInventaire statut,
         String commentaire,
         Long idEntreprise,
+        Long idSite,
+        String nomSite,
         long articles,
         long comptes,
         long ecarts) {
@@ -41,6 +43,8 @@ public record SeanceInventaireDto(
                 seance.getStatut(),
                 seance.getCommentaire(),
                 seance.getIdEntreprise(),
+                seance.getSite() == null ? null : seance.getSite().getId(),
+                seance.getSite() == null ? null : seance.getSite().getNom(),
                 articles,
                 comptes,
                 ecarts);

@@ -25,6 +25,13 @@ public class MvtStkDto {
      * casses — et le mouvement enregistre est converti en unites de base.
      */
     private ConditionnementDto conditionnement;
+    /**
+     * Le site dont le stock bouge. A la saisie, facultatif : le site actif. Sinon, il doit etre
+     * l'un des sites de l'appelant.
+     */
+    private Long idSite;
+    /** En lecture : le nom du site, pour l'historique d'un article. */
+    private String nomSite;
 
     public static MvtStkDto fromEntity(MvtStk mvtStk) {
         if (mvtStk == null) {
@@ -38,6 +45,8 @@ public class MvtStkDto {
                 .typeMvt(mvtStk.getTypMvt())
                 .motif(mvtStk.getMotif())
                 .idEntreprise(mvtStk.getIdEntreprise())
+                .idSite(mvtStk.getSite() == null ? null : mvtStk.getSite().getId())
+                .nomSite(mvtStk.getSite() == null ? null : mvtStk.getSite().getNom())
                 .build();
     }
 

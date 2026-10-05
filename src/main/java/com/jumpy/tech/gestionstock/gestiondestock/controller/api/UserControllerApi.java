@@ -64,6 +64,10 @@ public interface UserControllerApi {
     @PatchMapping(value = APP_ROOT+"/users/{idUser}/roles",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<UserDto> changerRoles(@PathVariable Long idUser, @RequestBody List<ERole> roles);
 
+    @PatchMapping(value = APP_ROOT+"/users/{idUser}/sites",consumes = MediaType.APPLICATION_JSON_VALUE,produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<UserDto> changerSites(@PathVariable Long idUser,
+                                         @RequestBody com.jumpy.tech.gestionstock.gestiondestock.dto.SitesDuCompteDto sites);
+
     /** Ouvre ou ferme un acces, sans supprimer le compte ni ce qu'il a saisi. */
     @PatchMapping(value = APP_ROOT+"/users/{idUser}/actif/{actif}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<UserDto> changerActivation(@PathVariable Long idUser, @PathVariable boolean actif);

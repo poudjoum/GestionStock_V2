@@ -61,6 +61,12 @@ public class UserController implements UserControllerApi {
     }
 
     @Override
+    public ResponseEntity<UserDto> changerSites(Long idUser,
+                                                com.jumpy.tech.gestionstock.gestiondestock.dto.SitesDuCompteDto sites) {
+        return ResponseEntity.ok(userService.changerSites(idUser, sites));
+    }
+
+    @Override
     public ResponseEntity<UserDto> changerActivation(Long idUser, boolean actif) {
         return ResponseEntity.ok(userService.changerActivation(idUser, actif));
     }

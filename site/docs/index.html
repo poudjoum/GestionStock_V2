@@ -35,6 +35,7 @@
           <li><a href="#magasin">Mettre en place le magasin</a></li>
           <li><a href="#comptoir">Vendre au comptoir</a></li>
           <li><a href="#stock">Le stock et l’inventaire</a></li>
+          <li><a href="#sites">Magasins, entrepôt et transferts</a></li>
           <li><a href="#achats">Commander et recevoir</a></li>
           <li><a href="#factures">Factures et caisse</a></li>
           <li><a href="#repertoire">Clients et fournisseurs</a></li>
@@ -251,6 +252,46 @@
           </div>
         </section>
 
+        <!-- 4 bis --------------------------------------------------------------------------- -->
+        <section id="sites">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#carton" /></svg></span>Magasins, entrepôt et transferts</h2>
+          <ul class="qui"><li>Gérant pour les sites</li><li>Magasinier pour les transferts</li></ul>
+          <h3>Les sites</h3>
+          <p>
+            Dans <strong>Réglages › Sites</strong>, ajoutez vos autres magasins et votre entrepôt.
+            Chaque site a son propre stock. Un <strong>magasin</strong> vend au comptoir ; un
+            <strong>entrepôt</strong> ne vend pas : il livre les magasins par transfert, et leurs
+            clients sur commande. Les prix et la fidélité restent ceux de l’entreprise.
+          </p>
+          <p>
+            Dès qu’il y a plusieurs sites, le site sur lequel vous travaillez s’affiche en haut à
+            droite : touchez-le pour en changer. Le stock, la caisse, l’inventaire et les
+            commandes fournisseurs sont ceux de ce site. Le gérant peut aussi lire le stock et la
+            caisse de <strong>tous les sites</strong>, avec la répartition site par site.
+          </p>
+          <p>
+            Dans <strong>Équipe</strong>, donnez à chaque collaborateur ses sites : le caissier du
+            magasin ne voit pas le stock de l’entrepôt. Sans site, il travaille au site principal.
+            Un site ne se ferme que vide : transférez d’abord ce qui y reste.
+          </p>
+          <h3>Transférer de la marchandise</h3>
+          <ol>
+            <li>Au départ, ouvrez <strong>Stock › Transferts</strong>, puis <strong>Nouveau transfert</strong> : choisissez le site d’arrivée et ajoutez les articles, au carton si besoin.</li>
+            <li><strong>Expédier</strong> : la marchandise quitte le stock du départ. Elle est « en route ».</li>
+            <li>À l’arrivée, l’écran signale le transfert attendu. Comptez ce qui descend du camion et <strong>validez la réception</strong> : c’est cela qui entre en stock.</li>
+          </ol>
+          <div class="encadre">
+            <svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg>
+            <p>Il manque un carton à l’arrivée ? Dites pourquoi — casse en route, oubli au chargement. L’écart reste sur le transfert : la perte ne disparaît pas des comptes en silence.</p>
+          </div>
+          <h3>Livrer le client depuis l’entrepôt</h3>
+          <p>
+            Quand le magasin n’a pas de quoi servir un client en gros, la commande client se prend
+            au magasin avec l’entrepôt comme site qui livre. C’est l’équipe de l’entrepôt qui la
+            sert, et la marchandise sort de son stock ; la vente reste celle du magasin.
+          </p>
+        </section>
+
         <!-- 5 ------------------------------------------------------------------------------- -->
         <section id="achats">
           <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#camion" /></svg></span>Commander et recevoir</h2>
@@ -260,6 +301,7 @@
           <ol>
             <li><strong>Nouvelle commande</strong>, choisissez le fournisseur, ajoutez les articles.</li>
             <li>Pour chaque ligne, l’unité d’achat (le pack, le carton, ou au détail), la quantité et le <strong>prix d’achat</strong> de cette unité. À la réception, on compte dans la même unité : trois cartons reçus font entrer 72 bouteilles.</li>
+            <li>Avec plusieurs sites, choisissez où elle sera livrée : l’entrepôt, en général.</li>
             <li>Enregistrez : c’est un brouillon, il se corrige ligne par ligne.</li>
             <li><strong>Valider</strong> passe la commande au fournisseur : les lignes ne bougent plus.</li>
           </ol>

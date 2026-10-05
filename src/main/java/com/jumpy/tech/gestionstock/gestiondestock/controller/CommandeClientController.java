@@ -26,6 +26,11 @@ public class CommandeClientController implements CommandeClientApi {
     }
 
     @Override
+    public ResponseEntity<CommandeClientDto> changerSiteExpedition(Long id, Long idSite) {
+        return ResponseEntity.ok(cmdeCliService.changerSiteExpedition(id, idSite));
+    }
+
+    @Override
     public ResponseEntity<CommandeClientDto> findById(Long idCommandClient) {
         return ResponseEntity.status(HttpStatus.OK).body(cmdeCliService.findById(idCommandClient));
     }

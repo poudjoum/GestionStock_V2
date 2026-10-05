@@ -21,12 +21,13 @@ public class CaisseController implements CaisseApi {
     }
 
     @Override
-    public ResponseEntity<EtatDeCaisseDto> etat(LocalDate debut, LocalDate fin) {
-        return ResponseEntity.ok(caisseService.etat(debut, fin));
+    public ResponseEntity<EtatDeCaisseDto> etat(LocalDate debut, LocalDate fin, boolean tousSites) {
+        return ResponseEntity.ok(caisseService.etat(debut, fin, tousSites));
     }
 
     @Override
-    public ResponseEntity<Page<ReglementDto>> reglements(LocalDate debut, LocalDate fin, Pageable pageable) {
-        return ResponseEntity.ok(caisseService.reglements(debut, fin, pageable));
+    public ResponseEntity<Page<ReglementDto>> reglements(LocalDate debut, LocalDate fin, Pageable pageable,
+                                                         boolean tousSites) {
+        return ResponseEntity.ok(caisseService.reglements(debut, fin, pageable, tousSites));
     }
 }

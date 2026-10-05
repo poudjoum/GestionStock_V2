@@ -13,6 +13,7 @@ import { provideServiceWorker } from '@angular/service-worker';
 import { routes } from './app.routes';
 import { intercepteurDelai } from './noyau/intercepteur-delai';
 import { intercepteurJeton } from './noyau/intercepteur-jeton';
+import { intercepteurSite } from './noyau/sites';
 import { intercepteurReseau } from './noyau/reseau';
 
 /*
@@ -48,7 +49,7 @@ export const appConfig: ApplicationConfig = {
     //
     // Le constat du reseau vient avant lui, pour voir une requete expiree comme ce qu'elle est
     // devenue : un echec de statut 0, c'est-a-dire un serveur injoignable.
-    provideHttpClient(withInterceptors([intercepteurReseau, intercepteurDelai, intercepteurJeton])),
+    provideHttpClient(withInterceptors([intercepteurReseau, intercepteurDelai, intercepteurSite, intercepteurJeton])),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       registrationStrategy: 'registerWhenStable:30000',

@@ -10,6 +10,19 @@
   pas de code-barres, ou quand il n'y a pas de douchette : elle vient de la copie du catalogue
   gardee sur l'appareil, et marche donc aussi hors ligne.
 -->
+@if (!siteVend()) {
+  <!--
+    Un entrepot ne vend pas : il livre les magasins et, sur commande, leurs clients. Le dire ici,
+    avant le premier scan, vaut mieux qu'un refus au moment d'encaisser, client devant soi.
+  -->
+  <div class="mx-auto mt-10 max-w-xl px-4">
+    <gs-etat-vide
+      icone="warehouse"
+      [titre]="(siteActif()?.nom ?? 'Ce site') + ' est un entrepôt'"
+      texte="Il ne vend pas au comptoir. Choisissez un magasin dans l’en-tête pour vendre, ou passez par une commande client livrée depuis l’entrepôt."
+    />
+  </div>
+} @else {
 <div class="comptoir">
   <!-- Volet gauche : scanner, chercher, toucher -->
   <section class="volet-articles" aria-label="Articles">
@@ -699,4 +712,5 @@
       </div>
     </div>
   </div>
+}
 }

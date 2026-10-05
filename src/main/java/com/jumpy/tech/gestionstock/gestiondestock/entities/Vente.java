@@ -49,6 +49,16 @@ public class Vente extends AbstractEntity{
     private String Commentaires;
     @Column(name="idEntreprise")
     private Long idEntreprise;
+
+    /** Le magasin qui vend : sa caisse encaisse. */
+    @ManyToOne
+    @JoinColumn(name="id_site")
+    private Site site;
+
+    /** Le site d'ou part la marchandise : le magasin au comptoir, l'entrepot quand il livre une commande. */
+    @ManyToOne
+    @JoinColumn(name="id_site_expedition")
+    private Site siteExpedition;
     /**
      * Une vente annulee n'est pas effacee : sa marchandise est retournee en magasin par un
      * mouvement de compensation, et la vente reste lisible. Supprimer la ligne ferait disparaitre

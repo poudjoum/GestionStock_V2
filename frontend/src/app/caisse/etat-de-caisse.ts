@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -11,6 +11,7 @@ import { libelleDuMode } from '../factures/factures.service';
 import type { components } from '../api/schema';
 import type { Page } from '../noyau/api';
 import type { ReglementDto as Reglement } from '../noyau/reglements';
+import { Sites } from '../noyau/sites';
 import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut, Tuile } from '../design';
 
 /** `bonsAchat` est ajoute a la main, en attendant la regeneration des types contre l'API deployee. */
@@ -112,10 +113,26 @@ export class EtatDeCaisse implements OnInit {
     return global === 0 ? 0 : ((total ?? 0) / global) * 100;
   }
 
+  private readonly sites = inject(Sites);
+  protected readonly siteActif = this.sites.actif;
+  protected readonly peutVoirTout = computed(() => this.sites.tousLesSites() && this.sites.plusieurs());
+  protected readonly tousSites = signal(false);
+  protected readonly portees = computed<OptionSelecteur<'site' | 'tous'>[]>(() => [
+    { valeur: 'site', libelle: this.siteActif()?.nom ?? 'Ce magasin' },
+    { valeur: 'tous', libelle: 'Tous les magasins' },
+  ]);
+
+  protected readonly portee = computed<'site' | 'tous'>(() => (this.tousSites() ? 'tous' : 'site'));
+
+  protected changerPortee(portee: 'site' | 'tous'): void {
+    this.tousSites.set(portee === 'tous');
+    this.charger();
+  }
+
   protected charger(): void {
     this.chargement.set(true);
     this.erreur.set(null);
-    const params = { debut: this.debut(), fin: this.fin() };
+    const params = { debut: this.debut(), fin: this.fin(), tousSites: this.tousSites() };
 
     this.http.get<EtatDeCaisseDto>(`${API}/etat`, { params }).subscribe({
       next: (etat) => {
