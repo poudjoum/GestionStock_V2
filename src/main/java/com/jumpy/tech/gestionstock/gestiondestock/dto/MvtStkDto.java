@@ -44,6 +44,9 @@ public class MvtStkDto {
     private Long idVente;
     @com.fasterxml.jackson.annotation.JsonIgnore
     private Long idTransfert;
+    /** La commande client que la sortie sert : elle puise dans sa propre reservation. */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Long idCommandeClient;
     /** En lecture : ce qu'il faut savoir — un lot DLUO depasse est sorti. */
     private java.util.List<String> avertissements;
 

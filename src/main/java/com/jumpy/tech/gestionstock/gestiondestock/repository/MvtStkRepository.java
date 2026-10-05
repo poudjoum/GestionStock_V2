@@ -111,6 +111,19 @@ public interface MvtStkRepository extends JpaRepository<MvtStk, Long> {
                                                     @Param("idArticle") Long idArticle,
                                                     @Param("sortie") TypeMvtStk sortie);
 
+    /**
+     * Ce qui s'est vendu de chaque article depuis une date, dans un site, en unites de base : les
+     * sorties de vente, moins ce que les annulations et les corrections ont rendu. C'est le rythme
+     * de vente sur lequel se calcule le reapprovisionnement.
+     */
+    @Query("select m.articles.id, coalesce(sum(case when m.typMvt = :sortie then m.quantite else -m.quantite end), 0) " +
+            "from MvtStk m where m.site.id = :idSite and m.dateMvt >= :depuis and m.motif in :motifs " +
+            "group by m.articles.id")
+    java.util.List<Object[]> ventesNettesDansSite(@Param("idSite") Long idSite,
+                                                  @Param("depuis") java.time.Instant depuis,
+                                                  @Param("motifs") java.util.Collection<com.jumpy.tech.gestionstock.gestiondestock.entities.MotifMvtStk> motifs,
+                                                  @Param("sortie") TypeMvtStk sortie);
+
     /** Les ventes d'un lot : vente, quantite nette sortie. Le cœur du rappel. */
     @Query("select m.idVente, coalesce(sum(case when m.typMvt = :sortie then m.quantite else -m.quantite end), 0) " +
             "from MvtStk m where m.lot.id = :idLot and m.idVente is not null group by m.idVente")

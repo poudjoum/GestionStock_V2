@@ -60,12 +60,15 @@ public class MvtStkServiceImpl implements MvtStkService {
     private final Lots lots;
     private final LotRepository lotRepository;
     private final Calendrier calendrier;
+    private final com.jumpy.tech.gestionstock.gestiondestock.reservation.Reservations reservations;
 
     public MvtStkServiceImpl(MvtStkRepository mvtStkRepository, ArticleRepository articleRepository,
                              Cloisonnement cloisonnement, NotificationService notifications,
                              Conditionnements conditionnements, SiteCourant siteCourant,
                              SiteRepository siteRepository, ArticleSiteRepository articleSiteRepository,
-                             Lots lots, LotRepository lotRepository, Calendrier calendrier) {
+                             Lots lots, LotRepository lotRepository, Calendrier calendrier,
+                             com.jumpy.tech.gestionstock.gestiondestock.reservation.Reservations reservations) {
+        this.reservations = reservations;
         this.lots = lots;
         this.lotRepository = lotRepository;
         this.calendrier = calendrier;
@@ -194,6 +197,9 @@ public class MvtStkServiceImpl implements MvtStkService {
         }
 
         Site site = siteDuMouvement(article, dto.getIdSite());
+        if (sens == TypeMvtStk.SORTIE && opposerLeStock && site != null && respecteLesReservations(dto.getMotif())) {
+            verifierHorsReservations(article, site, quantite, dto.getIdCommandeClient());
+        }
         List<String> avertissements = new java.util.ArrayList<>();
 
         // Un article suivi bouge lot par lot. Une sortie sans lot designe se repartit sur les lots
@@ -442,6 +448,35 @@ public class MvtStkServiceImpl implements MvtStkService {
                     ErrorCodes.MVT_STK_NOT_VALID);
         }
         return quantite;
+    }
+
+    /**
+     * Les sorties qui ne puisent que dans le disponible : vendre, charger un camion, prendre pour
+     * soi. Une casse, une peremption, un vol sont des faits — la marchandise n'est plus la, que des
+     * commandes l'attendent ou non.
+     */
+    private static boolean respecteLesReservations(MotifMvtStk motif) {
+        return motif == MotifMvtStk.VENTE || motif == MotifMvtStk.TRANSFERT_SORTIE
+                || motif == MotifMvtStk.CONSOMMATION_INTERNE;
+    }
+
+    /** Ce que les commandes des autres retiennent n'est pas a vendre. */
+    private void verifierHorsReservations(Article article, Site site, BigDecimal quantite, Long commandeServie) {
+        BigDecimal reserve = reservations.dansSite(article.getId(), site.getId(), commandeServie);
+        if (reserve.signum() <= 0) {
+            return;
+        }
+        BigDecimal enStock = stockReel(article.getId(), site);
+        BigDecimal disponible = enStock.subtract(reserve).max(BigDecimal.ZERO);
+        if (disponible.compareTo(quantite) < 0) {
+            throw new InvalidEntityException(
+                    "Stock insuffisant pour l'article " + article.getCodeArticle() + " à « " + site.getNom() + " » : "
+                            + disponible.stripTrailingZeros().toPlainString() + " disponibles, "
+                            + quantite.stripTrailingZeros().toPlainString() + " demandés",
+                    ErrorCodes.STOCK_INSUFFISANT,
+                    List.of(enStock.stripTrailingZeros().toPlainString() + " en stock, dont "
+                            + reserve.stripTrailingZeros().toPlainString() + " réservés pour des commandes clients"));
+        }
     }
 
     private void verifierStockDisponible(Article article, Site site, BigDecimal quantite) {

@@ -573,6 +573,8 @@ public class VenteServiceImpl implements VenteService {
                     .motif(MotifMvtStk.VENTE)
                     .idSite(idSite(expedition))
                     .idVente(enregistree.getId())
+                    // La commande servie puise dans ce qu'elle avait reserve.
+                    .idCommandeClient(commande.getId())
                     .build());
 
             ligneCommande.setQuantiteLivree(dejaServi(ligneCommande).add(quantite));

@@ -51,6 +51,8 @@ public class EntrepriseDto {
     private BigDecimal tauxTva;
     /** Jours d'alerte avant la date d'un lot, sauf article qui en decide autrement. */
     private Integer delaiAlertePeremption;
+    /** Jours de ventes que couvre la proposition de reapprovisionnement. */
+    private Integer joursCouverture;
 
     /** Si les tickets rapportent des points de fidelite. Vrai par defaut. */
     private Boolean fideliteActive;
@@ -90,6 +92,7 @@ public class EntrepriseDto {
                 .assujettieTva(en.isAssujettieTva())
                 .tauxTva(en.getTauxTva())
                 .delaiAlertePeremption(en.getDelaiAlertePeremption())
+                .joursCouverture(en.getJoursCouverture())
                 .fideliteActive(en.isFideliteActive())
                 .montantParPoint(en.getMontantParPoint())
                 .build();
