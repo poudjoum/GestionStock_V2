@@ -14,6 +14,7 @@ import { Achats, ArticleDto, Tiers } from './achats.service';
 import { Catalogue } from '../catalogue/catalogue.service';
 import { Repertoire } from '../repertoire/repertoire.service';
 import { messageDErreur } from '../noyau/erreurs';
+import { Sites } from '../noyau/sites';
 import { ConditionnementDto, achetables, libelleDeLigne, unites } from '../noyau/conditionnements';
 
 /** Une ligne en cours de composition. `id` n'existe que pour celles deja enregistrees. */
@@ -91,6 +92,13 @@ export class CommandeFournisseur implements OnInit {
   protected readonly chercheArticle = signal(false);
 
   protected readonly enregistree = computed(() => this.idCommande() !== null);
+  private readonly sites = inject(Sites);
+  /** Les sites ou la commande peut etre livree : ceux de l'appelant. Le site actif par defaut. */
+  protected readonly sitesDeLivraison = this.sites.sites;
+  private readonly choixDeLivraison = signal<number | null>(null);
+  /** Le site choisi, a defaut le site actif — qui peut arriver apres l'ouverture de l'ecran. */
+  protected readonly siteDeLivraison = computed(() => this.choixDeLivraison() ?? this.sites.actif()?.id ?? null);
+  protected readonly nomSite = signal<string | null>(null);
   protected readonly achetables = achetables;
   protected readonly libelleDeLigne = libelleDeLigne;
   protected readonly unites = unites;
@@ -154,6 +162,10 @@ export class CommandeFournisseur implements OnInit {
   }
 
   // --- Le fournisseur -----------------------------------------------------------------------
+
+  protected choisirLivraison(idSite: number): void {
+    this.choixDeLivraison.set(idSite);
+  }
 
   protected chercherFournisseur(q: string): void {
     this.rechercheFournisseur.set(q);
@@ -321,6 +333,7 @@ export class CommandeFournisseur implements OnInit {
         // La date est exigee par l'API, et c'est bien celle du jour : une commande se passe au
         // moment ou on la saisit.
         dateCommande: new Date().toISOString(),
+        idSite: this.siteDeLivraison() ?? undefined,
         fournisseur: { id: this.fournisseur()!.id },
         ligneCmndeFournisseur: this.lignes().map((l) => ({
           article: { id: l.article.id },
@@ -407,6 +420,7 @@ export class CommandeFournisseur implements OnInit {
           return;
         }
         this.code.set(commande.code ?? '');
+        this.nomSite.set(commande.nomSite ?? null);
         const f = commande.fournisseur;
         this.fournisseur.set(
           f ? { id: f.id, nom: f.nom ?? '', prenom: f.prenom ?? '', mail: '', tel: '' } : null,

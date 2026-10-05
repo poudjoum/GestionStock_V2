@@ -50,11 +50,14 @@ public class TransfertServiceImpl implements TransfertService {
     private final Conditionnements conditionnements;
     private final SiteCourant siteCourant;
     private final Cloisonnement cloisonnement;
+    private final com.jumpy.tech.gestionstock.gestiondestock.service.ConditionnementService conditionnementService;
 
     public TransfertServiceImpl(TransfertRepository transfertRepository, LigneTransfertRepository ligneRepository,
                                 ArticleRepository articleRepository, SiteRepository siteRepository,
                                 MvtStkService mvtStkService, Conditionnements conditionnements,
-                                SiteCourant siteCourant, Cloisonnement cloisonnement) {
+                                SiteCourant siteCourant, Cloisonnement cloisonnement,
+                                com.jumpy.tech.gestionstock.gestiondestock.service.ConditionnementService conditionnementService) {
+        this.conditionnementService = conditionnementService;
         this.transfertRepository = transfertRepository;
         this.ligneRepository = ligneRepository;
         this.articleRepository = articleRepository;
@@ -302,9 +305,12 @@ public class TransfertServiceImpl implements TransfertService {
                         ErrorCodes.TRANSFERT_NOT_FOUND));
     }
 
+    /** Le transfert et ses lignes, leurs articles avec leurs conditionnements : on charge au carton. */
     private TransfertDto dto(Transfert transfert) {
-        return TransfertDto.fromEntity(transfert, ligneRepository.findAllByTransfertIdOrderByIdAsc(transfert.getId())
-                .stream().map(LigneTransfertDto::fromEntity).collect(Collectors.toList()));
+        List<LigneTransfertDto> lignes = ligneRepository.findAllByTransfertIdOrderByIdAsc(transfert.getId())
+                .stream().map(LigneTransfertDto::fromEntity).collect(Collectors.toList());
+        conditionnementService.completer(lignes.stream().map(LigneTransfertDto::getArticle).collect(Collectors.toList()));
+        return TransfertDto.fromEntity(transfert, lignes);
     }
 
     private Long entreprise() {

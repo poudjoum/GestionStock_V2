@@ -15,6 +15,7 @@ import { Session } from '../noyau/session';
 import { LIBELLE_DES_ROLES, Role } from '../noyau/roles';
 import { messageDErreur } from '../noyau/erreurs';
 import type { UserDto } from '../noyau/api';
+import { SiteDto, Sites } from '../noyau/sites';
 import { EnTetePage, EtatVide, Section, Statut } from '../design';
 
 const API = `${environnement.api}/gestiondestock/v1/users`;
@@ -125,6 +126,14 @@ export class Comptes implements OnInit {
 
   protected readonly ouvert = signal<UserDto | null>(null);
   protected readonly rolesChoisis = signal<Role[]>([]);
+  private readonly sitesService = inject(Sites);
+  protected readonly sitesDeLEntreprise = signal<SiteDto[]>([]);
+  protected readonly sitesChoisis = signal<number[]>([]);
+  protected readonly siteDArrivee = signal<number | null>(null);
+  /** Administrateur ou gerant : le serveur lui ouvre tous les sites, quoi qu'on coche ici. */
+  protected readonly voitTout = computed(() =>
+    this.rolesChoisis().some((r) => r === 'ROLE_ADMIN' || r === 'ROLE_MANAGER' || r === 'ROLE_COMPTABLE'),
+  );
   protected readonly nouveauMotDePasse = signal('');
   protected readonly envoiEnCours = signal(false);
 
@@ -291,6 +300,8 @@ export class Comptes implements OnInit {
     this.cree.set(null);
     this.ouvert.set(compte);
     this.rolesChoisis.set(this.rolesDe(compte));
+    this.sitesChoisis.set((compte.sites ?? []).map((s) => s.id!));
+    this.siteDArrivee.set(compte.idSiteDefaut ?? null);
     this.nouveauMotDePasse.set('');
     this.erreur.set(null);
   }
@@ -334,6 +345,45 @@ export class Comptes implements OnInit {
     });
   }
 
+  protected choisirSites(ids: number[]): void {
+    this.sitesChoisis.set(ids);
+    // Le site d'arrivee est l'un des siens : un choix retire l'emporte sur l'ancien.
+    if (!ids.includes(this.siteDArrivee() ?? -1)) {
+      this.siteDArrivee.set(ids[0] ?? null);
+    }
+  }
+
+  /** « · Dépôt Bonabéri » sous le nom, quand le compte est attache a des sites. */
+  protected sitesDe(compte: UserDto): string {
+    const noms = (compte.sites ?? []).map((s) => s.nom).filter(Boolean);
+    return noms.length && this.sitesDeLEntreprise().length > 1 ? ' · ' + noms.join(', ') : '';
+  }
+
+  protected enregistrerLesSites(): void {
+    const compte = this.ouvert();
+    if (!compte || this.envoiEnCours()) {
+      return;
+    }
+    const ids = this.sitesChoisis();
+    this.envoiEnCours.set(true);
+    this.http
+      .patch<UserDto>(`${API}/${compte.id}/sites`, {
+        idsSites: ids,
+        idSiteDefaut: ids.length ? (this.siteDArrivee() ?? ids[0]) : null,
+      })
+      .subscribe({
+        next: () => {
+          this.envoiEnCours.set(false);
+          this.snack.open('Sites enregistrés.', 'Fermer', { duration: 3000 });
+          this.charger();
+        },
+        error: (echec: unknown) => {
+          this.envoiEnCours.set(false);
+          this.erreur.set(messageDErreur(echec, "Les sites n'ont pas pu être changés."));
+        },
+      });
+  }
+
   protected reinitialiserLeMotDePasse(): void {
     const compte = this.ouvert();
     const nouveau = this.nouveauMotDePasse();
@@ -363,6 +413,10 @@ export class Comptes implements OnInit {
 
   private charger(): void {
     this.chargement.set(true);
+    this.sitesService.tous().subscribe({
+      next: (sites) => this.sitesDeLEntreprise.set(sites.filter((s) => s.actif !== false)),
+      error: () => this.sitesDeLEntreprise.set([]),
+    });
     this.http.get<UserDto[]>(`${API}/all`).subscribe({
       next: (liste) => {
         this.comptes.set(liste);

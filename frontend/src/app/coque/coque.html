@@ -65,6 +65,35 @@
         <span class="titre-page truncate">{{ titre() }}</span>
       </span>
 
+      <!--
+        Le site sur lequel on travaille. Seulement quand il y en a plusieurs : un commerce a un
+        seul magasin n'a pas a se demander ou il est.
+      -->
+      @if (plusieursSites()) {
+        @let site = siteActif();
+        <button
+          mat-stroked-button
+          class="selecteur-site"
+          [matMenuTriggerFor]="choixDuSite"
+          [attr.aria-label]="'Site actif : ' + (site?.nom ?? '') + '. Changer de site'"
+        >
+          <mat-icon>{{ site?.type === 'ENTREPOT' ? 'warehouse' : 'storefront' }}</mat-icon>
+          <span class="hidden max-w-40 truncate sm:inline">{{ site?.nom }}</span>
+          <mat-icon class="!mr-0">expand_more</mat-icon>
+        </button>
+        <mat-menu #choixDuSite="matMenu">
+          @for (s of sites(); track s.id) {
+            <button mat-menu-item (click)="changerDeSite(s.id!)" [attr.aria-current]="s.id === site?.id">
+              <mat-icon>{{ s.type === 'ENTREPOT' ? 'warehouse' : 'storefront' }}</mat-icon>
+              <span>{{ s.nom }}</span>
+              @if (s.id === site?.id) {
+                <mat-icon class="!ml-2 !mr-0">check</mat-icon>
+              }
+            </button>
+          }
+        </mat-menu>
+      }
+
       @if (!joignable()) {
         <!-- Le mot sur ecran large, l'icone seule sur telephone : la barre n'a pas la place. -->
         <span

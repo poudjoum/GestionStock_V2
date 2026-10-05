@@ -108,6 +108,14 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
   },
   {
+    chemin: '/transferts',
+    groupe: 'stock',
+    libelle: 'Transferts',
+    icone: 'swap_horiz',
+    // Ceux qui chargent et dechargent : le magasinier du depot expedie, celui du magasin recoit.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
+  },
+  {
     chemin: '/achats',
     groupe: 'achats',
     // Sous le groupe « Achats », l'entree s'appelle « Commandes » : « Achats > Achats » ne
@@ -175,6 +183,14 @@ export const MENU: EntreeDeMenu[] = [
     icone: 'group',
     // Le gerant y ajoute ses caissiers et ses magasiniers : c'est lui qui embauche au quotidien.
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SUPER_ADMIN'],
+  },
+  {
+    chemin: '/sites',
+    groupe: 'reglages',
+    libelle: 'Sites',
+    icone: 'store',
+    // Ouvrir un magasin, un entrepot : une decision de gerant, que le serveur reserve aux memes.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER'],
   },
   {
     chemin: '/parametres',

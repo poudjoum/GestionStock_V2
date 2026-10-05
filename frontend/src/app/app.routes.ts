@@ -134,6 +134,16 @@ export const routes: Routes = [
         loadComponent: () => import('./caisse/etat-de-caisse').then((m) => m.EtatDeCaisse),
       },
       {
+        path: 'sites',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER')],
+        loadComponent: () => import('./parametres/sites').then((m) => m.SitesEcran),
+      },
+      {
+        path: 'transferts',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./transferts/transferts').then((m) => m.Transferts),
+      },
+      {
         path: 'comptes',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_SUPER_ADMIN')],
         loadComponent: () => import('./comptes/comptes').then((m) => m.Comptes),

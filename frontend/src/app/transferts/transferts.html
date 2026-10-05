@@ -1,0 +1,260 @@
+@let t = ouvert();
+@let voletOuvert = t !== null || nouveau();
+
+<div class="mx-auto grid max-w-7xl gap-4" [class]="voletOuvert ? 'xl:grid-cols-[1fr_440px]' : ''">
+  <section class="min-w-0">
+    <gs-en-tete-page
+      titre="Transferts"
+      [sousTitre]="'Ce qui part de ' + (actif()?.nom ?? 'ce site') + ', et ce qui y arrive.'"
+    >
+      @if (autresSites().length) {
+        <button mat-flat-button (click)="creer()">
+          <mat-icon>add</mat-icon> Nouveau transfert
+        </button>
+      }
+    </gs-en-tete-page>
+
+    @if (parVue().aRecevoirIci > 0) {
+      <!-- Ce qui roule vers ici passe devant : un camion attend d'etre decharge. -->
+      <p class="mb-4 flex items-center gap-2 rounded px-3 py-2 text-sm" role="status"
+         style="background: var(--mat-sys-tertiary-container); color: var(--mat-sys-on-tertiary-container)">
+        <mat-icon aria-hidden="true">local_shipping</mat-icon>
+        {{ parVue().aRecevoirIci }} transfert{{ parVue().aRecevoirIci > 1 ? 's' : '' }} en route vers {{ actif()?.nom }} :
+        ouvrez-le pour compter ce qui arrive.
+      </p>
+    }
+
+    <gs-selecteur class="mb-4" aria-label="Transferts affichés" [options]="vues()" [(valeur)]="vue" />
+
+    @if (chargement()) {
+      <div class="grid gap-2">
+        @for (i of [1, 2, 3]; track i) {
+          <div class="squelette h-16"></div>
+        }
+      </div>
+    } @else if (erreur(); as m) {
+      <p class="message-erreur" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><span>{{ m }}</span></p>
+    } @else if (affiches().length === 0) {
+      @if (!autresSites().length) {
+        <gs-etat-vide icone="swap_horiz" titre="Un seul site"
+                      texte="Les transferts déplacent la marchandise d’un site à l’autre. Ajoutez un entrepôt ou un second magasin dans Réglages › Sites." />
+      } @else if (vue() === 'preparer') {
+        <gs-etat-vide icone="swap_horiz" titre="Rien en préparation"
+                      texte="Composez un transfert pour réapprovisionner un magasin depuis l’entrepôt, ou dépanner un autre magasin." />
+      } @else if (vue() === 'route') {
+        <gs-etat-vide icone="local_shipping" titre="Rien en route" texte="Les transferts expédiés apparaissent ici jusqu’à leur réception." />
+      } @else {
+        <gs-etat-vide icone="task_alt" titre="Aucun transfert terminé" />
+      }
+    } @else {
+      <ul class="grid list-none gap-2 p-0">
+        @for (tr of affiches(); track tr.id) {
+          <li>
+            <button type="button" class="carte carte-cliquable flex w-full items-center gap-3 p-3 text-left"
+                    style="color: var(--mat-sys-on-surface)"
+                    [style.outline]="t?.id === tr.id ? '2px solid var(--mat-sys-primary)' : ''"
+                    (click)="ouvrir(tr)">
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-2 text-sm font-medium">
+                  <span class="truncate">{{ tr.nomSiteSource }}</span>
+                  <mat-icon class="!h-4 !w-4 shrink-0 !text-base opacity-60" aria-label="vers">arrow_forward</mat-icon>
+                  <span class="truncate">{{ tr.nomSiteDestination }}</span>
+                </span>
+                <span class="block truncate text-xs opacity-60">
+                  <span class="gs-code">{{ tr.reference }}</span>
+                  · {{ nombreDeLignes(tr) }} article{{ nombreDeLignes(tr) > 1 ? 's' : '' }}
+                  · {{ (tr.dateReception ?? tr.dateExpedition ?? tr.dateCreation) | date: 'd MMM, HH:mm' }}
+                </span>
+              </span>
+              <gs-statut [ton]="etat(tr).ton" [icone]="etat(tr).icone">{{ etat(tr).libelle }}</gs-statut>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  @if (voletOuvert) {
+    <aside class="min-w-0">
+      <div class="carte xl:sticky xl:top-0">
+        <header class="flex items-center gap-2 border-b px-4 py-3" style="border-color: var(--mat-sys-outline-variant)">
+          <span class="min-w-0 flex-1">
+            <span class="block font-medium">{{ nouveau() ? 'Nouveau transfert' : t?.reference }}</span>
+            @if (t) {
+              <span class="block truncate text-xs opacity-70">{{ t.nomSiteSource }} → {{ t.nomSiteDestination }}</span>
+            }
+          </span>
+          <button mat-icon-button (click)="fermer()" aria-label="Fermer"><mat-icon>close</mat-icon></button>
+        </header>
+
+        <div class="max-h-[75dvh] overflow-y-auto px-4 py-4">
+          @if (nouveau()) {
+            <!-- Le depart est le site actif : c'est son equipe qui charge. -->
+            <p class="text-sm">Depuis <b>{{ actif()?.nom }}</b>, vers :</p>
+            <mat-form-field appearance="outline" class="mt-2 w-full" subscriptSizing="dynamic">
+              <mat-label>Site d’arrivée</mat-label>
+              <mat-select [value]="destination()" (valueChange)="destination.set($event)">
+                @for (s of autresSites(); track s.id) {
+                  <mat-option [value]="s.id">{{ s.nom }} — {{ s.type === 'ENTREPOT' ? 'entrepôt' : 'magasin' }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="mt-3 w-full" subscriptSizing="dynamic">
+              <mat-label>Note (facultatif)</mat-label>
+              <input matInput maxlength="255" [ngModel]="commentaire()" (ngModelChange)="commentaire.set($event)"
+                     placeholder="Réassort du samedi" />
+            </mat-form-field>
+            <button mat-flat-button class="mt-4 !h-12 w-full" [disabled]="!destination() || envoi()" (click)="demarrer()">
+              Composer le chargement
+            </button>
+          } @else if (t) {
+            @if (t.commentaire) {
+              <p class="mb-3 text-sm opacity-80">{{ t.commentaire }}</p>
+            }
+
+            @if (t.etat === 'BROUILLON') {
+              @if (auDepart()) {
+                <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+                  <mat-label>Ajouter un article</mat-label>
+                  <mat-icon matPrefix>search</mat-icon>
+                  <input matInput autocomplete="off" [ngModel]="recherche()" (ngModelChange)="chercher($event)"
+                         placeholder="code ou désignation" />
+                </mat-form-field>
+                @if (trouves().length) {
+                  <ul class="mt-1 grid list-none gap-1 p-0">
+                    @for (a of trouves(); track a.id) {
+                      <li>
+                        <button type="button" class="carte carte-cliquable flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                                style="color: var(--mat-sys-on-surface)" (click)="ajouter(a)">
+                          <mat-icon class="!h-5 !w-5 !text-xl opacity-60" aria-hidden="true">add_circle_outline</mat-icon>
+                          <span class="min-w-0 flex-1 truncate">{{ a.designation }}</span>
+                          <span class="gs-code text-xs opacity-60">{{ a.codeArticle }}</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                }
+              } @else {
+                <p class="text-sm opacity-70">Il se prépare à {{ t.nomSiteSource }} : choisissez ce site dans l’en-tête pour le compléter.</p>
+              }
+
+              <ul class="mt-4 grid list-none gap-3 p-0">
+                @for (l of t.lignes ?? []; track l.id) {
+                  <li class="border-b pb-3 last:border-b-0" style="border-color: var(--mat-sys-outline-variant)">
+                    <div class="flex items-start gap-2">
+                      <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ l.article?.designation }}</span>
+                      @if (auDepart()) {
+                        <button mat-icon-button (click)="retirer(l)" [attr.aria-label]="'Retirer ' + l.article?.designation">
+                          <mat-icon>delete_outline</mat-icon>
+                        </button>
+                      }
+                    </div>
+                    <div class="mt-1 flex gap-2">
+                      <mat-form-field appearance="outline" class="w-24 shrink-0" subscriptSizing="dynamic">
+                        <mat-label>Quantité</mat-label>
+                        <input matInput type="number" inputmode="decimal" min="0" [disabled]="!auDepart()"
+                               [ngModel]="l.quantite" #q (blur)="corriger(l, +q.value, l.conditionnement)" />
+                      </mat-form-field>
+                      <mat-form-field appearance="outline" class="min-w-0 flex-1" subscriptSizing="dynamic">
+                        <mat-label>En</mat-label>
+                        <mat-select [value]="l.conditionnement?.id ?? 0" [disabled]="!auDepart()"
+                                    (valueChange)="changerUnite(l, $event)">
+                          <mat-option [value]="0">{{ libelleDeLigne(l.article!, null) }}</mat-option>
+                          @for (c of conditionnementsDe(l); track c.id) {
+                            <mat-option [value]="c.id">{{ c.libelle }}</mat-option>
+                          }
+                        </mat-select>
+                      </mat-form-field>
+                    </div>
+                  </li>
+                } @empty {
+                  <li class="text-sm opacity-60">Le chargement est vide : ajoutez les articles qui partent.</li>
+                }
+              </ul>
+
+              @if (erreurVolet(); as m) {
+                <p class="message-erreur mt-3" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><span>{{ m }}</span></p>
+              }
+              @if (auDepart()) {
+                <button mat-flat-button class="mt-4 !h-12 w-full" [disabled]="!(t.lignes ?? []).length || envoi()" (click)="expedier()">
+                  <mat-icon>local_shipping</mat-icon> Expédier : le stock de {{ t.nomSiteSource }} baisse
+                </button>
+                <button mat-button class="mt-2 w-full" [disabled]="envoi()" (click)="annuler()">Abandonner ce transfert</button>
+              }
+            } @else if (t.etat === 'EXPEDIE') {
+              <p class="text-sm">
+                Parti le {{ t.dateExpedition | date: 'd MMM à HH:mm' }}.
+                @if (!aLArrivee()) {
+                  Il se reçoit à {{ t.nomSiteDestination }}.
+                } @else {
+                  Comptez ce qui descend du camion : c’est cela qui entre en stock.
+                }
+              </p>
+              <ul class="mt-4 grid list-none gap-3 p-0">
+                @for (l of t.lignes ?? []; track l.id) {
+                  @let r = receptionDe(l.id);
+                  <li class="border-b pb-3 last:border-b-0" style="border-color: var(--mat-sys-outline-variant)">
+                    <div class="flex items-baseline gap-2">
+                      <span class="min-w-0 flex-1 truncate text-sm font-medium">{{ l.article?.designation }}</span>
+                      <span class="nombre shrink-0 text-xs opacity-70">
+                        parti : {{ l.quantite | number: '1.0-3' }} {{ l.conditionnement?.libelle ?? unites(l.article, l.quantite) }}
+                      </span>
+                    </div>
+                    @if (aLArrivee() && r) {
+                      <mat-form-field appearance="outline" class="mt-1 w-full" subscriptSizing="dynamic">
+                        <mat-label>Arrivé</mat-label>
+                        <input matInput type="number" inputmode="decimal" min="0" [max]="l.quantite ?? 0"
+                               [ngModel]="r.quantite" (ngModelChange)="saisirReception(l.id!, { quantite: $event })" />
+                        <span matTextSuffix>{{ l.conditionnement?.libelle ?? unites(l.article, r.quantite) }}</span>
+                      </mat-form-field>
+                      @if (manque(l)) {
+                        <mat-form-field appearance="outline" class="mt-2 w-full" subscriptSizing="dynamic">
+                          <mat-label>Pourquoi il en manque</mat-label>
+                          <input matInput maxlength="255" [ngModel]="r.motif" (ngModelChange)="saisirReception(l.id!, { motif: $event })"
+                                 placeholder="Carton écrasé, oubli au chargement…" />
+                        </mat-form-field>
+                      }
+                    }
+                  </li>
+                }
+              </ul>
+              @if (erreurVolet(); as m) {
+                <p class="message-erreur mt-3" role="alert"><mat-icon aria-hidden="true">error_outline</mat-icon><span>{{ m }}</span></p>
+              }
+              @if (aLArrivee()) {
+                <button mat-flat-button class="mt-4 !h-12 w-full" [disabled]="!receptionComplete() || envoi()" (click)="recevoir()">
+                  <mat-icon>inventory</mat-icon> Valider la réception
+                </button>
+              }
+            } @else {
+              <p class="text-sm">
+                @if (t.etat === 'RECU') {
+                  Reçu le {{ t.dateReception | date: 'd MMM à HH:mm' }}.
+                } @else {
+                  Abandonné avant le départ.
+                }
+              </p>
+              <ul class="mt-4 grid list-none gap-2 p-0">
+                @for (l of t.lignes ?? []; track l.id) {
+                  <li class="text-sm">
+                    <span class="block font-medium">{{ l.article?.designation }}</span>
+                    <span class="nombre block text-xs opacity-70">
+                      {{ l.quantite | number: '1.0-3' }} parti{{ t.etat === 'RECU' ? ', ' : '' }}
+                      @if (t.etat === 'RECU') {
+                        {{ l.quantiteRecue | number: '1.0-3' }} arrivé
+                      }
+                      — {{ l.conditionnement?.libelle ?? unites(l.article, l.quantite) }}
+                    </span>
+                    @if (l.motifEcart) {
+                      <gs-statut ton="alerte" icone="report">{{ l.motifEcart }}</gs-statut>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+          }
+        </div>
+      </div>
+    </aside>
+  }
+</div>

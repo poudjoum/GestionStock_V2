@@ -262,3 +262,11 @@
     padding-bottom: 1rem;
   }
 }
+
+/* Le site actif : discret, mais toujours la ou l'on regarde avant de vendre ou de compter. */
+.selecteur-site {
+  height: 36px;
+  min-width: 0;
+  padding: 0 8px 0 10px;
+  gap: 4px;
+}

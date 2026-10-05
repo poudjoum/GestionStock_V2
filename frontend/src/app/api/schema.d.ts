@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/gestiondestock/v1/sites/{idSite}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["modifier"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/fidelite/politique": {
         parameters: {
             query?: never;
@@ -50,7 +66,23 @@ export interface paths {
         };
         get: operations["lire_1"];
         /** Corriger une campagne pas encore finie */
-        put: operations["modifier"];
+        put: operations["modifier_1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/articles/{idArticle}/seuils/{idSite}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["definirSeuil"];
         post?: never;
         delete?: never;
         options?: never;
@@ -66,7 +98,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["modifier_1"];
+        put: operations["modifier_2"];
         post?: never;
         delete: operations["retirer"];
         options?: never;
@@ -180,6 +212,118 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["save_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/transferts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["lister"];
+        put?: never;
+        post: operations["creer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/transferts/{id}/reception": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["recevoir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/transferts/{id}/lignes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ajouterLigne_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/transferts/{id}/expedition": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["expedier"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/transferts/{id}/annulation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["annuler_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["sites"];
+        put?: never;
+        post: operations["creer_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/sites/{idSite}/fermeture": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["fermer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -512,7 +656,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["annuler_1"];
+        post: operations["annuler_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -560,7 +704,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["recevoir"];
+        post: operations["recevoir_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -576,7 +720,7 @@ export interface paths {
         };
         get: operations["lignes_1"];
         put?: never;
-        post: operations["ajouterLigne_1"];
+        post: operations["ajouterLigne_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -656,7 +800,7 @@ export interface paths {
         };
         get: operations["lignes_2"];
         put?: never;
-        post: operations["ajouterLigne_2"];
+        post: operations["ajouterLigne_3"];
         delete?: never;
         options?: never;
         head?: never;
@@ -755,10 +899,10 @@ export interface paths {
             cookie?: never;
         };
         /** Les campagnes de mon magasin, des plus récentes aux plus anciennes */
-        get: operations["lister"];
+        get: operations["lister_1"];
         put?: never;
         /** Préparer une campagne */
-        post: operations["creer"];
+        post: operations["creer_2"];
         delete?: never;
         options?: never;
         head?: never;
@@ -965,6 +1109,22 @@ export interface paths {
         patch: operations["attribuerClient"];
         trace?: never;
     };
+    "/gestiondestock/v1/users/{idUser}/sites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["changerSites"];
+        trace?: never;
+    };
     "/gestiondestock/v1/users/{idUser}/roles": {
         parameters: {
             query?: never;
@@ -1123,6 +1283,22 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["modifierQuantite_1"];
+        trace?: never;
+    };
+    "/gestiondestock/v1/commandes-clients/{idCommandClient}/expedition/{idSite}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["changerSiteExpedition"];
         trace?: never;
     };
     "/gestiondestock/v1/commandes-clients/{idCommandClient}/etat/{etat}": {
@@ -1285,6 +1461,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/transferts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/tickets/{code}": {
         parameters: {
             query?: never;
@@ -1341,6 +1533,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["alertes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/sites/miens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["mesSites"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1439,6 +1647,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["stockReelArticle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/mouvements/sites/{idArticle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["stocksParSite"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2199,6 +2423,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/transferts/{id}/lignes/{idLigne}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["retirerLigne_3"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/inventaires/{idSeance}/comptages/{idLigne}": {
         parameters: {
             query?: never;
@@ -2364,6 +2604,17 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        SiteDto: {
+            /** Format: int64 */
+            id?: number;
+            nom?: string;
+            /** @enum {string} */
+            type?: "MAGASIN" | "ENTREPOT";
+            adresse?: string;
+            telephone?: string;
+            principal?: boolean;
+            actif?: boolean;
+        };
         PolitiqueFideliteDto: {
             fideliteActive?: boolean;
             montantParPoint?: number;
@@ -2432,6 +2683,9 @@ export interface components {
             dateDebut?: string;
             /** Format: date */
             dateFin?: string;
+        };
+        SeuilDto: {
+            seuil?: number;
         };
         ConditionnementDto: {
             /** Format: int64 */
@@ -2571,6 +2825,12 @@ export interface components {
             idEntreprise?: number;
             /** Format: int64 */
             idCommandeClient?: number;
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            /** Format: int64 */
+            idSiteExpedition?: number;
+            nomSiteExpedition?: string;
             ligneVente?: components["schemas"]["LigneVenteDto"][];
             encaissement?: components["schemas"]["ReglementDto"];
             commentaires?: string;
@@ -2607,6 +2867,46 @@ export interface components {
             numTel?: string;
             entreprise?: components["schemas"]["EntrepriseDto"];
             roles?: components["schemas"]["RoleDto"][];
+            sites?: components["schemas"]["SiteDto"][];
+            /** Format: int64 */
+            idSiteDefaut?: number;
+        };
+        LigneTransfertDto: {
+            /** Format: int64 */
+            id?: number;
+            article?: components["schemas"]["ArticleDto"];
+            conditionnement?: components["schemas"]["ConditionnementDto"];
+            contenance?: number;
+            quantite?: number;
+            quantiteRecue?: number;
+            motifEcart?: string;
+        };
+        TransfertDto: {
+            /** Format: int64 */
+            id?: number;
+            reference?: string;
+            /** Format: int64 */
+            idSiteSource?: number;
+            nomSiteSource?: string;
+            /** Format: int64 */
+            idSiteDestination?: number;
+            nomSiteDestination?: string;
+            /** @enum {string} */
+            etat?: "BROUILLON" | "EXPEDIE" | "RECU" | "ANNULE";
+            commentaire?: string;
+            /** Format: date-time */
+            dateCreation?: string;
+            /** Format: date-time */
+            dateExpedition?: string;
+            /** Format: date-time */
+            dateReception?: string;
+            lignes?: components["schemas"]["LigneTransfertDto"][];
+        };
+        ReceptionTransfertDto: {
+            /** Format: int64 */
+            idLigne?: number;
+            quantiteRecue?: number;
+            motifEcart?: string;
         };
         CommerceDto: {
             /** Format: int64 */
@@ -2650,10 +2950,13 @@ export interface components {
             /** @enum {string} */
             typeMvt?: "ENTREE" | "SORTIE";
             /** @enum {string} */
-            motif?: "LIVRAISON_COMMANDE" | "VENTE" | "ANNULATION_VENTE" | "CORRECTION_VENTE" | "SAISIE_MANUELLE" | "INVENTAIRE" | "PERTE" | "CASSE" | "PEREMPTION" | "RETOUR_FOURNISSEUR" | "RETOUR_CLIENT" | "CONSOMMATION_INTERNE";
+            motif?: "LIVRAISON_COMMANDE" | "VENTE" | "ANNULATION_VENTE" | "CORRECTION_VENTE" | "SAISIE_MANUELLE" | "INVENTAIRE" | "PERTE" | "CASSE" | "PEREMPTION" | "RETOUR_FOURNISSEUR" | "RETOUR_CLIENT" | "CONSOMMATION_INTERNE" | "TRANSFERT_SORTIE" | "TRANSFERT_ENTREE";
             /** Format: int64 */
             idEntreprise?: number;
             conditionnement?: components["schemas"]["ConditionnementDto"];
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
         };
         OuvertureInventaireDto: {
             commentaire?: string;
@@ -2671,6 +2974,9 @@ export interface components {
             commentaire?: string;
             /** Format: int64 */
             idEntreprise?: number;
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
             /** Format: int64 */
             articles?: number;
             /** Format: int64 */
@@ -2713,6 +3019,8 @@ export interface components {
             /** Format: int32 */
             modifiees?: number;
             refusees?: components["schemas"]["LigneRefuseeDto"][];
+            /** Format: int32 */
+            conditionnements?: number;
         };
         FournisseurDto: {
             /** Format: int64 */
@@ -2811,6 +3119,9 @@ export interface components {
             idEntreprise?: number;
             /** @enum {string} */
             etat?: "EN_PREPARATION" | "VALIDEE" | "PARTIELLEMENT_LIVREE" | "LIVREE" | "CLOTUREE" | "ANNULEE";
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
             motifCloture?: string;
             ligneCmndeFournisseur?: components["schemas"]["LigneCmndeFournisseurDto"][];
         };
@@ -2848,6 +3159,12 @@ export interface components {
             idEntreprise?: number;
             /** @enum {string} */
             etat?: "EN_PREPARATION" | "VALIDEE" | "PARTIELLEMENT_LIVREE" | "LIVREE" | "CLOTUREE" | "ANNULEE";
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            /** Format: int64 */
+            idSiteExpedition?: number;
+            nomSiteExpedition?: string;
             motifCloture?: string;
             ligneCmndeClients?: components["schemas"]["LigneCommandeClientDto"][];
             /** Format: int64 */
@@ -2881,6 +3198,11 @@ export interface components {
         };
         RafraichissementRequest: {
             refreshToken: string;
+        };
+        SitesDuCompteDto: {
+            idsSites?: number[];
+            /** Format: int64 */
+            idSiteDefaut?: number;
         };
         MotDePasseDto: {
             ancien?: string;
@@ -2969,6 +3291,10 @@ export interface components {
             /** @enum {string} */
             uniteBase?: "PIECE" | "KG" | "LITRE" | "METRE" | "M2" | "M3";
             conditionnements?: components["schemas"]["ConditionnementDto"][];
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            parSite?: components["schemas"]["StockSiteDto"][];
             seuilAlerte?: number;
             /** @enum {string} */
             statut?: "NEGATIF" | "RUPTURE" | "SOUS_SEUIL" | "SUFFISANT" | "SANS_SEUIL";
@@ -2995,6 +3321,14 @@ export interface components {
             last?: boolean;
             empty?: boolean;
         };
+        StockSiteDto: {
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            /** @enum {string} */
+            type?: "MAGASIN" | "ENTREPOT";
+            quantite?: number;
+        };
         EtatDuStockDto: {
             /** Format: int64 */
             nombreArticles?: number;
@@ -3006,6 +3340,12 @@ export interface components {
             /** Format: int64 */
             nombreSansCoutConnu?: number;
             valeurAuPrixDeVente?: number;
+        };
+        MesSitesDto: {
+            sites?: components["schemas"]["SiteDto"][];
+            /** Format: int64 */
+            actif?: number;
+            tousLesSites?: boolean;
         };
         ResumePlateformeDto: {
             /** Format: int64 */
@@ -3313,6 +3653,32 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    modifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idSite: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteDto"];
+                };
+            };
+        };
+    };
     lire: {
         parameters: {
             query?: never;
@@ -3423,7 +3789,7 @@ export interface operations {
             };
         };
     };
-    modifier: {
+    modifier_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -3449,7 +3815,32 @@ export interface operations {
             };
         };
     };
-    modifier_1: {
+    definirSeuil: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+                idSite: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeuilDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    modifier_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -3703,6 +4094,214 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
+    lister: {
+        parameters: {
+            query?: {
+                etat?: "BROUILLON" | "EXPEDIE" | "RECU" | "ANNULE";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransfertDto"][];
+                };
+            };
+        };
+    };
+    creer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransfertDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransfertDto"];
+                };
+            };
+        };
+    };
+    recevoir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ReceptionTransfertDto"][];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransfertDto"];
+                };
+            };
+        };
+    };
+    ajouterLigne_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LigneTransfertDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransfertDto"];
+                };
+            };
+        };
+    };
+    expedier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransfertDto"];
+                };
+            };
+        };
+    };
+    annuler_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransfertDto"];
+                };
+            };
+        };
+    };
+    sites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteDto"][];
+                };
+            };
+        };
+    };
+    creer_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SiteDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteDto"];
+                };
+            };
+        };
+    };
+    fermer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idSite: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SiteDto"];
                 };
             };
         };
@@ -4204,7 +4803,7 @@ export interface operations {
             };
         };
     };
-    annuler_1: {
+    annuler_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4274,7 +4873,7 @@ export interface operations {
             };
         };
     };
-    recevoir: {
+    recevoir_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4322,7 +4921,7 @@ export interface operations {
             };
         };
     };
-    ajouterLigne_1: {
+    ajouterLigne_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -4468,7 +5067,7 @@ export interface operations {
             };
         };
     };
-    ajouterLigne_2: {
+    ajouterLigne_3: {
         parameters: {
             query?: never;
             header?: never;
@@ -4621,7 +5220,7 @@ export interface operations {
             };
         };
     };
-    lister: {
+    lister_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -4641,7 +5240,7 @@ export interface operations {
             };
         };
     };
-    creer: {
+    creer_2: {
         parameters: {
             query?: never;
             header?: never;
@@ -5025,6 +5624,32 @@ export interface operations {
             };
         };
     };
+    changerSites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idUser: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SitesDuCompteDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
     changerRoles: {
         parameters: {
             query?: never;
@@ -5305,6 +5930,29 @@ export interface operations {
             };
         };
     };
+    changerSiteExpedition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idCommandClient: number;
+                idSite: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandeClientDto"];
+                };
+            };
+        };
+    };
     mettreAJourEtat_1: {
         parameters: {
             query?: never;
@@ -5518,6 +6166,28 @@ export interface operations {
             };
         };
     };
+    detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransfertDto"];
+                };
+            };
+        };
+    };
     ticket: {
         parameters: {
             query?: never;
@@ -5545,6 +6215,7 @@ export interface operations {
             query: {
                 q?: string;
                 pageable: components["schemas"]["Pageable"];
+                tousSites?: boolean;
             };
             header?: never;
             path?: never;
@@ -5565,7 +6236,9 @@ export interface operations {
     };
     etat: {
         parameters: {
-            query?: never;
+            query?: {
+                tousSites?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5585,7 +6258,9 @@ export interface operations {
     };
     alertes: {
         parameters: {
-            query?: never;
+            query?: {
+                tousSites?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -5599,6 +6274,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LigneInventaireDto"][];
+                };
+            };
+        };
+    };
+    mesSites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MesSitesDto"];
                 };
             };
         };
@@ -5726,6 +6421,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": number;
+                };
+            };
+        };
+    };
+    stocksParSite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockSiteDto"][];
                 };
             };
         };
@@ -6486,6 +7203,7 @@ export interface operations {
                 debut?: string;
                 fin?: string;
                 pageable: components["schemas"]["Pageable"];
+                tousSites?: boolean;
             };
             header?: never;
             path?: never;
@@ -6509,6 +7227,7 @@ export interface operations {
             query?: {
                 debut?: string;
                 fin?: string;
+                tousSites?: boolean;
             };
             header?: never;
             path?: never;
@@ -6697,6 +7416,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
+    retirerLigne_3: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                idLigne: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransfertDto"];
                 };
             };
         };

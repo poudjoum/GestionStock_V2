@@ -14,7 +14,7 @@ describe('groupesPour', () => {
 
   it('range les fournisseurs avec les achats pour le magasinier', () => {
     expect(noms(['ROLE_MAGASINIER'])).toEqual([
-      ['Stock', ['Stock', 'Catalogue', 'Inventaire']],
+      ['Stock', ['Stock', 'Catalogue', 'Inventaire', 'Transferts']],
       ['Achats', ['Commandes', 'Fournisseurs']],
     ]);
   });
@@ -32,7 +32,7 @@ describe('groupesPour', () => {
       // L'equipe : le gerant y ajoute ses caissiers et ses magasiniers.
       'Réglages',
     ]);
-    expect(groupes.at(-1)?.entrees.map((e) => e.chemin)).toEqual(['/comptes']);
+    expect(groupes.at(-1)?.entrees.map((e) => e.chemin)).toEqual(['/comptes', '/sites']);
   });
 });
 

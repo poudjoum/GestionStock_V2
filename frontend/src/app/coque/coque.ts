@@ -8,6 +8,7 @@ import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe, DecimalPipe, NgTemplateOutlet } from '@angular/common';
 import { Session } from '../noyau/session';
+import { Sites } from '../noyau/sites';
 import { Reseau } from '../noyau/reseau';
 import { FileDesVentes } from '../comptoir/file-des-ventes';
 import { Notifications } from '../notifications/notifications.service';
@@ -49,6 +50,10 @@ import { Logo } from '../design/logo';
 })
 export class Coque implements OnInit {
   private readonly session = inject(Session);
+  private readonly sitesService = inject(Sites);
+  protected readonly sites = this.sitesService.sites;
+  protected readonly siteActif = this.sitesService.actif;
+  protected readonly plusieursSites = this.sitesService.plusieurs;
   private readonly notifications = inject(Notifications);
   private readonly router = inject(Router);
   private readonly reseau = inject(Reseau);
@@ -108,6 +113,19 @@ export class Coque implements OnInit {
     this.groupeCourant.set(groupePour(this.router.url));
   }
 
+  /**
+   * Change de site et recharge l'ecran : tout ce qu'il montre — le stock, la caisse, l'inventaire —
+   * etait celui de l'autre site.
+   */
+  protected changerDeSite(idSite: number): void {
+    if (idSite === this.siteActif()?.id) {
+      return;
+    }
+    this.sitesService.choisir(idSite);
+    const ici = this.router.url;
+    void this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => this.router.navigateByUrl(ici));
+  }
+
   ngOnInit(): void {
     // Qui suis-je, redemande au serveur : le stockage local sert a dessiner le menu tout de
     // suite, la reponse du serveur le corrige. Un role retire pendant la nuit disparait donc au
@@ -127,6 +145,9 @@ export class Coque implements OnInit {
       },
       error: () => undefined,
     });
+    // Les sites du compte : de quoi dessiner le selecteur, et poser le site actif sur les
+    // requetes. Sans reponse, on travaille au site par defaut du compte, que le serveur choisit.
+    this.sitesService.charger().subscribe({ error: () => undefined });
     this.notifications.rafraichirLeCompte();
     // L'abonnement de l'appareil redonne au compte qui vient de se connecter.
     void this.push.demarrer();

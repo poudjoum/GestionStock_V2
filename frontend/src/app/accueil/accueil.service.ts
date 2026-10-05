@@ -23,17 +23,19 @@ const API = `${environnement.api}/gestiondestock/v1`;
 export class Accueil {
   private readonly http = inject(HttpClient);
 
+  // L'accueil est celui du gerant : il regarde l'entreprise entiere. Le serveur ramene au site
+  // actif qui ne voit pas tout — le parametre ne donne rien a qui n'y a pas droit.
   etatDuStock(): Observable<EtatDuStockDto> {
-    return this.http.get<EtatDuStockDto>(`${API}/stock/etat`);
+    return this.http.get<EtatDuStockDto>(`${API}/stock/etat`, { params: { tousSites: true } });
   }
 
   /** La caisse du jour : sans dates, l'API rend la journee en cours. */
   etatDeCaisse(): Observable<EtatDeCaisseDto> {
-    return this.http.get<EtatDeCaisseDto>(`${API}/caisse/etat`);
+    return this.http.get<EtatDeCaisseDto>(`${API}/caisse/etat`, { params: { tousSites: true } });
   }
 
   alertes(): Observable<LigneInventaireDto[]> {
-    return this.http.get<LigneInventaireDto[]>(`${API}/stock/alertes`);
+    return this.http.get<LigneInventaireDto[]>(`${API}/stock/alertes`, { params: { tousSites: true } });
   }
 
   dernieresFactures(taille = 5): Observable<Page<FactureDto>> {
