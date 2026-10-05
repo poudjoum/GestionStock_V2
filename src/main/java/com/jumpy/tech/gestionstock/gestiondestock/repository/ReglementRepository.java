@@ -54,6 +54,13 @@ public interface ReglementRepository extends JpaRepository<Reglement, Long> {
                                                @Param("fin") Instant fin,
                                                @Param("idEntreprise") Long idEntreprise);
 
+    /** La meme chose, pour la caisse d'un magasin : celui ou la vente a eu lieu. */
+    @Query("select r.mode, coalesce(sum(r.montant), 0), count(r) from Reglement r " +
+            "where r.dateReglement >= :debut and r.dateReglement < :fin " +
+            "and r.facture.vente.site.id = :idSite group by r.mode order by r.mode")
+    List<Object[]> totauxParModePourSite(@Param("debut") Instant debut, @Param("fin") Instant fin,
+                                         @Param("idSite") Long idSite);
+
     @Query("select r.mode, coalesce(sum(r.montant), 0), count(r) from Reglement r " +
             "where r.dateReglement >= :debut and r.dateReglement < :fin group by r.mode order by r.mode")
     List<Object[]> totauxParMode(@Param("debut") Instant debut, @Param("fin") Instant fin);
@@ -67,6 +74,11 @@ public interface ReglementRepository extends JpaRepository<Reglement, Long> {
             "and r.idEntreprise = :idEntreprise order by r.dateReglement desc")
     Page<Reglement> detailPourEntreprise(@Param("debut") Instant debut, @Param("fin") Instant fin,
                                          @Param("idEntreprise") Long idEntreprise, Pageable pageable);
+
+    @Query("select r from Reglement r where r.dateReglement >= :debut and r.dateReglement < :fin " +
+            "and r.facture.vente.site.id = :idSite order by r.dateReglement desc")
+    Page<Reglement> detailPourSite(@Param("debut") Instant debut, @Param("fin") Instant fin,
+                                   @Param("idSite") Long idSite, Pageable pageable);
 
     @Query("select r from Reglement r where r.dateReglement >= :debut and r.dateReglement < :fin " +
             "order by r.dateReglement desc")

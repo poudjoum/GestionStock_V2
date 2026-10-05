@@ -27,12 +27,14 @@ public interface CaisseApi {
     @GetMapping(value = APP_ROOT + "/caisse/etat", produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<EtatDeCaisseDto> etat(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate debut,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin);
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin,
+            @RequestParam(defaultValue = "false") boolean tousSites);
 
     /** Le detail des encaissements de la periode, pour confronter le total a ce qui le compose. */
     @GetMapping(value = APP_ROOT + "/caisse/reglements", produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<Page<ReglementDto>> reglements(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate debut,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin,
-            Pageable pageable);
+            Pageable pageable,
+            @RequestParam(defaultValue = "false") boolean tousSites);
 }

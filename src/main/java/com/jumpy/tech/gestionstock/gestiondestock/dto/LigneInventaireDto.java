@@ -31,6 +31,11 @@ public class LigneInventaireDto {
      * cartons qu'on declare une casse ou qu'on compte une reserve.
      */
     private List<ConditionnementDto> conditionnements;
+    /** Le site dont on lit le stock ; nul en vue « tous sites ». */
+    private Long idSite;
+    private String nomSite;
+    /** En vue « tous sites » : ou est la marchandise, site par site. */
+    private List<StockSiteDto> parSite;
     private BigDecimal seuilAlerte;
     private StatutStock statut;
 

@@ -243,7 +243,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, API + "/users/all", API + "/users/roles-attribuables")
                             .hasAnyRole(ADMIN, MANAGER, SUPER_ADMIN)
                         .requestMatchers(HttpMethod.PATCH, API + "/users/*/roles", API + "/users/*/actif/*",
-                                API + "/users/*/motdepasse")
+                                API + "/users/*/motdepasse", API + "/users/*/sites")
                             .hasAnyRole(ADMIN, MANAGER, SUPER_ADMIN)
 
                         // Le reste des comptes : l'administration de son propre commerce. Le
@@ -352,6 +352,12 @@ public class SecurityConfiguration {
                         // La regle POST generique juste en dessous l'ouvrirait au magasinier :
                         // il tient la marchandise, pas la politique de prix.
                         .requestMatchers(HttpMethod.POST, API + "/articles/import")
+                            .hasAnyRole(ADMIN, MANAGER)
+
+                        // Ouvrir ou fermer un magasin, un entrepot : une decision de gerant. La regle
+                        // POST generique l'ouvrirait au magasinier. La modification passe par PUT,
+                        // deja reservee aux deux memes roles.
+                        .requestMatchers(HttpMethod.POST, API + "/sites", API + "/sites/**")
                             .hasAnyRole(ADMIN, MANAGER)
 
                         // Faire avancer une commande — la declarer livree, donc faire entrer la

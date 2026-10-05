@@ -21,17 +21,17 @@ public class StockController implements StockApi {
     }
 
     @Override
-    public ResponseEntity<EtatDuStockDto> etat() {
-        return ResponseEntity.ok(stockService.etat());
+    public ResponseEntity<EtatDuStockDto> etat(boolean tousSites) {
+        return ResponseEntity.ok(stockService.etat(tousSites));
     }
 
     @Override
-    public ResponseEntity<Page<LigneInventaireDto>> inventaire(String q, Pageable pageable) {
-        return ResponseEntity.ok(stockService.inventaire(q, pageable));
+    public ResponseEntity<Page<LigneInventaireDto>> inventaire(String q, Pageable pageable, boolean tousSites) {
+        return ResponseEntity.ok(stockService.inventaire(q, pageable, tousSites));
     }
 
     @Override
-    public ResponseEntity<List<LigneInventaireDto>> alertes() {
-        return ResponseEntity.ok(stockService.alertes());
+    public ResponseEntity<List<LigneInventaireDto>> alertes(boolean tousSites) {
+        return ResponseEntity.ok(stockService.alertes(tousSites));
     }
 }

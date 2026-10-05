@@ -74,6 +74,8 @@ class ConditionnementsTest extends AbstractIntegrationTest {
     private FournisseurService fournisseurService;
     @Autowired
     private CommandeFourService commandeFourService;
+    @Autowired
+    private com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant siteCourant;
 
     private Long idEntreprise;
     private CategoryDto category;
@@ -348,7 +350,7 @@ class ConditionnementsTest extends AbstractIntegrationTest {
 
     @Test
     void la_casse_se_declare_au_carton_mais_une_saisie_ne_se_fait_pas_passer_pour_une_vente() {
-        MvtStkController controleur = new MvtStkController(mvtStkService);
+        MvtStkController controleur = new MvtStkController(mvtStkService, siteCourant);
 
         controleur.sortieStock(MvtStkDto.builder()
                 .article(ArticleDto.builder().Id(idArticle).build())

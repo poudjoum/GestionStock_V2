@@ -6,6 +6,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.SeanceInventaireDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneComptage;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.SeanceInventaire;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Site;
+import com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.StatutSeanceInventaire;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
@@ -30,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -45,13 +48,16 @@ public class InventaireServiceImpl implements InventaireService {
     private final MvtStkRepository mvtStkRepository;
     private final MvtStkService mvtStkService;
     private final Cloisonnement cloisonnement;
+    private final SiteCourant siteCourant;
 
     public InventaireServiceImpl(SeanceInventaireRepository seanceRepository,
                                  LigneComptageRepository ligneRepository,
                                  ArticleRepository articleRepository,
                                  MvtStkRepository mvtStkRepository,
                                  MvtStkService mvtStkService,
-                                 Cloisonnement cloisonnement) {
+                                 Cloisonnement cloisonnement,
+                                 SiteCourant siteCourant) {
+        this.siteCourant = siteCourant;
         this.seanceRepository = seanceRepository;
         this.ligneRepository = ligneRepository;
         this.articleRepository = articleRepository;
@@ -64,7 +70,9 @@ public class InventaireServiceImpl implements InventaireService {
     @Transactional
     public SeanceInventaireDto ouvrir(String commentaire) {
         Long entreprise = cloisonnement.entrepriseCourante();
-        seanceRepository.findByStatutAndIdEntreprise(StatutSeanceInventaire.OUVERTE, entreprise)
+        // L'inventaire compte un site : l'entrepot se compte pendant que le magasin vend.
+        Site site = siteCourant.site();
+        ouverteIci(site, entreprise)
                 .ifPresent(ouverte -> {
                     throw new InvalidEntityException(
                             "Une séance d'inventaire est déjà ouverte (" + ouverte.getReference()
@@ -87,11 +95,12 @@ public class InventaireServiceImpl implements InventaireService {
         seance.setStatut(StatutSeanceInventaire.OUVERTE);
         seance.setCommentaire(commentaire);
         seance.setIdEntreprise(entreprise);
+        seance.setSite(site);
         SeanceInventaire enregistree = seanceRepository.save(seance);
 
         // Le stock de tout le catalogue en une requete. Le demander article par article en ferait
         // deux par ligne — un inventaire de mille references en produirait deux mille.
-        Map<Long, BigDecimal> stocks = stocksDe(articles);
+        Map<Long, BigDecimal> stocks = stocksDe(articles, site);
 
         List<LigneComptage> lignes = new ArrayList<>(articles.size());
         for (Article article : articles) {
@@ -113,9 +122,7 @@ public class InventaireServiceImpl implements InventaireService {
 
     @Override
     public SeanceInventaireDto seanceOuverte() {
-        return seanceRepository
-                .findByStatutAndIdEntreprise(StatutSeanceInventaire.OUVERTE,
-                        cloisonnement.entrepriseCourante())
+        return ouverteIci(siteCourant.site(), cloisonnement.entrepriseCourante())
                 .map(this::avecSesCompteurs)
                 .orElse(null);
     }
@@ -198,7 +205,8 @@ public class InventaireServiceImpl implements InventaireService {
         List<LigneComptage> aCorriger = ligneRepository.aCorriger(idSeance);
         for (LigneComptage ligne : aCorriger) {
             BigDecimal ecart = ligne.getQuantiteComptee().subtract(ligne.getStockAuComptage());
-            mvtStkService.corrigerAuComptage(ligne.getArticle().getId(), ecart);
+            mvtStkService.corrigerAuComptage(ligne.getArticle().getId(), ecart,
+                    seance.getSite() == null ? null : seance.getSite().getId());
         }
 
         seance.setStatut(StatutSeanceInventaire.VALIDEE);
@@ -222,7 +230,10 @@ public class InventaireServiceImpl implements InventaireService {
 
     @Override
     public Page<SeanceInventaireDto> historique(Pageable pageable) {
-        Page<SeanceInventaire> page = cloisonnement.filtre()
+        Site site = siteCourant.site();
+        Page<SeanceInventaire> page = site != null
+                ? seanceRepository.findAllBySiteId(site.getId(), pageable)
+                : cloisonnement.filtre()
                 ? seanceRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante(), pageable)
                 : seanceRepository.findAll(pageable);
         return page.map(this::avecSesCompteurs);
@@ -242,7 +253,10 @@ public class InventaireServiceImpl implements InventaireService {
                     ErrorCodes.INVENTAIRE_NOT_VALID);
         }
         ligne.setQuantiteComptee(quantite);
-        ligne.setStockAuComptage(mvtStkService.stockReelArticle(ligne.getArticle().getId()));
+        Site site = ligne.getSeance().getSite();
+        ligne.setStockAuComptage(site == null
+                ? mvtStkService.stockReelArticle(ligne.getArticle().getId())
+                : mvtStkService.stockReelDansSite(ligne.getArticle().getId(), site.getId()));
         ligne.setCompteLe(Instant.now());
         return LigneComptageDto.fromEntity(ligneRepository.save(ligne));
     }
@@ -257,6 +271,11 @@ public class InventaireServiceImpl implements InventaireService {
                         "Aucune séance d'inventaire avec l'identifiant " + idSeance,
                         ErrorCodes.INVENTAIRE_NOT_FOUND));
         cloisonnement.verifierAcces(seance.getIdEntreprise(), "séance d'inventaire", idSeance);
+        // Le comptage d'un depot ou l'on ne travaille pas ne se lit ni ne se touche.
+        if (seance.getSite() != null && !siteCourant.peutVoir(seance.getSite())) {
+            throw new EntityNotFoundException(
+                    "Aucune séance d'inventaire avec l'identifiant " + idSeance, ErrorCodes.INVENTAIRE_NOT_FOUND);
+        }
         return seance;
     }
 
@@ -280,10 +299,20 @@ public class InventaireServiceImpl implements InventaireService {
         return SeanceInventaireDto.fromEntity(seance, lignes.size(), comptes, ecarts);
     }
 
-    private Map<Long, BigDecimal> stocksDe(List<Article> articles) {
+    /** La seance ouverte du site ; hors site, celle de l'entreprise. */
+    private Optional<SeanceInventaire> ouverteIci(Site site, Long entreprise) {
+        return site != null
+                ? seanceRepository.findByStatutAndSiteId(StatutSeanceInventaire.OUVERTE, site.getId())
+                : seanceRepository.findByStatutAndIdEntreprise(StatutSeanceInventaire.OUVERTE, entreprise);
+    }
+
+    private Map<Long, BigDecimal> stocksDe(List<Article> articles, Site site) {
         List<Long> ids = articles.stream().map(Article::getId).toList();
         Map<Long, BigDecimal> stocks = new HashMap<>();
-        for (Object[] ligne : mvtStkRepository.stocksReels(ids, TypeMvtStk.ENTREE)) {
+        List<Object[]> lignes = site == null
+                ? mvtStkRepository.stocksReels(ids, TypeMvtStk.ENTREE)
+                : mvtStkRepository.stocksReelsDansSite(ids, site.getId(), TypeMvtStk.ENTREE);
+        for (Object[] ligne : lignes) {
             stocks.put((Long) ligne[0], (BigDecimal) ligne[1]);
         }
         return stocks;
