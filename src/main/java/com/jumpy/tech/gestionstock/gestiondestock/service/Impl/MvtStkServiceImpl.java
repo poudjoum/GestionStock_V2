@@ -1,6 +1,8 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.conditionnement.Conditionnements;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Conditionnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
@@ -37,9 +39,12 @@ public class MvtStkServiceImpl implements MvtStkService {
     private final ArticleRepository articleRepository;
     private final Cloisonnement cloisonnement;
     private final NotificationService notifications;
+    private final Conditionnements conditionnements;
 
     public MvtStkServiceImpl(MvtStkRepository mvtStkRepository, ArticleRepository articleRepository,
-                             Cloisonnement cloisonnement, NotificationService notifications) {
+                             Cloisonnement cloisonnement, NotificationService notifications,
+                             Conditionnements conditionnements) {
+        this.conditionnements = conditionnements;
         this.mvtStkRepository = mvtStkRepository;
         this.articleRepository = articleRepository;
         this.cloisonnement = cloisonnement;
@@ -120,6 +125,11 @@ public class MvtStkServiceImpl implements MvtStkService {
         }
         Article article = article(dto.getArticle().getId());
         BigDecimal quantite = quantiteValide(dto.getQuantite());
+        if (dto.getConditionnement() != null && dto.getConditionnement().getId() != null) {
+            Conditionnement conditionnement = conditionnements.pourLigneConstatee(article, dto.getConditionnement());
+            Conditionnements.verifierFraction(article, conditionnement, quantite, ErrorCodes.MVT_STK_NOT_VALID);
+            quantite = Conditionnements.enUnitesDeBase(quantite, Conditionnements.contenance(conditionnement));
+        }
 
         if (sens == TypeMvtStk.SORTIE && opposerLeStock) {
             verifierStockDisponible(article, quantite);

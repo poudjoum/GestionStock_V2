@@ -36,7 +36,7 @@ const CIBLES: Record<CibleImport, Cible> = {
     intro:
       'Remplissez le modèle avec vos articles, déposez-le ici, et vérifiez ce qui va entrer avant de valider. Un article déjà présent est reconnu par son code : le réimporter le met à jour au lieu de le créer deux fois.',
     colonnes:
-      'code, désignation, prix HT, taux de TVA, seuil d’alerte, catégorie. Le code est celui que lira la douchette — c’est le code-barres s’il y en a un.',
+      'code, désignation, prix HT, taux de TVA, seuil d’alerte, catégorie, et l’unité si l’article se vend au kilo, au litre ou au mètre. Le code est celui que lira la douchette — c’est le code-barres s’il y en a un. Une seconde feuille, « Conditionnements », facultative, porte les cartons et les sacs : code de l’article, libellé, contenance, prix HT et code-barres du carton.',
     unite: ['article', 'articles'],
     repere: 'Code',
     chemin: 'articles/import',

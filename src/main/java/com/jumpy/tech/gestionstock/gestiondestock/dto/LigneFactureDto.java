@@ -13,6 +13,8 @@ public class LigneFactureDto {
     private Long id;
     private String codeArticle;
     private String designation;
+    /** Le conditionnement vendu, nul a l'unite. */
+    private String conditionnement;
     private BigDecimal quantite;
     private BigDecimal prixUnitaireHt;
     private BigDecimal tauxTva;
@@ -28,6 +30,7 @@ public class LigneFactureDto {
                 .id(ligne.getId())
                 .codeArticle(ligne.getCodeArticle())
                 .designation(ligne.getDesignation())
+                .conditionnement(ligne.getConditionnement())
                 .quantite(ligne.getQuantite())
                 .prixUnitaireHt(ligne.getPrixUnitaireHt())
                 .tauxTva(ligne.getTauxTva())

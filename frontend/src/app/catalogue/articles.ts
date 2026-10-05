@@ -14,6 +14,8 @@ import { ArticleDto, Catalogue, CategoryDto } from './catalogue.service';
 import { Session } from '../noyau/session';
 import { messageDErreur } from '../noyau/erreurs';
 import type { Page } from '../noyau/api';
+import { ConditionnementsArticle } from './conditionnements-article';
+import { UNITES, UniteMesure, symbole, vendables } from '../noyau/conditionnements';
 
 /** Le formulaire, a plat : les champs que l'API accepte, et rien d'autre. */
 interface Saisie {
@@ -24,6 +26,7 @@ interface Saisie {
   tauxTva: number | null;
   seuilAlerte: number | null;
   idCategory: number | null;
+  uniteBase: UniteMesure;
 }
 
 function vide(): Saisie {
@@ -35,6 +38,7 @@ function vide(): Saisie {
     tauxTva: null,
     seuilAlerte: null,
     idCategory: null,
+    uniteBase: 'PIECE',
   };
 }
 
@@ -64,6 +68,7 @@ function vide(): Saisie {
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    ConditionnementsArticle,
   ],
   templateUrl: './articles.html',
 })
@@ -87,6 +92,11 @@ export class Articles implements OnInit {
   protected readonly erreurVolet = signal<string | null>(null);
 
   protected readonly modification = computed(() => this.saisie().id !== null);
+  /** L'article ouvert en modification, tel que le serveur l'a rendu : ses conditionnements s'y rattachent. */
+  protected readonly articleOuvert = signal<ArticleDto | null>(null);
+  protected readonly unites = UNITES;
+  protected readonly symbole = symbole;
+  protected readonly vendables = vendables;
   protected readonly peutSupprimer = computed(() =>
     this.session.roles().some((r) => ['ROLE_ADMIN', 'ROLE_MANAGER'].includes(r)),
   );
@@ -149,6 +159,7 @@ export class Articles implements OnInit {
   protected nouveau(): void {
     // La categorie filtree est pre-remplie : on entre en general plusieurs articles de la meme.
     this.saisie.set({ ...vide(), idCategory: this.categorieFiltre() });
+    this.articleOuvert.set(null);
     this.erreurVolet.set(null);
     this.volet.set(true);
   }
@@ -162,7 +173,9 @@ export class Articles implements OnInit {
       tauxTva: article.tauxTva ?? null,
       seuilAlerte: article.seuilAlerte ?? null,
       idCategory: article.category?.id ?? null,
+      uniteBase: article.uniteBase ?? 'PIECE',
     });
+    this.articleOuvert.set(article);
     this.erreurVolet.set(null);
     this.volet.set(true);
   }
@@ -192,17 +205,23 @@ export class Articles implements OnInit {
       tauxTva: s.tauxTva ?? undefined,
       seuilAlerte: s.seuilAlerte ?? undefined,
       category: { id: s.idCategory! },
+      uniteBase: s.uniteBase,
     };
 
     this.service.enregistrerArticle(article).subscribe({
       next: (enregistre) => {
         this.envoiEnCours.set(false);
         const creation = s.id === null;
-        this.snack.open(
+        // Les cartons et les codes se rattachent a un article enregistre : on propose d'y aller
+        // sans interrompre la saisie de la reference suivante.
+        const annonce = this.snack.open(
           creation ? `« ${enregistre.designation} » ajouté au catalogue.` : 'Article modifié.',
-          'Fermer',
-          { duration: 3000 },
+          creation ? 'Cartons et codes-barres' : 'Fermer',
+          { duration: creation ? 6000 : 3000 },
         );
+        if (creation) {
+          annonce.onAction().subscribe(() => this.modifier(enregistre));
+        }
         this.charger();
         if (creation) {
           // On enchaine : le volet se vide et garde la categorie, puisqu'on saisit en general
@@ -247,6 +266,17 @@ export class Articles implements OnInit {
     this.service.articles(this.recherche(), this.categorieFiltre()).subscribe({
       next: (page) => this.afficher(page),
       error: () => this.echouer(),
+    });
+  }
+
+  /**
+   * Relit la liste apres un changement fait dans le volet, sans squelette : la page ne doit pas
+   * sauter sous les yeux de celui qui y ajoute un code apres l'autre.
+   */
+  protected rechargerSansBouger(): void {
+    this.service.articles(this.recherche(), this.categorieFiltre()).subscribe({
+      next: (page) => this.afficher(page),
+      error: () => undefined,
     });
   }
 

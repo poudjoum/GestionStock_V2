@@ -1,12 +1,15 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ConditionnementDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.EtatDuStockDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneInventaireDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Conditionnement;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.StatutStock;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeMvtStk;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.ConditionnementRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.LigneCmndeFourRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.MvtStkRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.service.StockService;
@@ -34,10 +37,13 @@ public class StockServiceImpl implements StockService {
     private final MvtStkRepository mvtStkRepository;
     private final LigneCmndeFourRepository ligneCmndeFourRepository;
     private final Cloisonnement cloisonnement;
+    private final ConditionnementRepository conditionnementRepository;
 
     public StockServiceImpl(ArticleRepository articleRepository, MvtStkRepository mvtStkRepository,
                             LigneCmndeFourRepository ligneCmndeFourRepository,
-                            Cloisonnement cloisonnement) {
+                            Cloisonnement cloisonnement,
+                            ConditionnementRepository conditionnementRepository) {
+        this.conditionnementRepository = conditionnementRepository;
         this.articleRepository = articleRepository;
         this.mvtStkRepository = mvtStkRepository;
         this.ligneCmndeFourRepository = ligneCmndeFourRepository;
@@ -123,20 +129,29 @@ public class StockServiceImpl implements StockService {
         List<Long> ids = articles.stream().map(Article::getId).collect(Collectors.toList());
         Map<Long, BigDecimal> stocks = stocks(ids);
         Map<Long, BigDecimal> couts = coutsMoyens(ids);
+        Map<Long, List<ConditionnementDto>> conditionnements =
+                conditionnementRepository.findAllByArticleIdInOrderByQuantiteUnitesAsc(ids).stream()
+                        .filter(Conditionnement::isActif)
+                        .map(ConditionnementDto::fromEntity)
+                        .collect(Collectors.groupingBy(ConditionnementDto::getIdArticle));
 
         return articles.stream()
                 .map(article -> ligne(article, stocks.getOrDefault(article.getId(), BigDecimal.ZERO),
-                        couts.get(article.getId())))
+                        couts.get(article.getId()),
+                        conditionnements.getOrDefault(article.getId(), List.of())))
                 .collect(Collectors.toList());
     }
 
-    private LigneInventaireDto ligne(Article article, BigDecimal quantite, BigDecimal coutMoyen) {
+    private LigneInventaireDto ligne(Article article, BigDecimal quantite, BigDecimal coutMoyen,
+                                     List<ConditionnementDto> conditionnements) {
         BigDecimal prixVente = article.getPrixUnitaire();
         return LigneInventaireDto.builder()
                 .idArticle(article.getId())
                 .codeArticle(article.getCodeArticle())
                 .designation(article.getDesignation())
                 .quantite(quantite)
+                .uniteBase(article.getUniteBase())
+                .conditionnements(conditionnements)
                 .seuilAlerte(article.getSeuilAlerte())
                 .statut(statut(quantite, article.getSeuilAlerte()))
                 .coutMoyenAchat(coutMoyen)

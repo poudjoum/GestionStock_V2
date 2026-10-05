@@ -5,6 +5,7 @@ import { environnement } from '../../environnements/environnement';
 import type { components } from '../api/schema';
 import type { ArticleDto, ClientDto, Page } from '../noyau/api';
 import type { ReglementDto } from '../noyau/reglements';
+import type { ResultatScanDto } from '../noyau/conditionnements';
 
 /**
  * `codeTicket` est ajoute a la main, et c'est provisoire : `npm run api:types` lit l'API deployee,
@@ -37,9 +38,12 @@ export class Comptoir {
     });
   }
 
-  /** Un article par son code exact : ce que rend une lecture de code-barres. */
-  parCode(code: string): Observable<ArticleDto> {
-    return this.http.get<ArticleDto>(`${API}/articles/code/${encodeURIComponent(code)}`);
+  /**
+   * Ce que designe un code lu : l'article, et le conditionnement presente — le code du carton
+   * n'est pas celui de la bouteille. Le code d'article reste reconnu.
+   */
+  scanner(code: string): Observable<ResultatScanDto> {
+    return this.http.get<ResultatScanDto>(`${API}/articles/scan`, { params: { code } });
   }
 
   clients(q: string): Observable<Page<ClientDto>> {

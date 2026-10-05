@@ -11,3 +11,4 @@ export { Section } from './section';
 export { Selecteur, type OptionSelecteur } from './selecteur';
 export { Statut, type TonStatut } from './statut';
 export { Tuile } from './tuile';
+export { ScanCamera, cameraDisponible } from './scan-camera';

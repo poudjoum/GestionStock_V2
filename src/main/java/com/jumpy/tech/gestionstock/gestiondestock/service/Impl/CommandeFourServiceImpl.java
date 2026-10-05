@@ -1,8 +1,10 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.conditionnement.Conditionnements;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeFourDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ConditionnementDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCmndeFournisseurDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneReceptionDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
@@ -38,10 +40,13 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     private FournisseurRepository fournisseurRepository;
     private final Cloisonnement cloisonnement;
     private MvtStkService mvtStkService;
+    private final Conditionnements conditionnements;
 
     public CommandeFourServiceImpl(CommandeFourRepository commandeFourRepository, ArticleRepository articleRepository,
                                    LigneCmndeFourRepository ligneCmndeFourRepository, FournisseurRepository fournisseurRepository,
-                                   MvtStkService mvtStkService, Cloisonnement cloisonnement){
+                                   MvtStkService mvtStkService, Cloisonnement cloisonnement,
+                                   Conditionnements conditionnements){
+        this.conditionnements=conditionnements;
         this.cloisonnement=cloisonnement;
         this.commandeFourRepository=commandeFourRepository;
         this.articleRepository=articleRepository;
@@ -100,6 +105,8 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         if(dto.getLigneCmndeFournisseur()!=null) {
             dto.getLigneCmndeFournisseur().forEach(ligCmdFour -> {
                 LigneCmndeFournisseur ligneCmndeFour = LigneCmndeFournisseurDto.toEntity(ligCmdFour);
+                Article article = article(ligCmdFour.getArticle().getId());
+                conditionner(ligneCmndeFour, article, ligCmdFour.getConditionnement());
                 ligneCmndeFour.setCommandeFournisseur(saveCmndFour);
                 // Les lignes ajoutees apres coup portent l'entreprise de leur commande ; celles
                 // creees avec elle ne la portaient pas. Rien ne les lit sans passer par la
@@ -210,9 +217,11 @@ public class CommandeFourServiceImpl implements CommandeFourService {
                                 + ", déjà livré " + ligne.getQuantiteLivree()));
             }
 
+            // La reception se compte dans l'unite de la ligne — trois cartons — et entre en stock
+            // en unites de base.
             mvtStkService.entreeStock(MvtStkDto.builder()
                     .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
-                    .quantite(recue)
+                    .quantite(Conditionnements.enUnitesDeBase(recue, ligne.getContenance()))
                     .motif(MotifMvtStk.LIVRAISON_COMMANDE)
                     .build());
             ligne.setQuantiteLivree(dejaLivre(ligne).add(recue));
@@ -292,6 +301,7 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         nouvelle.setArticles(article);
         nouvelle.setQuantite(quantiteValide(ligne.getQuantite()));
         nouvelle.setPrixUnitaire(ligne.getPrixUnitaire());
+        conditionner(nouvelle, article, ligne.getConditionnement());
         nouvelle.setIdEntreprise(commande.getIdEntreprise());
 
         return LigneCmndeFournisseurDto.fromEntity(ligneCmndeFourRepository.save(nouvelle));
@@ -309,6 +319,8 @@ public class CommandeFourServiceImpl implements CommandeFourService {
         LigneCmndeFournisseur ligne = ligne(idCommande, idLigne);
         if (quantite != null) {
             ligne.setQuantite(quantiteValide(quantite));
+            Conditionnements.verifierFraction(ligne.getArticles(), ligne.getConditionnement(), quantite,
+                    ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID);
         }
         if (prixUnitaire != null) {
             ligne.setPrixUnitaire(prixValide(prixUnitaire));
@@ -321,6 +333,18 @@ public class CommandeFourServiceImpl implements CommandeFourService {
     public void retirerLigne(Long idCommande, Long idLigne) {
         commandeModifiable(idCommande);
         ligneCmndeFourRepository.delete(ligne(idCommande, idLigne));
+    }
+
+    /**
+     * Le conditionnement d'achat de la ligne, et la contenance qu'elle fige. Le prix de la ligne
+     * est alors celui du conditionnement : le fournisseur facture le carton, pas la bouteille.
+     */
+    private void conditionner(LigneCmndeFournisseur ligne, Article article, ConditionnementDto demande) {
+        Conditionnement conditionnement = conditionnements.pourLigne(article, demande, Conditionnements.Usage.ACHAT);
+        Conditionnements.verifierFraction(article, conditionnement, ligne.getQuantite(),
+                ErrorCodes.LIGNE_COMMANDE_FOURNISSEUR_NOT_VALID);
+        ligne.setConditionnement(conditionnement);
+        ligne.setContenance(Conditionnements.contenance(conditionnement));
     }
 
     private CommandeFour commande(Long id) {

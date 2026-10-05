@@ -1,10 +1,12 @@
 package com.jumpy.tech.gestionstock.gestiondestock.dto;
 
 import com.jumpy.tech.gestionstock.gestiondestock.entities.StatutStock;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.UniteMesure;
 import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Un article et ce qu'il en reste.
@@ -21,7 +23,14 @@ public class LigneInventaireDto {
     private String codeArticle;
     private String designation;
 
+    /** En unites de base. */
     private BigDecimal quantite;
+    private UniteMesure uniteBase;
+    /**
+     * Les conditionnements actifs de l'article : la quantite se lit aussi en cartons, et c'est en
+     * cartons qu'on declare une casse ou qu'on compte une reserve.
+     */
+    private List<ConditionnementDto> conditionnements;
     private BigDecimal seuilAlerte;
     private StatutStock statut;
 

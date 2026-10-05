@@ -20,6 +20,11 @@ public class MvtStkDto {
     private TypeMvtStk typeMvt;
     private MotifMvtStk motif;
     private Long idEntreprise;
+    /**
+     * A la saisie seulement : la quantite est alors comptee dans ce conditionnement — deux cartons
+     * casses — et le mouvement enregistre est converti en unites de base.
+     */
+    private ConditionnementDto conditionnement;
 
     public static MvtStkDto fromEntity(MvtStk mvtStk) {
         if (mvtStk == null) {

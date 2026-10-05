@@ -70,6 +70,12 @@
           <span class="gs-etiquette">À mettre à jour</span>
           <strong class="nombre">{{ r.modifiees | number }}</strong>
         </div>
+        @if (r.conditionnements) {
+          <div>
+            <span class="gs-etiquette">Conditionnements</span>
+            <strong class="nombre">{{ r.conditionnements | number }}</strong>
+          </div>
+        }
         <div>
           <span class="gs-etiquette">Refusées</span>
           <strong class="nombre" [class.danger]="refusees().length" [class.gs-encre-3]="!refusees().length">{{ refusees().length | number }}</strong>

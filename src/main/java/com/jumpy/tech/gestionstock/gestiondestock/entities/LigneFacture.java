@@ -37,6 +37,10 @@ public class LigneFacture extends AbstractEntity {
     @Column(name = "designation")
     private String designation;
 
+    /** Le libelle du conditionnement vendu, fige comme la designation ; nul a l'unite. */
+    @Column(name = "conditionnement", length = 60)
+    private String conditionnement;
+
     @Column(name = "quantite", nullable = false)
     private BigDecimal quantite;
 

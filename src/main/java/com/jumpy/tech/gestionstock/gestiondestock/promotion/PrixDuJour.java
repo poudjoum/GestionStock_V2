@@ -1,6 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.promotion;
 
 import com.jumpy.tech.gestionstock.gestiondestock.entities.PromotionArticle;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeRemise;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.PromotionArticleRepository;
 import org.springframework.stereotype.Service;
 
@@ -43,6 +44,18 @@ public class PrixDuJour {
      * Le prix envoye par la caisse est garde s'il est plus bas : le serveur applique la
      * promotion qu'elle aurait oubliee, il ne reprend pas une remise qu'elle aurait accordee.
      */
+    /**
+     * Le prix d'une ligne saisie dans un conditionnement : la remise en pourcentage s'y applique,
+     * le prix fixe non. Un prix fixe est celui de l'unite — l'appliquer au carton le vendrait au
+     * prix d'une bouteille.
+     */
+    public static BigDecimal pourLigne(BigDecimal prixEnvoye, BigDecimal prixCatalogue, PromotionArticle promotion,
+                                       boolean conditionne) {
+        boolean applicable = promotion != null
+                && (!conditionne || promotion.getTypeRemise() != TypeRemise.PRIX_FIXE);
+        return pourLigne(prixEnvoye, prixCatalogue, applicable ? promotion : null);
+    }
+
     public static BigDecimal pourLigne(BigDecimal prixEnvoye, BigDecimal prixCatalogue, PromotionArticle promotion) {
         BigDecimal prix = prixEnvoye != null ? prixEnvoye : prixCatalogue;
         if (promotion == null || prixCatalogue == null) {

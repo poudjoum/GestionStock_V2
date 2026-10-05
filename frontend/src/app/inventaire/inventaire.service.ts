@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environnement } from '../../environnements/environnement';
 import type { Page } from '../noyau/api';
+import type { ResultatScanDto } from '../noyau/conditionnements';
 
 const API = `${environnement.api}/gestiondestock/v1`;
 
@@ -48,6 +49,11 @@ export type VueDesLignes = 'TOUTES' | 'A_COMPTER' | 'ECARTS';
 @Injectable({ providedIn: 'root' })
 export class Inventaire {
   private readonly http = inject(HttpClient);
+
+  /** Ce que designe un code d'etiquette : l'article, et le conditionnement s'il s'agit d'un carton. */
+  scanner(code: string): Observable<ResultatScanDto> {
+    return this.http.get<ResultatScanDto>(`${API}/articles/scan`, { params: { code } });
+  }
 
   /**
    * La seance en cours.

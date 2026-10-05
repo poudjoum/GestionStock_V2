@@ -32,6 +32,11 @@ public class Article extends AbstractEntity{
      */
     @Column(name="seuil_alerte")
     private BigDecimal seuilAlerte;
+
+    /** L'unite dans laquelle le stock est tenu ; ses conditionnements en sont des multiples. */
+    @Enumerated(EnumType.STRING)
+    @Column(name="unite_base", nullable = false, length = 10)
+    private UniteMesure uniteBase = UniteMesure.PIECE;
     @Column(name="idEntreprise")
     private Long idEntreprise;
     @ManyToOne

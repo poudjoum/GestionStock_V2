@@ -74,8 +74,16 @@
         <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer la recherche">
           <mat-icon>close</mat-icon>
         </button>
+      } @else if (cameraDisponible) {
+        <!-- Le petit commerce sans douchette scanne avec le telephone. -->
+        <button matSuffix mat-icon-button (click)="camera.set(true)" aria-label="Scanner à la caméra">
+          <mat-icon>photo_camera</mat-icon>
+        </button>
       }
     </mat-form-field>
+    @if (camera()) {
+      <gs-scan-camera (lu)="lireALaCamera($event)" (ferme)="camera.set(false)" />
+    }
 
     @if (codeInconnu(); as code) {
       <!--
@@ -173,7 +181,7 @@
         </thead>
         <tbody>
           @for (article of articles.slice(0, AFFICHES_MAX); track article.id) {
-            <tr [class.ligne--promo]="promotion(article)" [class.ligne--ajoutee]="dernierAjout() === article.id" (click)="ajouter(article)">
+            <tr [class.ligne--promo]="promotion(article)" [class.ligne--ajoutee]="dernierAjout() === cleDe(article, null)" (click)="ajouter(article)">
               <td>
                 <span class="designation">{{ article.designation }}</span>
                 <span class="code gs-code">{{ article.codeArticle }}</span>
@@ -232,46 +240,90 @@
       />
     } @else {
       <ul class="lignes">
-        @for (ligne of lignes; track ligne.article.id) {
+        @for (ligne of lignes; track cleDe(ligne.article, ligne.conditionnement)) {
+          @let cle = cleDe(ligne.article, ligne.conditionnement);
+          @let unites = vendables(ligne.article);
           <!--
             La ligne s'allume brievement quand elle vient d'etre scannee. Le caissier regarde la
             marchandise, pas l'ecran : sans ce signal, un scan manque par la douchette ne se
             distingue pas d'un scan qui a porte, et l'ecart se decouvre au total.
           -->
-          <li class="ligne" [class.ligne--ajoutee]="dernierAjout() === ligne.article.id">
+          <li class="ligne" [class.ligne--ajoutee]="dernierAjout() === cle">
             <div class="ligne-haut">
               <span class="ligne-nom">
                 <span class="designation">{{ ligne.article.designation }}</span>
                 <span class="unitaire nombre">
-                  @if (promotion(ligne.article)) {
-                    <s>{{ ligne.article.prixUnitaireHt | number: '1.0-0' }}</s>
+                  @if (promotion(ligne.article) && prixLigne(ligne) < prixNormal(ligne)) {
+                    <s>{{ prixNormal(ligne) | number: '1.0-0' }}</s>
                   }
-                  {{ prix(ligne.article) | number: '1.0-0' }} F l’unité
+                  {{ prixLigne(ligne) | number: '1.0-0' }} F
+                  {{ ligne.conditionnement ? 'le ' + (ligne.conditionnement.libelle ?? '').toLowerCase() : (auDetail(ligne) ? 'le ' + libelleDeLigne(ligne.article, null) : 'l’unité') }}
                 </span>
               </span>
-              <span class="ligne-total nombre">{{ prix(ligne.article) * ligne.quantite | number: '1.0-0' }} F</span>
+              <span class="ligne-total nombre">{{ prixLigne(ligne) * ligne.quantite | number: '1.0-0' }} F</span>
             </div>
-            <div class="ligne-bas">
-              <!-- Commandes larges : on les touche du pouce, pas a la souris. -->
-              <div class="quantite">
-                <button
-                  type="button"
-                  class="gs-focus"
-                  (click)="changerQuantite(ligne.article.id!, ligne.quantite - 1)"
-                  [attr.aria-label]="ligne.quantite === 1 ? 'Retirer ' + ligne.article.designation : 'Une unité de moins'"
-                >
-                  <mat-icon>{{ ligne.quantite === 1 ? 'delete_outline' : 'remove' }}</mat-icon>
+            <!--
+              L'unite de la ligne, quand l'article se vend aussi en gros : le client qui prend
+              finalement le carton ne fait pas recommencer la ligne.
+            -->
+            @if (unites.length) {
+              <div class="unites" role="group" [attr.aria-label]="'Vendre ' + ligne.article.designation">
+                <button type="button" class="unite gs-focus" [class.unite--choisie]="!ligne.conditionnement"
+                        [attr.aria-pressed]="!ligne.conditionnement"
+                        (click)="changerDeConditionnement(cle, null)">
+                  {{ fractionnable(ligne.article) ? 'Au ' + libelleDeLigne(ligne.article, null) : 'À l’unité' }}
                 </button>
-                <span class="nombre" aria-live="polite">{{ ligne.quantite }}</span>
-                <button
-                  type="button"
-                  class="gs-focus"
-                  (click)="changerQuantite(ligne.article.id!, ligne.quantite + 1)"
-                  aria-label="Une unité de plus"
-                >
-                  <mat-icon>add</mat-icon>
-                </button>
+                @for (c of unites; track c.id) {
+                  <button type="button" class="unite gs-focus" [class.unite--choisie]="ligne.conditionnement?.id === c.id"
+                          [attr.aria-pressed]="ligne.conditionnement?.id === c.id"
+                          (click)="changerDeConditionnement(cle, c)">
+                    {{ c.libelle }}
+                  </button>
+                }
               </div>
+            }
+            <div class="ligne-bas">
+              @if (auDetail(ligne)) {
+                <!-- Au poids ou a la mesure : la quantite se tape, telle que la balance l'affiche. -->
+                <label class="quantite quantite--pesee">
+                  <input
+                    class="nombre gs-focus"
+                    type="number"
+                    inputmode="decimal"
+                    min="0"
+                    step="0.001"
+                    [value]="ligne.quantite"
+                    (input)="peser(cle, $any($event.target).valueAsNumber)"
+                    [attr.aria-label]="'Quantité de ' + ligne.article.designation"
+                  />
+                  <span>{{ libelleDeLigne(ligne.article, null) }}</span>
+                </label>
+                <button type="button" mat-icon-button (click)="retirer(cle)"
+                        [attr.aria-label]="'Retirer ' + ligne.article.designation">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              } @else {
+                <!-- Commandes larges : on les touche du pouce, pas a la souris. -->
+                <div class="quantite">
+                  <button
+                    type="button"
+                    class="gs-focus"
+                    (click)="changerQuantite(cle, ligne.quantite - 1)"
+                    [attr.aria-label]="ligne.quantite === 1 ? 'Retirer ' + ligne.article.designation : 'Un de moins'"
+                  >
+                    <mat-icon>{{ ligne.quantite === 1 ? 'delete_outline' : 'remove' }}</mat-icon>
+                  </button>
+                  <span class="nombre" aria-live="polite">{{ ligne.quantite }}</span>
+                  <button
+                    type="button"
+                    class="gs-focus"
+                    (click)="changerQuantite(cle, ligne.quantite + 1)"
+                    aria-label="Un de plus"
+                  >
+                    <mat-icon>add</mat-icon>
+                  </button>
+                </div>
+              }
               @if (promotion(ligne.article); as promo) {
                 <gs-statut ton="promo" icone="sell">{{ promo.titreCampagne || 'Promotion' }}</gs-statut>
               }

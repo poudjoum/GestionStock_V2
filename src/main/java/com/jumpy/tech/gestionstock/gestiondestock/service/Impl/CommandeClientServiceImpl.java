@@ -1,11 +1,14 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.conditionnement.Conditionnements;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommandeClientDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.ConditionnementDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.LigneCommandeClientDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Client;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.CommandeClient;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Conditionnement;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.LigneCmndeClient;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundException;
@@ -38,7 +41,10 @@ public class CommandeClientServiceImpl implements CommandeClientService {
     private ClientRepository clientRepository;
     private ArticleRepository articleRepository;
     private LigneCmndeClientRepository ligneCmndeClientRepository;
-    public CommandeClientServiceImpl(CommandeClientRepository commandeClientRepository, ClientRepository clientRepository,ArticleRepository articleRepository,LigneCmndeClientRepository ligneCmndeClientRepository,Cloisonnement cloisonnement){
+    private final Conditionnements conditionnements;
+    public CommandeClientServiceImpl(CommandeClientRepository commandeClientRepository, ClientRepository clientRepository,ArticleRepository articleRepository,LigneCmndeClientRepository ligneCmndeClientRepository,Cloisonnement cloisonnement,
+                                     Conditionnements conditionnements){
+        this.conditionnements=conditionnements;
         this.commandeClientRepository=commandeClientRepository;
         this.articleRepository=articleRepository;
         this.clientRepository=clientRepository;
@@ -97,6 +103,9 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         if(dto.getLigneCmndeClients()!=null) {
             dto.getLigneCmndeClients().forEach(ligCmdClt -> {
                 LigneCmndeClient ligneCmndeClient = LigneCommandeClientDto.toEntity(ligCmdClt);
+                Article article = articleRepository.findById(ligCmdClt.getArticle().getId()).orElseThrow();
+                ligneCmndeClient.setArticles(article);
+                conditionner(ligneCmndeClient, article, ligCmdClt.getConditionnement());
                 ligneCmndeClient.setCommandeClient(saveCmndClt);
                 ligneCmndeClientRepository.save(ligneCmndeClient);
             });
@@ -236,9 +245,26 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         nouvelle.setArticles(article);
         nouvelle.setQuantite(quantiteValide(ligne.getQuantite()));
         nouvelle.setPrixUnitaire(ligne.getPrixUnitaire());
+        conditionner(nouvelle, article, ligne.getConditionnement());
         nouvelle.setIdEntreprise(commande.getIdEntreprise());
 
         return LigneCommandeClientDto.fromEntity(ligneCmndeClientRepository.save(nouvelle));
+    }
+
+    /**
+     * Le conditionnement commande, et la contenance qu'il fige : la commande se servira dans ces
+     * cartons-la. Sans prix envoye, la ligne prend celui du catalogue — celui du carton s'il
+     * s'agit d'un carton, et non celui de la bouteille.
+     */
+    private void conditionner(LigneCmndeClient ligne, Article article, ConditionnementDto demande) {
+        Conditionnement conditionnement = conditionnements.pourLigne(article, demande, Conditionnements.Usage.VENTE);
+        Conditionnements.verifierFraction(article, conditionnement, ligne.getQuantite(),
+                ErrorCodes.LIGNE_COMMANDE_CLIENT_NOT_VALID);
+        ligne.setConditionnement(conditionnement);
+        ligne.setContenance(Conditionnements.contenance(conditionnement));
+        if (ligne.getPrixUnitaire() == null) {
+            ligne.setPrixUnitaire(Conditionnements.prixCatalogue(article, conditionnement));
+        }
     }
 
     @Override
@@ -247,6 +273,8 @@ public class CommandeClientServiceImpl implements CommandeClientService {
         commandeModifiable(idCommande);
         LigneCmndeClient ligne = ligne(idCommande, idLigne);
         ligne.setQuantite(quantiteValide(quantite));
+        Conditionnements.verifierFraction(ligne.getArticles(), ligne.getConditionnement(), quantite,
+                ErrorCodes.LIGNE_COMMANDE_CLIENT_NOT_VALID);
         return LigneCommandeClientDto.fromEntity(ligneCmndeClientRepository.save(ligne));
     }
 

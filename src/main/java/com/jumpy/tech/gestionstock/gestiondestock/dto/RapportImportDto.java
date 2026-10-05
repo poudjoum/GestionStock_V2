@@ -15,13 +15,21 @@ import java.util.List;
  * @param creees     articles qui n'existaient pas
  * @param modifiees  articles deja presents, reconnus par leur code, dont les valeurs sont reprises
  * @param refusees   lignes que rien ne permet d'ecrire, chacune avec sa raison
+ * @param conditionnements conditionnements crees ou repris depuis la feuille du meme nom ; zero
+ *                   quand le classeur n'en a pas
  */
 public record RapportImportDto(
         boolean simulation,
         int lues,
         int creees,
         int modifiees,
-        List<LigneRefuseeDto> refusees) {
+        List<LigneRefuseeDto> refusees,
+        int conditionnements) {
+
+    public RapportImportDto(boolean simulation, int lues, int creees, int modifiees,
+                            List<LigneRefuseeDto> refusees) {
+        this(simulation, lues, creees, modifiees, refusees, 0);
+    }
 
     /**
      * Une ligne que l'import laisse de cote.

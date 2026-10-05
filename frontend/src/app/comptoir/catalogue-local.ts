@@ -5,6 +5,7 @@ import { environnement } from '../../environnements/environnement';
 import { lire, ecrire, toutLire, toutRemplacer } from '../noyau/base-locale';
 import { Session } from '../noyau/session';
 import type { ArticleDto } from '../noyau/api';
+import type { ConditionnementDto } from '../noyau/conditionnements';
 import {
   jourLocal,
   prixPromotionnel,
@@ -14,6 +15,12 @@ import {
 } from './prix-promotionnel';
 
 const API = `${environnement.api}/gestiondestock/v1`;
+
+/** Ce que designe un code lu : un article, a l'unite ou dans l'un de ses conditionnements. */
+export interface ArticleScanne {
+  article: ArticleDto;
+  conditionnement: ConditionnementDto | null;
+}
 
 /** Ce qu'on retient du catalogue garde : a qui il appartient, et de quand il date. */
 interface Etiquette {
@@ -70,11 +77,27 @@ export class CatalogueLocal {
   /** Quand la copie a ete faite. */
   readonly date = computed(() => this.etiquette()?.date ?? null);
 
+  /**
+   * Chaque code lisible, et ce qu'il designe. Le code d'article d'abord, puis les codes-barres :
+   * le serveur les tient pour distincts, et un code-barres l'emporte s'il venait a coincider.
+   */
   private readonly parCodes = computed(() => {
-    const index = new Map<string, ArticleDto>();
+    const index = new Map<string, ArticleScanne>();
     for (const article of this.articles()) {
       if (article.codeArticle) {
-        index.set(article.codeArticle, article);
+        index.set(article.codeArticle, { article, conditionnement: null });
+      }
+    }
+    for (const article of this.articles()) {
+      for (const code of article.codesBarres ?? []) {
+        const conditionnement =
+          code.idConditionnement == null
+            ? null
+            : (article.conditionnements ?? []).find((c) => c.id === code.idConditionnement);
+        // Un code d'un conditionnement que la copie ne connait pas — retire depuis — ne vend rien.
+        if (code.code && conditionnement !== undefined) {
+          index.set(code.code, { article, conditionnement });
+        }
       }
     }
     return index;
@@ -183,8 +206,20 @@ export class CatalogueLocal {
     return promotion ? prixPromotionnel(normal, promotion.typeRemise, promotion.valeur) : normal;
   }
 
-  /** L'article qui porte exactement ce code : ce que rend une douchette. */
-  parCode(code: string): ArticleDto | null {
+  /**
+   * Le prix hors taxes d'un conditionnement aujourd'hui. Une remise en pourcentage s'y applique, un
+   * prix fixe non : c'est celui de l'unite — la regle du serveur, recopiee pour vendre hors ligne.
+   */
+  prixDuConditionnement(article: ArticleDto, conditionnement: ConditionnementDto): number {
+    const normal = conditionnement.prixVenteHt ?? 0;
+    const promotion = this.promotionDe(article);
+    return promotion && promotion.typeRemise === 'POURCENTAGE'
+      ? prixPromotionnel(normal, promotion.typeRemise, promotion.valeur)
+      : normal;
+  }
+
+  /** Ce que designe exactement ce code : ce que rend une douchette. */
+  parCode(code: string): ArticleScanne | null {
     return this.parCodes().get(code.trim()) ?? null;
   }
 

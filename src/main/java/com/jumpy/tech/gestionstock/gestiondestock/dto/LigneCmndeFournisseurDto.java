@@ -20,6 +20,13 @@ public class LigneCmndeFournisseurDto {
     /** Ce qui reste attendu : quantite commandee moins quantite livree. */
     private BigDecimal resteALivrer;
     private BigDecimal prixUnitaire;
+    /**
+     * Le conditionnement de la ligne ; nul, elle est a l'unite de base. A l'ecriture, seul son
+     * identifiant compte.
+     */
+    private ConditionnementDto conditionnement;
+    /** Combien d'unites de base vaut une unite de la ligne. Calculee, jamais lue de la requete. */
+    private BigDecimal contenance;
 
     public static LigneCmndeFournisseurDto fromEntity(LigneCmndeFournisseur ligneCmndeFour){
         if(ligneCmndeFour==null){
@@ -33,6 +40,8 @@ public class LigneCmndeFournisseurDto {
                 .quantiteLivree(ligneCmndeFour.getQuantiteLivree())
                 .resteALivrer(reste(ligneCmndeFour.getQuantite(), ligneCmndeFour.getQuantiteLivree()))
                 .prixUnitaire(ligneCmndeFour.getPrixUnitaire())
+                .conditionnement(ConditionnementDto.fromEntity(ligneCmndeFour.getConditionnement()))
+                .contenance(ligneCmndeFour.getContenance())
                 .build();
     }
 

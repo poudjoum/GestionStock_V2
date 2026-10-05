@@ -166,9 +166,26 @@
             </div>
           </div>
 
-          <div class="flex items-end gap-2">
-            <mat-form-field class="flex-1">
-              <mat-label>Compté sur l’étagère</mat-label>
+          <div class="flex flex-wrap items-end gap-2">
+            @if (carton(); as c) {
+              <!-- Les cartons fermes d'abord : c'est ce qu'on voit en premier dans une reserve. -->
+              <mat-form-field class="w-36">
+                <mat-label>{{ c.libelle }}</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  inputmode="numeric"
+                  min="0"
+                  step="1"
+                  [ngModel]="cartons()"
+                  (ngModelChange)="cartons.set($event === null || $event === '' ? null : +$event)"
+                  (keydown.enter)="noter()"
+                  name="cartons"
+                />
+              </mat-form-field>
+            }
+            <mat-form-field class="min-w-0 flex-1">
+              <mat-label>{{ carton() ? 'En vrac, à l’unité' : 'Compté sur l’étagère' }}</mat-label>
               <input
                 #champQuantite
                 matInput
@@ -186,7 +203,7 @@
             <button
               mat-flat-button
               class="!mb-5 !h-12"
-              [disabled]="envoiEnCours() || quantite() === null"
+              [disabled]="envoiEnCours() || total() === null"
               (click)="noter()"
             >
               <mat-icon>check</mat-icon>
@@ -194,6 +211,11 @@
             </button>
             <button mat-button class="!mb-5 !h-12" (click)="abandonnerLArticle()">Annuler</button>
           </div>
+          @if (carton() && total() !== null) {
+            <p class="-mt-3 text-sm opacity-80">
+              Soit <b class="nombre">{{ total() | number: '1.0-3' }}</b> au total
+            </p>
+          }
         </section>
       } @else {
         <mat-form-field class="mb-2 w-full">
@@ -213,8 +235,16 @@
             <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer">
               <mat-icon>close</mat-icon>
             </button>
+          } @else if (cameraDisponible) {
+            <!-- Sans douchette, le telephone lit l'etiquette. -->
+            <button matSuffix mat-icon-button (click)="camera.set(true)" aria-label="Scanner à la caméra">
+              <mat-icon>photo_camera</mat-icon>
+            </button>
           }
         </mat-form-field>
+        @if (camera()) {
+          <gs-scan-camera (lu)="lireALaCamera($event)" (ferme)="camera.set(false)" />
+        }
 
         @if (codeInconnu(); as code) {
           <!-- Dit sans bloquer : on ne perd pas un comptage parce qu'un article manque. -->

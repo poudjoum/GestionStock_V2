@@ -1,6 +1,8 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service;
 
+import com.jumpy.tech.gestionstock.gestiondestock.conditionnement.Conditionnements;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.ConditionnementRepository;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ArticleDto;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.MvtStkDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Article;
@@ -48,7 +50,7 @@ class MvtStkServiceTest {
         // Les notifications sont simulees : ce test porte sur l'arithmetique des entrees et des
         // sorties, et prevenir le magasin est un effet de bord qui a ses propres tests.
         service = new MvtStkServiceImpl(mvtStkRepository, articleRepository, new Cloisonnement(),
-                mock(NotificationService.class));
+                mock(NotificationService.class), new Conditionnements(mock(ConditionnementRepository.class)));
 
         Article article = new Article();
         article.setId(ID_ARTICLE);

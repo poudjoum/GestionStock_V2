@@ -6,9 +6,15 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Stock } from './stock.service';
+import { MotifMvtStk, Stock } from './stock.service';
+import { Session } from '../noyau/session';
+import { messageDErreur } from '../noyau/erreurs';
+import { enConditionnements, symbole, unites } from '../noyau/conditionnements';
 import type { LigneInventaireDto } from '../noyau/api';
 import { statutDuStock } from '../noyau/statuts';
 import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut } from '../design';
@@ -32,6 +38,8 @@ import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut } fro
     MatIconModule,
     MatInputModule,
     MatProgressBarModule,
+    MatButtonModule,
+    MatSelectModule,
     RouterLink,
     EnTetePage,
     EtatVide,
@@ -40,10 +48,87 @@ import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut } fro
     Statut,
   ],
   templateUrl: './etat-du-stock.html',
+  styles: `
+    .unite-base {
+      font-weight: 400;
+      font-size: var(--gs-texte-xs);
+      color: var(--gs-encre-3);
+    }
+
+    .en-cartons {
+      display: block;
+      font-weight: 400;
+      font-size: var(--gs-texte-xs);
+      color: var(--gs-encre-3);
+    }
+
+    /* Le volet d'ajustement : en bas sur telephone, a droite sur grand ecran. */
+    .ajustement-fond {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgb(0 0 0 / 0.32);
+    }
+
+    .ajustement {
+      position: fixed;
+      z-index: 21;
+      inset: auto 0 0 0;
+      max-height: 90dvh;
+      overflow-y: auto;
+      padding: 16px;
+      border-radius: 16px 16px 0 0;
+      background: var(--gs-surface);
+      box-shadow: var(--gs-ombre-2);
+    }
+
+    @media (min-width: 768px) {
+      .ajustement {
+        inset: 0 0 0 auto;
+        width: 400px;
+        max-height: none;
+        border-radius: 0;
+      }
+    }
+  `,
 })
 export class EtatDuStock implements OnInit {
   private readonly stock = inject(Stock);
+  private readonly session = inject(Session);
+  private readonly snack = inject(MatSnackBar);
   private readonly frappe = new Subject<string>();
+
+  protected readonly symbole = symbole;
+  protected readonly unites = unites;
+  protected readonly enConditionnements = enConditionnements;
+  protected readonly motifs = MOTIFS;
+
+  /** Ceux qui tiennent la marchandise : la route des mouvements ne s'ouvre qu'a eux. */
+  protected readonly peutAjuster = computed(() =>
+    this.session.roles().some((r) => ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'].includes(r)),
+  );
+
+  /** L'article dont on declare une casse, une perte ou un retour ; nul, le volet est ferme. */
+  protected readonly ajustement = signal<LigneInventaireDto | null>(null);
+  protected readonly motif = signal<MotifMvtStk>('CASSE');
+  protected readonly quantiteAjustee = signal<number | null>(null);
+  /** 0 : l'unite de base. Pas `null`, que le selecteur de Material affiche comme un champ vide. */
+  protected readonly unite = signal<number>(0);
+  protected readonly envoiAjustement = signal(false);
+  protected readonly erreurAjustement = signal<string | null>(null);
+
+  /** Ce que l'ajustement fera au stock, en unites de base : on le lit avant de valider. */
+  protected readonly effet = computed(() => {
+    const ligne = this.ajustement();
+    const quantite = this.quantiteAjustee();
+    if (!ligne || !quantite || quantite <= 0) {
+      return null;
+    }
+    const contenance = ligne.conditionnements?.find((c) => c.id === this.unite())?.quantiteUnites ?? 1;
+    const mouvement = quantite * contenance;
+    const entree = MOTIFS.find((m) => m.valeur === this.motif())?.sens === 'entree';
+    return { mouvement, apres: (ligne.quantite ?? 0) + (entree ? mouvement : -mouvement) };
+  });
 
   protected readonly recherche = signal('');
   protected readonly alertesSeulement = signal(false);
@@ -116,6 +201,49 @@ export class EtatDuStock implements OnInit {
     return ligne.statut === 'NEGATIF' || ligne.statut === 'RUPTURE';
   }
 
+  protected ouvrirAjustement(ligne: LigneInventaireDto): void {
+    this.ajustement.set(ligne);
+    this.motif.set('CASSE');
+    this.quantiteAjustee.set(null);
+    this.unite.set(0);
+    this.erreurAjustement.set(null);
+  }
+
+  protected fermerAjustement(): void {
+    this.ajustement.set(null);
+  }
+
+  protected ajuster(): void {
+    const ligne = this.ajustement();
+    const quantite = this.quantiteAjustee();
+    if (!ligne || !quantite || quantite <= 0 || this.envoiAjustement()) {
+      return;
+    }
+    const motif = MOTIFS.find((m) => m.valeur === this.motif())!;
+    this.envoiAjustement.set(true);
+    this.erreurAjustement.set(null);
+    this.stock
+      .ajuster(motif.sens, {
+        article: { id: ligne.idArticle },
+        quantite,
+        motif: motif.valeur,
+        conditionnement: this.unite() === 0 ? undefined : { id: this.unite() },
+      })
+      .subscribe({
+        next: () => {
+          this.envoiAjustement.set(false);
+          this.snack.open(`${motif.libelle} enregistrée : ${ligne.designation}.`, 'Fermer', { duration: 4000 });
+          this.ajustement.set(null);
+          this.charger();
+        },
+        error: (echec: unknown) => {
+          this.envoiAjustement.set(false);
+          // « Stock insuffisant : 3 en magasin, 24 demandés » — le serveur dit pourquoi.
+          this.erreurAjustement.set(messageDErreur(echec, 'L’ajustement n’a pas pu être enregistré.'));
+        },
+      });
+  }
+
   private charger(): void {
     this.chargement.set(true);
     this.erreur.set(null);
@@ -147,3 +275,16 @@ export class EtatDuStock implements OnInit {
     this.erreur.set('Le stock n’a pas pu être chargé.');
   }
 }
+
+/**
+ * Ce qu'on declare a la main, et dans quel sens. La casse, la perte et la peremption forment la
+ * demarque : ce que le magasin perd sans le vendre, et qu'il faut pouvoir mesurer.
+ */
+const MOTIFS: { valeur: MotifMvtStk; libelle: string; sens: 'entree' | 'sortie' }[] = [
+  { valeur: 'CASSE', libelle: 'Casse', sens: 'sortie' },
+  { valeur: 'PEREMPTION', libelle: 'Péremption', sens: 'sortie' },
+  { valeur: 'PERTE', libelle: 'Perte ou vol', sens: 'sortie' },
+  { valeur: 'RETOUR_FOURNISSEUR', libelle: 'Retour au fournisseur', sens: 'sortie' },
+  { valeur: 'CONSOMMATION_INTERNE', libelle: 'Usage interne', sens: 'sortie' },
+  { valeur: 'RETOUR_CLIENT', libelle: 'Retour d’un client', sens: 'entree' },
+];

@@ -26,11 +26,15 @@ public interface LigneCmndeFourRepository extends JpaRepository<LigneCmndeFourni
      *
      * Le quotient est fait en Java plutot qu'en SQL, pour n'avoir pas a se demander ce que la base
      * repond quand la quantite vaut zero.
+     *
+     * Le denominateur est en unites de base : trois cartons de 24 achetes 9 000 l'un font
+     * 27 000 pour 72 bouteilles, et le cout moyen est celui d'une bouteille — l'unite du stock
+     * qu'il sert a valoriser.
      */
     @org.springframework.data.jpa.repository.Query(
             "select l.articles.id, " +
             "       coalesce(sum(l.quantiteLivree * l.prixUnitaire), 0), " +
-            "       coalesce(sum(l.quantiteLivree), 0) " +
+            "       coalesce(sum(l.quantiteLivree * l.contenance), 0) " +
             "from LigneCmndeFournisseur l " +
             "where l.quantiteLivree > 0 and l.articles.id in :idsArticles " +
             "group by l.articles.id")

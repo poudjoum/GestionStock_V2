@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environnement } from '../../environnements/environnement';
 import type { ArticleDto, Page } from '../noyau/api';
 import type { components } from '../api/schema';
+import type { CodeBarresDto, ConditionnementDto } from '../noyau/conditionnements';
 
 export type CategoryDto = components['schemas']['CategoryDto'];
 export type { ArticleDto };
@@ -30,6 +31,8 @@ export interface RapportImport {
   creees: number;
   modifiees: number;
   refusees: LigneRefusee[];
+  /** Les conditionnements de la feuille du meme nom ; zero sans elle, et pour les repertoires. */
+  conditionnements?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -58,6 +61,41 @@ export class Catalogue {
   /** Le chemin est au singulier, contrairement aux autres : c'est ainsi que l'API l'expose. */
   supprimerArticle(id: number): Observable<void> {
     return this.http.delete<void>(`${API}/article/delete/${id}`);
+  }
+
+  // --- Conditionnements et codes-barres ---------------------------------------------------
+
+  conditionnements(idArticle: number): Observable<ConditionnementDto[]> {
+    return this.http.get<ConditionnementDto[]>(`${API}/articles/${idArticle}/conditionnements`);
+  }
+
+  ajouterConditionnement(idArticle: number, c: ConditionnementDto): Observable<ConditionnementDto> {
+    return this.http.post<ConditionnementDto>(`${API}/articles/${idArticle}/conditionnements`, c);
+  }
+
+  modifierConditionnement(idArticle: number, c: ConditionnementDto): Observable<ConditionnementDto> {
+    return this.http.put<ConditionnementDto>(`${API}/articles/${idArticle}/conditionnements/${c.id}`, c);
+  }
+
+  retirerConditionnement(idArticle: number, idConditionnement: number): Observable<void> {
+    return this.http.delete<void>(`${API}/articles/${idArticle}/conditionnements/${idConditionnement}`);
+  }
+
+  codes(idArticle: number): Observable<CodeBarresDto[]> {
+    return this.http.get<CodeBarresDto[]>(`${API}/articles/${idArticle}/codes-barres`);
+  }
+
+  ajouterCode(idArticle: number, code: CodeBarresDto): Observable<CodeBarresDto> {
+    return this.http.post<CodeBarresDto>(`${API}/articles/${idArticle}/codes-barres`, code);
+  }
+
+  genererCodeInterne(idArticle: number, idConditionnement: number | null): Observable<CodeBarresDto> {
+    const params: Record<string, number> = idConditionnement == null ? {} : { idConditionnement };
+    return this.http.post<CodeBarresDto>(`${API}/articles/${idArticle}/codes-barres/interne`, null, { params });
+  }
+
+  retirerCode(idArticle: number, idCode: number): Observable<void> {
+    return this.http.delete<void>(`${API}/articles/${idArticle}/codes-barres/${idCode}`);
   }
 
   // --- Categories -------------------------------------------------------------------------
