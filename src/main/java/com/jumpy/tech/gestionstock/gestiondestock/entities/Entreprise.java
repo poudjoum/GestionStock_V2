@@ -71,6 +71,10 @@ public class Entreprise extends AbstractEntity{
     /** Combien de jours un bon reste valable apres son emission. */
     @Column(name="duree_validite_bon_jours", nullable = false)
     private int dureeValiditeBonJours = 90;
+
+    /** Combien de jours avant la date d'un lot le magasin veut etre prevenu, sauf article qui en decide autrement. */
+    @Column(name="delai_alerte_peremption", nullable = false)
+    private int delaiAlertePeremption = 30;
     /**
      * L'echeance de l'abonnement annuel. Nulle pour un commerce qui n'en a pas encore.
      *

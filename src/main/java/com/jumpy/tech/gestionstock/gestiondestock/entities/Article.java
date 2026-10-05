@@ -37,6 +37,19 @@ public class Article extends AbstractEntity{
     @Enumerated(EnumType.STRING)
     @Column(name="unite_base", nullable = false, length = 10)
     private UniteMesure uniteBase = UniteMesure.PIECE;
+
+    /** Suivi par lot : chaque reception porte un numero de lot et, s'il y a lieu, une date. */
+    @Column(name="suivi_lot", nullable = false)
+    private boolean suiviLot;
+
+    /** La date que portent ses lots ; nulle, ils n'en ont pas. */
+    @Enumerated(EnumType.STRING)
+    @Column(name="type_date", length = 4)
+    private TypeDate typeDate;
+
+    /** Combien de jours avant la date prevenir ; nul, le reglage du magasin. */
+    @Column(name="delai_alerte_peremption")
+    private Integer delaiAlertePeremption;
     @Column(name="idEntreprise")
     private Long idEntreprise;
     @ManyToOne

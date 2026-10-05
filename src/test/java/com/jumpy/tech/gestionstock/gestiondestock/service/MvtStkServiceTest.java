@@ -57,7 +57,10 @@ class MvtStkServiceTest {
                 // Hors de toute requete, il n'y a pas de site actif : les sommes portent sur tous
                 // les sites, comme avant qu'il y en ait.
                 new SiteCourant(mock(SiteRepository.class), new Cloisonnement()),
-                mock(SiteRepository.class), mock(ArticleSiteRepository.class));
+                mock(SiteRepository.class), mock(ArticleSiteRepository.class),
+                mock(com.jumpy.tech.gestionstock.gestiondestock.lot.Lots.class),
+                mock(com.jumpy.tech.gestionstock.gestiondestock.repository.LotRepository.class),
+                mock(com.jumpy.tech.gestionstock.gestiondestock.promotion.Calendrier.class));
 
         Article article = new Article();
         article.setId(ID_ARTICLE);

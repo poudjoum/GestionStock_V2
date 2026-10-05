@@ -22,22 +22,101 @@
 .menu-groupes {
   display: grid;
   align-content: start;
-  gap: 18px;
+  gap: 6px;
   padding: 8px 12px 16px;
 }
 
 .menu-groupe {
   display: grid;
-  gap: 2px;
 }
 
+/* Le nom du groupe : un bouton, le chevron a droite. */
 .menu-groupe-nom {
-  padding: 0 12px 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
   font-size: var(--gs-texte-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
+  text-align: left;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--gs-menu-encre) 62%, transparent);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.menu-groupe-nom:hover {
+  background: color-mix(in srgb, var(--gs-menu-encre) 6%, transparent);
+  color: var(--gs-menu-encre);
+}
+
+.menu-groupe-nom:focus-visible {
+  outline: 3px solid var(--gs-focus);
+  outline-offset: 1px;
+}
+
+/* Replie sur la page ouverte : le groupe le dit, pour qu'on sache ou l'on est. */
+.menu-groupe-nom.contient-la-page {
+  color: var(--gs-menu-encre);
+}
+
+.menu-groupe-nom.contient-la-page::after {
+  content: '';
+  order: 1;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.menu-groupe-nom .chevron {
+  order: 2;
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  transform: rotate(-90deg);
+}
+
+.menu-groupe.ouvert .chevron {
+  transform: rotate(0deg);
+}
+
+/* Le corps se replie en hauteur : la grille passe de 0fr a 1fr, sans hauteur a mesurer. */
+.menu-groupe-corps {
+  display: grid;
+  grid-template-rows: 0fr;
+}
+
+.menu-groupe.ouvert .menu-groupe-corps {
+  grid-template-rows: 1fr;
+}
+
+.menu-groupe-entrees {
+  display: grid;
+  gap: 2px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.menu-groupe.ouvert .menu-groupe-entrees {
+  padding: 2px 0 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .menu-groupe-corps {
+    transition: grid-template-rows 180ms ease;
+  }
+
+  .menu-groupe-nom .chevron {
+    transition: transform 180ms ease;
+  }
 }
 
 .menu-entree {

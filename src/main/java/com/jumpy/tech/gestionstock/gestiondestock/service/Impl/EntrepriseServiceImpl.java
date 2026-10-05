@@ -219,6 +219,13 @@ public class EntrepriseServiceImpl implements EntrepriseService {
         if (dto.getFideliteActive() != null) {
             entreprise.setFideliteActive(dto.getFideliteActive());
         }
+        if (dto.getDelaiAlertePeremption() != null) {
+            if (dto.getDelaiAlertePeremption() < 0) {
+                throw new InvalidEntityException("Le délai d'alerte avant péremption ne peut pas être négatif",
+                        ErrorCodes.ENTREPRISE_NOT_VALID);
+            }
+            entreprise.setDelaiAlertePeremption(dto.getDelaiAlertePeremption());
+        }
         if (dto.getMontantParPoint() != null) {
             if (dto.getMontantParPoint().signum() <= 0) {
                 throw new InvalidEntityException("Le montant pour un point doit être positif",

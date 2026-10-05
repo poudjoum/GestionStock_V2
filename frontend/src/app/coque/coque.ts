@@ -91,6 +91,38 @@ export class Coque implements OnInit {
     (this.session.username() ?? '?').slice(0, 2).toUpperCase(),
   );
 
+  /**
+   * Les groupes deplies du menu. Celui de la page ouverte se deplie de lui-meme ; les autres
+   * restent comme on les a laisses, sur cet appareil.
+   */
+  private readonly ouverts = signal<Set<string>>(groupesMemorises());
+  /** L'identifiant du groupe de la page courante, pour le deplier et le signaler replie. */
+  protected readonly groupeActif = signal<string | null>(null);
+
+  protected estOuvert(groupe: string): boolean {
+    return this.ouverts().has(groupe);
+  }
+
+  protected basculer(groupe: string): void {
+    const suivants = new Set(this.ouverts());
+    if (!suivants.delete(groupe)) {
+      suivants.add(groupe);
+    }
+    this.ouverts.set(suivants);
+    memoriser(suivants);
+  }
+
+  /** On arrive dans un groupe : il se deplie, sans replier les autres. */
+  private deplierLeGroupeDe(url: string): void {
+    const groupe = idDuGroupePour(url);
+    this.groupeActif.set(groupe);
+    if (groupe && !this.ouverts().has(groupe)) {
+      const suivants = new Set(this.ouverts()).add(groupe);
+      this.ouverts.set(suivants);
+      memoriser(suivants);
+    }
+  }
+
   /** Le groupe de la page courante, au-dessus du titre : « Ventes », « Stock »… */
   protected readonly groupeCourant = signal<string | null>(null);
 
@@ -106,11 +138,13 @@ export class Coque implements OnInit {
       .subscribe((e) => {
         this.titre.set(titrePour(e.urlAfterRedirects));
         this.groupeCourant.set(groupePour(e.urlAfterRedirects));
+        this.deplierLeGroupeDe(e.urlAfterRedirects);
         // Une page choisie dans le menu complet du telephone le referme.
         this.feuilleOuverte.set(false);
       });
     this.titre.set(titrePour(this.router.url));
     this.groupeCourant.set(groupePour(this.router.url));
+    this.deplierLeGroupeDe(this.router.url);
   }
 
   /**
@@ -185,6 +219,35 @@ function titrePour(url: string): string {
   // La vitrine du design system, hors menu.
   if (chemin === '/design') return 'Design system';
   return 'GestionStock';
+}
+
+const CLE_DES_GROUPES = 'gs.menu.groupes-ouverts';
+
+/**
+ * Les groupes deplies, gardes sur l'appareil : un confort, pas une donnee. Le stockage peut etre
+ * vide ou refuse — navigation privee, donnees effacees — ; on repart alors de tout replie, et le
+ * groupe de la page ouverte se deplie de lui-meme.
+ */
+function groupesMemorises(): Set<string> {
+  try {
+    const lu = JSON.parse(localStorage.getItem(CLE_DES_GROUPES) ?? '[]');
+    return new Set(Array.isArray(lu) ? lu.filter((g): g is string => typeof g === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function memoriser(groupes: Set<string>): void {
+  try {
+    localStorage.setItem(CLE_DES_GROUPES, JSON.stringify([...groupes]));
+  } catch {
+    // Sans stockage, le menu marche quand meme : il oubliera simplement au prochain chargement.
+  }
+}
+
+function idDuGroupePour(url: string): string | null {
+  const chemin = '/' + (url.split('?')[0].split('/')[1] ?? '');
+  return MENU.find((e) => e.chemin === chemin)?.groupe ?? null;
 }
 
 /** Le nom du groupe de la page, pour la ligne au-dessus du titre. Rien pour l'accueil. */

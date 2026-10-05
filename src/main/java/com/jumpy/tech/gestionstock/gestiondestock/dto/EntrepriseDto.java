@@ -49,6 +49,8 @@ public class EntrepriseDto {
 
     /** Taux applique par defaut, en pourcentage. 19,25 au Cameroun. */
     private BigDecimal tauxTva;
+    /** Jours d'alerte avant la date d'un lot, sauf article qui en decide autrement. */
+    private Integer delaiAlertePeremption;
 
     /** Si les tickets rapportent des points de fidelite. Vrai par defaut. */
     private Boolean fideliteActive;
@@ -87,6 +89,7 @@ public class EntrepriseDto {
                 .logo(en.getLogo())
                 .assujettieTva(en.isAssujettieTva())
                 .tauxTva(en.getTauxTva())
+                .delaiAlertePeremption(en.getDelaiAlertePeremption())
                 .fideliteActive(en.isFideliteActive())
                 .montantParPoint(en.getMontantParPoint())
                 .build();

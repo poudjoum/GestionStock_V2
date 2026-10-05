@@ -269,6 +269,7 @@ public class VenteServiceImpl implements VenteService {
 
         Map<Long, PromotionArticle> promotions = prixDuJour.promotions(savedVente.getIdEntreprise(),
                 savedVente.getDatevente());
+        List<String> avertissements = new ArrayList<>();
         for (LigneVenteDto ligneDto : lignes) {
             LigneVente ligne = LigneVenteDto.toEntity(ligneDto);
             Article article = articlesCharges.get(ligneDto.getArticle().getId());
@@ -302,10 +303,12 @@ public class VenteServiceImpl implements VenteService {
             ligne.setArticles(article);
             ligne.setVente(savedVente);
             ligneVenteRepository.save(ligne);
-            sortirDuStock(ligne, savedVente, quand);
+            avertissements.addAll(sortirDuStock(ligne, ligneDto.getIdLot(), savedVente, quand));
         }
 
-        return VenteDto.fromEntity(savedVente);
+        VenteDto resultat = VenteDto.fromEntity(savedVente);
+        resultat.setAvertissements(avertissements);
+        return resultat;
     }
 
     /**
@@ -370,23 +373,30 @@ public class VenteServiceImpl implements VenteService {
      * La vente est le moment ou la marchandise quitte le magasin ; c'est donc ici, et pas a la
      * commande client, que le stock diminue. Une commande n'est qu'un engagement : tant qu'elle
      * n'est pas servie, rien n'est sorti des rayons.
+     *
+     * Rend les avertissements de la sortie : un lot DLUO depasse est parti, le caissier le dit.
      */
-    private void sortirDuStock(LigneVente ligne, Vente vente, Instant quand) {
+    private List<String> sortirDuStock(LigneVente ligne, Long idLot, Vente vente, Instant quand) {
         MvtStkDto mouvement = MvtStkDto.builder()
                 .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
                 .quantite(enStock(ligne))
                 .motif(MotifMvtStk.VENTE)
                 .idEntreprise(vente.getIdEntreprise())
                 .idSite(idSite(vente.getSiteExpedition()))
+                // Le lot scanne sort, et non le premier perime.
+                .idLot(idLot)
+                .idVente(vente.getId())
                 .build();
+        MvtStkDto fait;
         if (quand == null) {
-            mvtStkService.sortieStock(mouvement);
+            fait = mvtStkService.sortieStock(mouvement);
         } else {
             // La marchandise est deja partie : le mouvement porte la date de la vente, et le
             // stock ne s'y oppose pas. S'il passe sous zero, c'est le signal qu'un inventaire est
             // a faire — pas une raison d'effacer une vente qui a eu lieu.
-            mvtStkService.sortieConstatee(mouvement, quand);
+            fait = mvtStkService.sortieConstatee(mouvement, quand);
         }
+        return fait == null || fait.getAvertissements() == null ? List.of() : fait.getAvertissements();
     }
 
     @Override
@@ -429,6 +439,8 @@ public class VenteServiceImpl implements VenteService {
                 .quantite(Conditionnements.enUnitesDeBase(quantite, contenance))
                 .motif(MotifMvtStk.VENTE)
                 .idSite(idSite(vente.getSiteExpedition()))
+                .idLot(ligne.getIdLot())
+                .idVente(vente.getId())
                 .build());
 
         LigneVente nouvelle = new LigneVente();
@@ -560,6 +572,7 @@ public class VenteServiceImpl implements VenteService {
                     .quantite(enStock(ligneVente))
                     .motif(MotifMvtStk.VENTE)
                     .idSite(idSite(expedition))
+                    .idVente(enregistree.getId())
                     .build());
 
             ligneCommande.setQuantiteLivree(dejaServi(ligneCommande).add(quantite));
@@ -646,6 +659,8 @@ public class VenteServiceImpl implements VenteService {
                         .motif(MotifMvtStk.ANNULATION_VENTE)
                         // La marchandise rendue retourne la d'ou elle est partie.
                         .idSite(idSite(vente.getSiteExpedition()))
+                        // Et dans les lots d'ou elle etait sortie.
+                        .idVente(vente.getId())
                         .build()));
 
         // La vente reste en base : une recette encaissee puis rendue doit pouvoir se retrouver.
@@ -693,6 +708,7 @@ public class VenteServiceImpl implements VenteService {
                 .quantite(Conditionnements.enUnitesDeBase(quantite, ligne.getContenance()))
                 .motif(MotifMvtStk.CORRECTION_VENTE)
                 .idSite(idSite(ligne.getVente() == null ? null : ligne.getVente().getSiteExpedition()))
+                .idVente(ligne.getVente() == null ? null : ligne.getVente().getId())
                 .build();
     }
 

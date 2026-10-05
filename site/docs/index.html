@@ -36,6 +36,7 @@
           <li><a href="#comptoir">Vendre au comptoir</a></li>
           <li><a href="#stock">Le stock et l’inventaire</a></li>
           <li><a href="#sites">Magasins, entrepôt et transferts</a></li>
+          <li><a href="#lots">Lots et dates de péremption</a></li>
           <li><a href="#achats">Commander et recevoir</a></li>
           <li><a href="#factures">Factures et caisse</a></li>
           <li><a href="#repertoire">Clients et fournisseurs</a></li>
@@ -290,6 +291,52 @@
             au magasin avec l’entrepôt comme site qui livre. C’est l’équipe de l’entrepôt qui la
             sert, et la marchandise sort de son stock ; la vente reste celle du magasin.
           </p>
+        </section>
+
+        <section id="lots">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#alerte" /></svg></span>Lots et dates de péremption</h2>
+          <ul class="qui"><li>Gérant pour les réglages et les rappels</li><li>Magasinier pour les réceptions et les retraits</li></ul>
+          <p>
+            Pour l’alimentaire et la pharmacie : savoir ce qui périme, vendre d’abord ce qui périme le
+            premier, et retrouver à qui on a vendu un lot rappelé. Le suivi se coche article par
+            article — le ciment et les boissons restent comme avant.
+          </p>
+          <h3>Suivre un article par lot</h3>
+          <ol>
+            <li>Dans le <strong>Catalogue</strong>, ouvrez l’article et cochez <strong>Suivi par lot</strong>.</li>
+            <li>Choisissez la date que porte l’emballage : <strong>DLC</strong> (« à consommer jusqu’au ») ou <strong>DLUO</strong> (« de préférence avant »), ou aucune.</li>
+            <li>Le délai d’alerte est celui du magasin — 30 jours, réglable dans <strong>Paramètres › Péremption</strong> —, sauf si vous en donnez un à l’article.</li>
+          </ol>
+          <h3>Recevoir par lot</h3>
+          <p>
+            À la réception d’une commande, chaque article suivi demande son <strong>numéro de
+            lot</strong> et sa date, imprimés sur l’emballage. Une livraison arrive en deux lots ?
+            <strong>Un autre lot</strong> ajoute une ligne : chacun a sa quantité et sa date.
+          </p>
+          <h3>Au comptoir</h3>
+          <p>
+            Rien ne change pour le caissier : le lot qui périme le premier sort le premier, tout seul.
+            Un lot à <strong>DLC dépassée ne se vend plus</strong> : la vente est refusée et dit
+            pourquoi. Un lot à DLUO dépassée se vend encore ; le ticket s’affiche avec un avertissement
+            à dire au client.
+          </p>
+          <h3>Les péremptions</h3>
+          <p>
+            <strong>Stock › Péremptions</strong> liste les lots dépassés et ceux qui approchent de leur
+            date, le plus urgent en tête. <strong>Retirer</strong> sort le lot du stock avec le motif
+            « Péremption » : il compte dans la démarque.
+          </p>
+          <h3>Rappeler un lot</h3>
+          <p>
+            Un fournisseur rappelle un lot ? Sur la ligne du lot, <strong>Rappel</strong> montre où il
+            en reste et à qui il a été vendu, avec le téléphone des clients connus. Les transferts
+            emportent leurs lots, et une vente annulée les remet à leur place : la trace suit la
+            marchandise.
+          </p>
+          <div class="encadre">
+            <svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg>
+            <p>Le stock d’avant le suivi n’a pas de lot : il sort en premier, puisqu’il est le plus ancien. On ne décoche le suivi d’un article qu’une fois ses lots écoulés.</p>
+          </div>
         </section>
 
         <!-- 5 ------------------------------------------------------------------------------- -->

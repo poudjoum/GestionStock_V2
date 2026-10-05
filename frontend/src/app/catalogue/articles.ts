@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -27,6 +28,10 @@ interface Saisie {
   seuilAlerte: number | null;
   idCategory: number | null;
   uniteBase: UniteMesure;
+  suiviLot: boolean;
+  /** '' : les lots n'ont pas de date. */
+  typeDate: '' | 'DLC' | 'DLUO';
+  delaiAlertePeremption: number | null;
 }
 
 function vide(): Saisie {
@@ -39,6 +44,9 @@ function vide(): Saisie {
     seuilAlerte: null,
     idCategory: null,
     uniteBase: 'PIECE',
+    suiviLot: false,
+    typeDate: '',
+    delaiAlertePeremption: null,
   };
 }
 
@@ -65,6 +73,7 @@ function vide(): Saisie {
     RouterLink,
     MatButtonModule,
     MatFormFieldModule,
+    MatSlideToggleModule,
     MatIconModule,
     MatInputModule,
     MatSelectModule,
@@ -174,6 +183,9 @@ export class Articles implements OnInit {
       seuilAlerte: article.seuilAlerte ?? null,
       idCategory: article.category?.id ?? null,
       uniteBase: article.uniteBase ?? 'PIECE',
+      suiviLot: article.suiviLot ?? false,
+      typeDate: article.typeDate ?? '',
+      delaiAlertePeremption: article.delaiAlertePeremption ?? null,
     });
     this.articleOuvert.set(article);
     this.erreurVolet.set(null);
@@ -206,6 +218,9 @@ export class Articles implements OnInit {
       seuilAlerte: s.seuilAlerte ?? undefined,
       category: { id: s.idCategory! },
       uniteBase: s.uniteBase,
+      suiviLot: s.suiviLot,
+      typeDate: s.suiviLot && s.typeDate ? s.typeDate : undefined,
+      delaiAlertePeremption: s.suiviLot && s.typeDate ? (s.delaiAlertePeremption ?? undefined) : undefined,
     };
 
     this.service.enregistrerArticle(article).subscribe({

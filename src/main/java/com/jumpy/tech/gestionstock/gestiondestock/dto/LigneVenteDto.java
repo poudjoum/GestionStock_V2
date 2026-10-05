@@ -22,6 +22,8 @@ public class LigneVenteDto {
     private ConditionnementDto conditionnement;
     /** Combien d'unites de base vaut une unite de la ligne. Calculee, jamais lue de la requete. */
     private BigDecimal contenance;
+    /** Le lot scanne au comptoir (code GS1) : c'est lui qui sort, et non le premier perime. */
+    private Long idLot;
     private ArticleDto article;
     private Long idEntreprise;
 

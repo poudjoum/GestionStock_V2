@@ -46,4 +46,17 @@ public class MvtStk extends  AbstractEntity{
     @ManyToOne
     @JoinColumn(name="id_site")
     private Site site;
+
+    /** Le lot qui bouge ; nul pour un article non suivi, ou pour le stock anterieur au suivi. */
+    @ManyToOne
+    @JoinColumn(name="id_lot")
+    private Lot lot;
+
+    /** La vente qui l'a fait bouger : on retrouve ainsi a qui un lot rappele a ete vendu. */
+    @Column(name="id_vente")
+    private Long idVente;
+
+    /** Le transfert qui l'a fait bouger : l'arrivee recoit les lots qui sont partis. */
+    @Column(name="id_transfert")
+    private Long idTransfert;
 }

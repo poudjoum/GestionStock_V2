@@ -62,6 +62,12 @@
                 </span>
               </span>
 
+              @if (suivi(saisie)) {
+                <span class="nombre shrink-0 text-right">
+                  <span class="block text-xs opacity-60">Reçu</span>
+                  <span class="text-lg font-medium">{{ recue(saisie) | number: '1.0-2' }}</span>
+                </span>
+              } @else {
               <mat-form-field appearance="outline" class="w-28 shrink-0" subscriptSizing="dynamic">
                 <mat-label>Reçu</mat-label>
                 <input
@@ -75,7 +81,61 @@
                   [disabled]="reste(saisie.ligne) <= 0"
                 />
               </mat-form-field>
+              }
             </div>
+
+            <!-- Un article suivi arrive lot par lot : le numero et la date sont sur l'emballage. -->
+            @if (suivi(saisie) && reste(saisie.ligne) > 0) {
+              <div class="mt-3 flex flex-col gap-2">
+                @for (lot of saisie.lots; track $index; let r = $index) {
+                  <div class="flex flex-wrap items-start gap-2">
+                    <mat-form-field appearance="outline" class="min-w-32 flex-1" subscriptSizing="dynamic">
+                      <mat-label>N° de lot</mat-label>
+                      <input
+                        matInput
+                        autocomplete="off"
+                        [ngModel]="lot.numero"
+                        (ngModelChange)="saisirLot(i, r, 'numero', $event)"
+                      />
+                    </mat-form-field>
+                    @if (avecDate(saisie)) {
+                      <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+                        <mat-label>{{ saisie.ligne.article?.typeDate }}</mat-label>
+                        <input
+                          matInput
+                          type="date"
+                          [ngModel]="lot.date"
+                          (ngModelChange)="saisirLot(i, r, 'date', $event)"
+                        />
+                      </mat-form-field>
+                    }
+                    <mat-form-field appearance="outline" class="w-24" subscriptSizing="dynamic">
+                      <mat-label>Qté</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        inputmode="decimal"
+                        min="0"
+                        [ngModel]="lot.quantite"
+                        (ngModelChange)="saisirLot(i, r, 'quantite', $event)"
+                      />
+                    </mat-form-field>
+                    @if (saisie.lots.length > 1) {
+                      <button mat-icon-button (click)="retirerLot(i, r)" aria-label="Retirer ce lot">
+                        <mat-icon>close</mat-icon>
+                      </button>
+                    }
+                  </div>
+                  @if (lotIncomplet(saisie, lot); as manque) {
+                    <p class="-mt-1 text-xs" style="color: var(--mat-sys-error)">{{ manque }}</p>
+                  }
+                }
+                <button mat-button class="self-start" (click)="ajouterLot(i)">
+                  <mat-icon>add</mat-icon>
+                  Un autre lot
+                </button>
+              </div>
+            }
 
             @if (tropRecu(saisie)) {
               <p class="mt-1 text-xs" style="color: var(--mat-sys-error)">

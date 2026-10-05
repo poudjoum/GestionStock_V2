@@ -108,6 +108,14 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
   },
   {
+    chemin: '/peremptions',
+    groupe: 'stock',
+    libelle: 'Péremptions',
+    icone: 'event_busy',
+    // Pour les articles suivis par lot ; ailleurs, l'ecran dit simplement que rien ne perime.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
+  },
+  {
     chemin: '/transferts',
     groupe: 'stock',
     libelle: 'Transferts',

@@ -8,13 +8,31 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Achats, CommandeFourDto, LigneCmndeFournisseurDto } from './achats.service';
+import { Achats, CommandeFourDto, LigneCmndeFournisseurDto, LigneReceptionDto } from './achats.service';
 import { messageDErreur } from '../noyau/erreurs';
 
-/** Une ligne de commande, avec ce que le magasinier est en train de saisir. */
+/** Un lot arrive sur une ligne : ce qui est imprime sur l'emballage, et combien. */
+interface LotSaisi {
+  numero: string;
+  /** AAAA-MM-JJ, comme le rend un champ date. */
+  date: string;
+  quantite: number | null;
+}
+
+/**
+ * Une ligne de commande, avec ce que le magasinier est en train de saisir.
+ *
+ * Pour un article suivi par lot, la quantite recue est la somme de ses lots : une livraison de
+ * yaourts arrive souvent en deux lots, et chacun a sa date.
+ */
 interface LigneSaisie {
   ligne: LigneCmndeFournisseurDto;
   recue: number | null;
+  lots: LotSaisi[];
+}
+
+function lotVide(): LotSaisi {
+  return { numero: '', date: '', quantite: null };
 }
 
 /**
@@ -59,7 +77,7 @@ export class Reception implements OnInit {
   protected readonly motif = signal('');
 
   /** Rien a envoyer tant qu'aucune quantite n'est saisie : le bouton reste inerte. */
-  protected readonly aQuelqueChose = computed(() => this.saisies().some((s) => (s.recue ?? 0) > 0));
+  protected readonly aQuelqueChose = computed(() => this.saisies().some((s) => this.recue(s) > 0));
   protected readonly attendu = computed(() =>
     this.saisies().reduce((somme, s) => somme + reste(s.ligne), 0),
   );
@@ -83,11 +101,77 @@ export class Reception implements OnInit {
     );
   }
 
-  /** « Tout est arrivé » : remplit chaque ligne avec ce qui reste attendu. */
+  /**
+   * « Tout est arrivé » : remplit chaque ligne avec ce qui reste attendu. Une ligne suivie en un
+   * seul lot le recoit entier ; repartie en plusieurs, on ne devine pas comment.
+   */
   protected toutRecu(): void {
     this.saisies.update((liste) =>
-      liste.map((s) => ({ ...s, recue: reste(s.ligne) > 0 ? reste(s.ligne) : null })),
+      liste.map((s) => {
+        const attendu = reste(s.ligne) > 0 ? reste(s.ligne) : null;
+        if (!this.suivi(s)) {
+          return { ...s, recue: attendu };
+        }
+        return s.lots.length === 1 ? { ...s, lots: [{ ...s.lots[0], quantite: attendu }] } : s;
+      }),
     );
+  }
+
+  protected suivi(saisie: LigneSaisie): boolean {
+    return !!saisie.ligne.article?.suiviLot;
+  }
+
+  protected avecDate(saisie: LigneSaisie): boolean {
+    return !!saisie.ligne.article?.typeDate;
+  }
+
+  /** Ce qui arrive sur la ligne : la saisie, ou la somme de ses lots. */
+  protected recue(saisie: LigneSaisie): number {
+    return this.suivi(saisie)
+      ? saisie.lots.reduce((somme, l) => somme + (l.quantite ?? 0), 0)
+      : (saisie.recue ?? 0);
+  }
+
+  protected saisirLot(index: number, rang: number, champ: keyof LotSaisi, valeur: unknown): void {
+    const propre =
+      champ === 'quantite'
+        ? valeur === '' || valeur == null || !Number.isFinite(Number(valeur))
+          ? null
+          : Number(valeur)
+        : String(valeur ?? '');
+    this.saisies.update((liste) =>
+      liste.map((s, i) =>
+        i !== index
+          ? s
+          : { ...s, lots: s.lots.map((l, r) => (r !== rang ? l : { ...l, [champ]: propre })) },
+      ),
+    );
+  }
+
+  protected ajouterLot(index: number): void {
+    this.saisies.update((liste) =>
+      liste.map((s, i) => (i === index ? { ...s, lots: [...s.lots, lotVide()] } : s)),
+    );
+  }
+
+  protected retirerLot(index: number, rang: number): void {
+    this.saisies.update((liste) =>
+      liste.map((s, i) => (i === index ? { ...s, lots: s.lots.filter((_, r) => r !== rang) } : s)),
+    );
+  }
+
+  /** Ce qui manque a un lot pour partir : rien, ou la raison. */
+  protected lotIncomplet(saisie: LigneSaisie, lot: LotSaisi): string | null {
+    if ((lot.quantite ?? 0) <= 0) {
+      return null;
+    }
+    if (!lot.numero.trim()) {
+      return 'Numéro de lot manquant';
+    }
+    if (this.avecDate(saisie) && !lot.date) {
+      return (saisie.ligne.article?.typeDate ?? 'Date') + ' manquante';
+    }
+    return null;
   }
 
   protected reste(ligne: LigneCmndeFournisseurDto): number {
@@ -96,7 +180,7 @@ export class Reception implements OnInit {
 
   /** Recevoir plus que ce qui reste attendu est une erreur de comptage, pas une livraison. */
   protected tropRecu(saisie: LigneSaisie): boolean {
-    return (saisie.recue ?? 0) > reste(saisie.ligne);
+    return this.recue(saisie) > reste(saisie.ligne);
   }
 
   protected envoyer(): void {
@@ -108,12 +192,28 @@ export class Reception implements OnInit {
       this.erreur.set('Une quantité dépasse ce qui reste attendu.');
       return;
     }
+    if (this.saisies().some((s) => this.suivi(s) && s.lots.some((l) => this.lotIncomplet(s, l)))) {
+      this.erreur.set('Un lot reçu n’a pas son numéro ou sa date : ils sont sur l’emballage.');
+      return;
+    }
 
     this.envoiEnCours.set(true);
     this.erreur.set(null);
-    const receptions = this.saisies()
-      .filter((s) => (s.recue ?? 0) > 0)
-      .map((s) => ({ idLigne: s.ligne.id!, quantite: s.recue! }));
+    // Une entree par lot : la meme ligne peut donc revenir plusieurs fois.
+    const receptions: LigneReceptionDto[] = this.saisies().flatMap((s) =>
+      this.suivi(s)
+        ? s.lots
+            .filter((l) => (l.quantite ?? 0) > 0)
+            .map((l) => ({
+              idLigne: s.ligne.id!,
+              quantite: l.quantite!,
+              numeroLot: l.numero.trim(),
+              datePeremption: l.date || undefined,
+            }))
+        : (s.recue ?? 0) > 0
+          ? [{ idLigne: s.ligne.id!, quantite: s.recue! }]
+          : [],
+    );
 
     this.service.recevoir(commande.id!, receptions).subscribe({
       next: (apres) => {
@@ -179,7 +279,7 @@ export class Reception implements OnInit {
 
     this.service.lignes(id).subscribe({
       next: (lignes) => {
-        this.saisies.set(lignes.map((ligne) => ({ ligne, recue: null })));
+        this.saisies.set(lignes.map((ligne) => ({ ligne, recue: null, lots: [lotVide()] })));
         this.chargement.set(false);
       },
       error: () => {

@@ -1,0 +1,267 @@
+<div class="page">
+  <gs-en-tete-page
+    titre="Péremptions"
+    [sousTitre]="tousSites() ? 'Les lots à retirer ou à écouler, dans tous les sites.' : 'Les lots à retirer ou à écouler à ' + (siteActif()?.nom ?? 'ce site') + ', le plus urgent en tête.'"
+  >
+    @if (peutVoirTout()) {
+      <gs-selecteur aria-label="Péremptions de" [options]="portees()" [valeur]="portee()" (valeurChange)="changerPortee($event)" />
+    }
+  </gs-en-tete-page>
+
+  @if (chargement()) {
+    <div class="tuiles">
+      @for (i of [1, 2]; track i) {
+        <div class="squelette h-28"></div>
+      }
+    </div>
+    <div class="grid gap-2">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="squelette h-14"></div>
+      }
+    </div>
+  } @else if (erreur(); as message) {
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  } @else if (lignes().length === 0) {
+    <gs-section>
+      <gs-etat-vide
+        icone="event_available"
+        titre="Rien ne périme"
+        texte="Aucun lot en rayon n’a dépassé sa date ni n’en approche. Les articles suivis par lot apparaissent ici avant leur date, selon le délai réglé pour le magasin."
+      />
+    </gs-section>
+  } @else {
+    <div class="tuiles">
+      <gs-tuile
+        libelle="Dates dépassées"
+        icone="event_busy"
+        [valeur]="perimes().length"
+        [ton]="dlcDepassees() > 0 ? 'danger' : perimes().length > 0 ? 'attention' : 'normal'"
+        [detail]="dlcDepassees() > 0 ? dlcDepassees() + ' en DLC : ne se vendent plus, à retirer' : 'En DLUO : se vendent encore, avec un avertissement'"
+      />
+      <gs-tuile
+        libelle="Périment bientôt"
+        icone="schedule"
+        [valeur]="bientot().length"
+        [ton]="bientot().length > 0 ? 'attention' : 'normal'"
+        detail="À mettre en avant pour les écouler"
+      />
+    </div>
+
+    <div class="barre-outils">
+      <gs-selecteur aria-label="Lots affichés" [options]="filtres()" [valeur]="filtre()" (valeurChange)="filtre.set($event)" />
+    </div>
+
+    @if (affichees().length === 0) {
+      <gs-section>
+        <gs-etat-vide icone="filter_alt_off" titre="Rien dans ce filtre" [filtre]="true">
+          <button mat-button type="button" (click)="filtre.set('tout')">Voir tous les lots</button>
+        </gs-etat-vide>
+      </gs-section>
+    } @else {
+      <!-- Le bureau : un tableau, pour comparer les dates d'un coup d'oeil. -->
+      <div class="tableau-cadre hidden md:block">
+        <table class="gs-tableau">
+          <thead>
+            <tr>
+              <th>Article</th>
+              <th>Lot</th>
+              <th>Date</th>
+              <th>État</th>
+              @if (tousSites()) {
+                <th>Site</th>
+              }
+              <th class="gs-num">En stock</th>
+              <th><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of affichees(); track l.id + '-' + l.idSite) {
+              <tr>
+                <td>
+                  <span class="designation">{{ l.designation }}</span>
+                  <span class="code gs-code">{{ l.codeArticle }}</span>
+                </td>
+                <td><span class="lot">{{ l.numero }}</span></td>
+                <td class="nombre">
+                  {{ l.datePeremption | date: 'dd/MM/yyyy' }}
+                  <span class="code">{{ l.typeDate }}</span>
+                </td>
+                <td>
+                  <gs-statut [ton]="statut(l).ton" [icone]="statut(l).icone">{{ statut(l).libelle }}</gs-statut>
+                </td>
+                @if (tousSites()) {
+                  <td class="gs-encre-2">{{ l.nomSite }}</td>
+                }
+                <td class="gs-num quantite" [class.danger]="l.etat === 'PERIME' && l.typeDate === 'DLC'">
+                  {{ l.quantite | number: '1.0-3' }}
+                </td>
+                <td class="whitespace-nowrap text-right">
+                  @if (peutRappeler()) {
+                    <button mat-button (click)="ouvrirRappel(l)">Rappel</button>
+                  }
+                  @if (peutRetirer()) {
+                    <button mat-stroked-button (click)="ouvrirRetrait(l)">Retirer</button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Le rayon : des cartes, et le bouton sous le pouce. -->
+      <ul class="cartes md:hidden">
+        @for (l of affichees(); track l.id + '-' + l.idSite) {
+          <li>
+            <span class="infos">
+              <span class="designation">{{ l.designation }}</span>
+              <span class="code">
+                Lot <b class="gs-code">{{ l.numero }}</b> · {{ l.typeDate }} {{ l.datePeremption | date: 'dd/MM/yyyy' }}
+                @if (tousSites()) { · {{ l.nomSite }} }
+              </span>
+              <gs-statut [ton]="statut(l).ton" [icone]="statut(l).icone">{{ statut(l).libelle }}</gs-statut>
+            </span>
+            <span class="chiffres">
+              <span class="quantite nombre" [class.danger]="l.etat === 'PERIME' && l.typeDate === 'DLC'">
+                {{ l.quantite | number: '1.0-3' }}
+              </span>
+              @if (peutRetirer()) {
+                <button mat-button class="!-mr-2" (click)="ouvrirRetrait(l)">Retirer</button>
+              }
+              @if (peutRappeler()) {
+                <button mat-button class="!-mr-2" (click)="ouvrirRappel(l)">Rappel</button>
+              }
+            </span>
+          </li>
+        }
+      </ul>
+
+      <p class="pied gs-encre-3">
+        {{ affichees().length }} lot{{ affichees().length > 1 ? 's' : '' }}
+      </p>
+    }
+  }
+
+  <!-- Retirer un lot du rayon : une sortie « Péremption », de ce lot-ci, dans son site. -->
+  @if (retrait(); as r) {
+    <div class="volet-fond" (click)="fermer()" aria-hidden="true"></div>
+    <section class="volet" role="dialog" aria-modal="true" aria-labelledby="titre-retrait">
+      <header class="flex items-center gap-2">
+        <span class="min-w-0 flex-1">
+          <span id="titre-retrait" class="block font-medium">Retirer du stock</span>
+          <span class="block truncate text-xs opacity-70">
+            {{ r.designation }} · lot {{ r.numero }} · {{ r.nomSite }}
+          </span>
+        </span>
+        <button mat-icon-button (click)="fermer()" aria-label="Fermer">
+          <mat-icon>close</mat-icon>
+        </button>
+      </header>
+
+      <p class="note mt-4">
+        <mat-icon aria-hidden="true">info</mat-icon>
+        <span>
+          La sortie est enregistrée en péremption : elle compte dans la démarque, ce que le magasin
+          perd sans le vendre.
+        </span>
+      </p>
+
+      <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+        <mat-label>Quantité retirée</mat-label>
+        <input matInput type="number" inputmode="decimal" min="0" [max]="r.quantite ?? null"
+               [ngModel]="quantiteRetiree()" (ngModelChange)="quantiteRetiree.set($event)"
+               (keydown.enter)="retirer()" />
+        <mat-hint>Le lot en compte {{ r.quantite | number: '1.0-3' }} ici</mat-hint>
+      </mat-form-field>
+
+      @if (erreurRetrait(); as m) {
+        <p class="message-erreur mt-3" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ m }}</span>
+        </p>
+      }
+
+      <button mat-flat-button class="mt-4 !h-12 w-full"
+              [disabled]="!quantiteRetiree() || envoi()" (click)="retirer()">
+        {{ envoi() ? 'Enregistrement…' : 'Retirer ' + (quantiteRetiree() ?? 0) + ' du stock' }}
+      </button>
+    </section>
+  }
+
+  <!-- Le rappel : ou il en reste, a qui il a ete vendu. -->
+  @if (rappel(); as rp) {
+    <div class="volet-fond" (click)="fermer()" aria-hidden="true"></div>
+    <section class="volet" role="dialog" aria-modal="true" aria-labelledby="titre-rappel">
+      <header class="flex items-center gap-2">
+        <span class="min-w-0 flex-1">
+          <span id="titre-rappel" class="block font-medium">Rappel du lot {{ rp.lot?.numero }}</span>
+          <span class="block truncate text-xs opacity-70">
+            {{ rp.lot?.designation }}
+            @if (rp.lot?.datePeremption) { · {{ rp.lot?.typeDate }} {{ rp.lot?.datePeremption | date: 'dd/MM/yyyy' }} }
+          </span>
+        </span>
+        <button mat-icon-button (click)="fermer()" aria-label="Fermer">
+          <mat-icon>close</mat-icon>
+        </button>
+      </header>
+
+      @if (chargementRappel()) {
+        <div class="mt-4 grid gap-2">
+          <div class="squelette h-16"></div>
+          <div class="squelette h-16"></div>
+        </div>
+      } @else if (erreurRappel(); as m) {
+        <p class="message-erreur mt-4" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ m }}</span>
+        </p>
+      } @else {
+        <h3 class="gs-etiquette mb-2 mt-4">Encore en stock</h3>
+        @if ((rp.stocks ?? []).length === 0) {
+          <p class="gs-encre-2 text-sm">Plus rien en stock : tout est sorti.</p>
+        } @else {
+          <ul class="ventes">
+            @for (s of rp.stocks; track s.idSite) {
+              <li class="flex items-center justify-between">
+                <span>{{ s.nomSite }}</span>
+                <b class="nombre">{{ s.quantite | number: '1.0-3' }}</b>
+              </li>
+            }
+          </ul>
+        }
+
+        <h3 class="gs-etiquette mb-2 mt-5">Vendu — {{ (rp.ventes ?? []).length }} vente{{ (rp.ventes ?? []).length > 1 ? 's' : '' }}</h3>
+        @if ((rp.ventes ?? []).length === 0) {
+          <p class="gs-encre-2 text-sm">Aucune vente de ce lot.</p>
+        } @else {
+          <ul class="ventes">
+            @for (v of rp.ventes; track v.idVente) {
+              <li>
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="font-medium">{{ v.client || 'Client de passage' }}</span>
+                  <b class="nombre">{{ v.quantite | number: '1.0-3' }}</b>
+                </div>
+                <div class="gs-encre-2 text-xs">
+                  {{ v.date | date: 'dd/MM/yyyy HH:mm' }} · {{ v.nomSite }}
+                  @if (v.codeTicket) { · ticket <span class="gs-code">{{ v.codeTicket }}</span> }
+                </div>
+                @if (v.telephone) {
+                  <a mat-button class="!-ml-3 mt-1" [href]="'tel:' + v.telephone">
+                    <mat-icon>call</mat-icon> {{ v.telephone }}
+                  </a>
+                }
+              </li>
+            }
+          </ul>
+          <p class="mt-3 gs-encre-3 text-xs">
+            Les ventes de passage n’ont pas de nom : affichez le numéro de lot en caisse pour que les
+            clients se signalent.
+          </p>
+        }
+      }
+    </section>
+  }
+</div>

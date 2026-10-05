@@ -22,6 +22,12 @@ import com.jumpy.tech.gestionstock.gestiondestock.dto.StockSiteDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.ArticleSite;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Site;
 import com.jumpy.tech.gestionstock.gestiondestock.site.SiteCourant;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Lot;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.TypeDate;
+import com.jumpy.tech.gestionstock.gestiondestock.lot.Lots;
+import com.jumpy.tech.gestionstock.gestiondestock.promotion.Calendrier;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.LotRepository;
+import org.springframework.util.StringUtils;
 import com.jumpy.tech.gestionstock.gestiondestock.service.MvtStkService;
 import com.jumpy.tech.gestionstock.gestiondestock.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
@@ -51,11 +57,18 @@ public class MvtStkServiceImpl implements MvtStkService {
     private final SiteCourant siteCourant;
     private final SiteRepository siteRepository;
     private final ArticleSiteRepository articleSiteRepository;
+    private final Lots lots;
+    private final LotRepository lotRepository;
+    private final Calendrier calendrier;
 
     public MvtStkServiceImpl(MvtStkRepository mvtStkRepository, ArticleRepository articleRepository,
                              Cloisonnement cloisonnement, NotificationService notifications,
                              Conditionnements conditionnements, SiteCourant siteCourant,
-                             SiteRepository siteRepository, ArticleSiteRepository articleSiteRepository) {
+                             SiteRepository siteRepository, ArticleSiteRepository articleSiteRepository,
+                             Lots lots, LotRepository lotRepository, Calendrier calendrier) {
+        this.lots = lots;
+        this.lotRepository = lotRepository;
+        this.calendrier = calendrier;
         this.conditionnements = conditionnements;
         this.siteCourant = siteCourant;
         this.siteRepository = siteRepository;
@@ -181,14 +194,137 @@ public class MvtStkServiceImpl implements MvtStkService {
         }
 
         Site site = siteDuMouvement(article, dto.getIdSite());
+        List<String> avertissements = new java.util.ArrayList<>();
 
-        if (sens == TypeMvtStk.SORTIE && opposerLeStock) {
-            verifierStockDisponible(article, site, quantite);
+        // Un article suivi bouge lot par lot. Une sortie sans lot designe se repartit sur les lots
+        // du site, premier perime premier sorti ; elle peut donc faire plusieurs mouvements.
+        List<Lots.Part> parts;
+        if (!article.isSuiviLot() || site == null) {
+            if (sens == TypeMvtStk.SORTIE && opposerLeStock) {
+                verifierStockDisponible(article, site, quantite);
+            }
+            parts = List.of(new Lots.Part(null, quantite));
+        } else if (sens == TypeMvtStk.ENTREE && dto.getIdLot() == null && !StringUtils.hasText(dto.getNumeroLot())
+                && (dto.getIdVente() != null || dto.getIdTransfert() != null)) {
+            // Ce qui revient d'une vente, ou arrive d'un transfert, rentre dans les lots dont il
+            // etait sorti : un lot rappele doit se retrouver jusque dans le stock d'arrivee.
+            parts = rendre(dto.getIdVente() != null
+                    ? mvtStkRepository.netParLotDeLaVente(dto.getIdVente(), article.getId(), TypeMvtStk.SORTIE)
+                    : mvtStkRepository.netParLotDuTransfert(dto.getIdTransfert(), article.getId(), TypeMvtStk.SORTIE),
+                    quantite);
+        } else if (sens == TypeMvtStk.ENTREE) {
+            parts = List.of(new Lots.Part(lotDEntree(article, dto), quantite));
+        } else if (dto.getIdLot() != null) {
+            Lot lot = lotDeLArticle(article, dto.getIdLot());
+            if (opposerLeStock) {
+                BigDecimal duLot = lots.stockDuLot(article, site, lot);
+                if (duLot.compareTo(quantite) < 0) {
+                    throw new InvalidEntityException(
+                            "Le lot " + lot.getNumero() + " n'a plus que " + duLot.stripTrailingZeros().toPlainString()
+                                    + " à « " + site.getNom() + " », " + quantite.stripTrailingZeros().toPlainString() + " demandés",
+                            ErrorCodes.STOCK_INSUFFISANT);
+                }
+                if (lot.perimeLe(calendrier.aujourdhui()) && article.getTypeDate() == TypeDate.DLC
+                        && dto.getMotif() != MotifMvtStk.PEREMPTION && dto.getMotif() != MotifMvtStk.RETOUR_FOURNISSEUR) {
+                    throw new InvalidEntityException(
+                            "Le lot " + lot.getNumero() + " a dépassé sa date limite : il ne se vend plus",
+                            ErrorCodes.STOCK_INSUFFISANT, List.of("Sortez-le du stock avec le motif « Péremption »"));
+                }
+            }
+            parts = List.of(new Lots.Part(lot, quantite));
+        } else {
+            parts = lots.allouer(article, site, quantite, opposerLeStock, avertissements);
         }
 
+        MvtStk enregistre = null;
+        for (Lots.Part part : parts) {
+            enregistre = ecrire(article, site, part.lot(), part.quantite(), sens, dto, quand);
+        }
+        log.info("Mouvement {} de {} sur l'article {} (site {}, {} lot(s))", sens, quantite, article.getId(),
+                site == null ? "-" : site.getId(), parts.size());
+
+        if (sens == TypeMvtStk.SORTIE) {
+            alerterSiLeStockBaisseTrop(article, site);
+        }
+        MvtStkDto resultat = MvtStkDto.fromEntity(enregistre);
+        resultat.setAvertissements(avertissements);
+        return resultat;
+    }
+
+    /**
+     * Repartit une entree sur les lots d'ou la marchandise etait sortie : `net` donne, lot par lot,
+     * ce qui est parti et n'est pas encore revenu. Les lots qui perissent le plus tard reviennent
+     * d'abord — c'est eux qui restent vendables le plus longtemps. Ce qui depasse, s'il y en a,
+     * entre sans lot.
+     */
+    private List<Lots.Part> rendre(List<Object[]> net, BigDecimal quantite) {
+        Map<Long, BigDecimal> parLot = new java.util.HashMap<>();
+        BigDecimal sansLot = BigDecimal.ZERO;
+        for (Object[] ligne : net) {
+            BigDecimal q = (BigDecimal) ligne[1];
+            if (q.signum() <= 0) {
+                continue;
+            }
+            if (ligne[0] == null) {
+                sansLot = q;
+            } else {
+                parLot.put((Long) ligne[0], q);
+            }
+        }
+        List<Lot> ordre = lotRepository.findAllById(parLot.keySet()).stream()
+                .sorted(java.util.Comparator.comparing(Lot::getDatePeremption,
+                        java.util.Comparator.nullsFirst(java.util.Comparator.<java.time.LocalDate>naturalOrder()))
+                        .reversed())
+                .toList();
+        List<Lots.Part> parts = new java.util.ArrayList<>();
+        BigDecimal reste = quantite;
+        for (Lot lot : ordre) {
+            if (reste.signum() <= 0) {
+                break;
+            }
+            BigDecimal pris = reste.min(parLot.get(lot.getId()));
+            parts.add(new Lots.Part(lot, pris));
+            reste = reste.subtract(pris);
+        }
+        if (reste.signum() > 0) {
+            parts.add(new Lots.Part(null, reste));
+        }
+        return parts;
+    }
+
+    /** Le lot d'une entree : designe par son identifiant, ou par son numero et sa date. */
+    private Lot lotDEntree(Article article, MvtStkDto dto) {
+        if (dto.getIdLot() != null) {
+            return lotDeLArticle(article, dto.getIdLot());
+        }
+        if (StringUtils.hasText(dto.getNumeroLot())) {
+            return lots.pourEntree(article, dto.getNumeroLot(), dto.getDatePeremption());
+        }
+        // Une livraison et une saisie a la main disent d'ou vient la marchandise : son lot est
+        // sur l'emballage. Un rattrapage d'inventaire, un retour de client, ne le savent pas
+        // toujours : la marchandise entre sans lot, et sortira la premiere.
+        MotifMvtStk motif = dto.getMotif() == null ? MotifMvtStk.SAISIE_MANUELLE : dto.getMotif();
+        if (motif == MotifMvtStk.LIVRAISON_COMMANDE || motif == MotifMvtStk.SAISIE_MANUELLE) {
+            lots.pourEntree(article, null, null);
+        }
+        return null;
+    }
+
+    private Lot lotDeLArticle(Article article, Long idLot) {
+        return lotRepository.findById(idLot)
+                .filter(l -> l.getArticle().getId().equals(article.getId()))
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun lot " + idLot + " pour l'article " + article.getCodeArticle(), ErrorCodes.MVT_STK_NOT_VALID));
+    }
+
+    private MvtStk ecrire(Article article, Site site, Lot lot, BigDecimal quantite, TypeMvtStk sens, MvtStkDto dto,
+                          Instant quand) {
         MvtStk mvtStk = new MvtStk();
         mvtStk.setArticles(article);
         mvtStk.setSite(site);
+        mvtStk.setLot(lot);
+        mvtStk.setIdVente(dto.getIdVente());
+        mvtStk.setIdTransfert(dto.getIdTransfert());
         mvtStk.setQuantite(quantite);
         mvtStk.setTypMvt(sens);
         // Un mouvement sans motif connu est une saisie a la main : c'est le cas des deux routes
@@ -203,15 +339,7 @@ public class MvtStkServiceImpl implements MvtStkService {
         // existe. Seule une sortie constatee — une vente faite hors ligne, deja survenue — porte
         // sa propre date, et elle ne vient pas d'une requete mais du service des ventes.
         mvtStk.setDateMvt(quand);
-
-        MvtStk enregistre = mvtStkRepository.save(mvtStk);
-        log.info("Mouvement {} de {} sur l'article {} (site {})", sens, quantite, article.getId(),
-                site == null ? "-" : site.getId());
-
-        if (sens == TypeMvtStk.SORTIE) {
-            alerterSiLeStockBaisseTrop(article, site);
-        }
-        return MvtStkDto.fromEntity(enregistre);
+        return mvtStkRepository.save(mvtStk);
     }
 
     /**

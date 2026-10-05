@@ -158,6 +158,7 @@ public class TransfertServiceImpl implements TransfertService {
                     .quantite(Conditionnements.enUnitesDeBase(ligne.getQuantite(), ligne.getContenance()))
                     .motif(MotifMvtStk.TRANSFERT_SORTIE)
                     .idSite(transfert.getSource().getId())
+                    .idTransfert(transfert.getId())
                     .build());
         }
         transfert.setEtat(EtatTransfert.EXPEDIE);
@@ -226,6 +227,8 @@ public class TransfertServiceImpl implements TransfertService {
                         .quantite(Conditionnements.enUnitesDeBase(recue, ligne.getContenance()))
                         .motif(MotifMvtStk.TRANSFERT_ENTREE)
                         .idSite(transfert.getDestination().getId())
+                        // L'arrivee recoit les lots qui sont partis.
+                        .idTransfert(transfert.getId())
                         .build());
             }
         }

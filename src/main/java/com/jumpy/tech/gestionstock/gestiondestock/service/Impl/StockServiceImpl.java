@@ -245,6 +245,8 @@ public class StockServiceImpl implements StockService {
                 .designation(article.getDesignation())
                 .quantite(quantite)
                 .uniteBase(article.getUniteBase())
+                .suiviLot(article.isSuiviLot())
+                .typeDate(article.getTypeDate())
                 .conditionnements(conditionnements)
                 .seuilAlerte(seuil)
                 .statut(statut(quantite, seuil))
