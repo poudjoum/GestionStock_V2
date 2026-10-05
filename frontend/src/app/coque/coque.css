@@ -10,6 +10,13 @@
   color: var(--gs-menu-encre);
 }
 
+/* Sur le vert du menu, la barre de defilement prend l'encre du menu : la grise y faisait tache. */
+.menu,
+.feuille {
+  --gs-defilement: color-mix(in srgb, var(--gs-menu-encre) 30%, transparent);
+  --gs-defilement-survol: color-mix(in srgb, var(--gs-menu-encre) 55%, transparent);
+}
+
 .menu-marque {
   display: flex;
   align-items: center;

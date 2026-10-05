@@ -56,6 +56,10 @@
   --gs-menu-fond: var(--gs-vert-900);
   --gs-menu-encre: #e8f3ec;
   --gs-focus: #6fbf8f;
+  /* La barre de defilement : la couleur des traits. Tiree des neutres, elle suit d'elle-meme le
+     mode sombre. Le survol ne compte que pour Safari : la propriete standard n'en a pas. */
+  --gs-defilement: var(--gs-trait-fort);
+  --gs-defilement-survol: var(--gs-encre-3);
 
   /* Les polices, toutes hebergees avec l'application : une caisse sans reseau garde les siennes. */
   --gs-police-titre: 'Bricolage Grotesque Variable', 'Segoe UI', system-ui, sans-serif;
