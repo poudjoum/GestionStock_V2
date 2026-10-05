@@ -694,6 +694,14 @@
     aria-label="Ticket de caisse"
   >
     <div class="flex max-h-full flex-col items-center gap-3 overflow-y-auto">
+      <!-- Hors du ticket : c'est pour le caissier, pas pour le rouleau. -->
+      @for (a of avertissementsLots(); track $index) {
+        <p class="flex max-w-sm items-start gap-2 rounded-lg px-3 py-2 text-sm" role="alert"
+           style="background: var(--gs-alerte-fond); color: var(--gs-alerte)">
+          <mat-icon aria-hidden="true" class="shrink-0">history</mat-icon>
+          <span>{{ a }} — prévenez le client.</span>
+        </p>
+      }
       <div #zoneTicket class="rounded-lg p-2 shadow-lg" style="background: #fff">
         <app-ticket
           [facture]="sortie.facture"

@@ -1687,6 +1687,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/lots/{idLot}/rappel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["rappel"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/lots/peremption": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["peremption"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/lots/article/{idArticle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["lotsDeLArticle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/inventaires/{idSeance}": {
         parameters: {
             query?: never;
@@ -2646,6 +2694,8 @@ export interface components {
             logo?: string;
             assujettieTva?: boolean;
             tauxTva?: number;
+            /** Format: int32 */
+            delaiAlertePeremption?: number;
             fideliteActive?: boolean;
             montantParPoint?: number;
             adresseTickets?: string;
@@ -2711,6 +2761,11 @@ export interface components {
             idEntreprise?: number;
             /** @enum {string} */
             uniteBase?: "PIECE" | "KG" | "LITRE" | "METRE" | "M2" | "M3";
+            suiviLot?: boolean;
+            /** @enum {string} */
+            typeDate?: "DLC" | "DLUO";
+            /** Format: int32 */
+            delaiAlertePeremption?: number;
             conditionnements?: components["schemas"]["ConditionnementDto"][];
             codesBarres?: components["schemas"]["CodeBarresDto"][];
             /** Format: int64 */
@@ -2743,6 +2798,8 @@ export interface components {
             prixUnitaire?: number;
             conditionnement?: components["schemas"]["ConditionnementDto"];
             contenance?: number;
+            /** Format: int64 */
+            idLot?: number;
             article?: components["schemas"]["ArticleDto"];
             /** Format: int64 */
             idEntreprise?: number;
@@ -2831,6 +2888,7 @@ export interface components {
             /** Format: int64 */
             idSiteExpedition?: number;
             nomSiteExpedition?: string;
+            avertissements?: string[];
             ligneVente?: components["schemas"]["LigneVenteDto"][];
             encaissement?: components["schemas"]["ReglementDto"];
             commentaires?: string;
@@ -2957,6 +3015,12 @@ export interface components {
             /** Format: int64 */
             idSite?: number;
             nomSite?: string;
+            /** Format: int64 */
+            idLot?: number;
+            numeroLot?: string;
+            /** Format: date */
+            datePeremption?: string;
+            avertissements?: string[];
         };
         OuvertureInventaireDto: {
             commentaire?: string;
@@ -3107,6 +3171,9 @@ export interface components {
             /** Format: int64 */
             idLigne?: number;
             quantite?: number;
+            numeroLot?: string;
+            /** Format: date */
+            datePeremption?: string;
         };
         CommandeFourDto: {
             /** Format: int64 */
@@ -3290,6 +3357,9 @@ export interface components {
             quantite?: number;
             /** @enum {string} */
             uniteBase?: "PIECE" | "KG" | "LITRE" | "METRE" | "M2" | "M3";
+            suiviLot?: boolean;
+            /** @enum {string} */
+            typeDate?: "DLC" | "DLUO";
             conditionnements?: components["schemas"]["ConditionnementDto"][];
             /** Format: int64 */
             idSite?: number;
@@ -3381,6 +3451,44 @@ export interface components {
             first?: boolean;
             last?: boolean;
             empty?: boolean;
+        };
+        LotDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            idArticle?: number;
+            codeArticle?: string;
+            designation?: string;
+            numero?: string;
+            /** Format: date */
+            datePeremption?: string;
+            /** @enum {string} */
+            typeDate?: "DLC" | "DLUO";
+            quantite?: number;
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            etat?: string;
+            /** Format: int64 */
+            joursRestants?: number;
+            parSite?: components["schemas"]["StockSiteDto"][];
+        };
+        RappelLotDto: {
+            lot?: components["schemas"]["LotDto"];
+            stocks?: components["schemas"]["StockSiteDto"][];
+            ventes?: components["schemas"]["VenteDuLot"][];
+        };
+        VenteDuLot: {
+            /** Format: int64 */
+            idVente?: number;
+            code?: string;
+            codeTicket?: string;
+            /** Format: date-time */
+            date?: string;
+            nomSite?: string;
+            client?: string;
+            telephone?: string;
+            quantite?: number;
         };
         PageSeanceInventaireDto: {
             /** Format: int32 */
@@ -6465,6 +6573,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MvtStkDto"][];
+                };
+            };
+        };
+    };
+    rappel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idLot: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RappelLotDto"];
+                };
+            };
+        };
+    };
+    peremption: {
+        parameters: {
+            query?: {
+                tousSites?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotDto"][];
+                };
+            };
+        };
+    };
+    lotsDeLArticle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LotDto"][];
                 };
             };
         };

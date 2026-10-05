@@ -14,7 +14,7 @@ describe('groupesPour', () => {
 
   it('range les fournisseurs avec les achats pour le magasinier', () => {
     expect(noms(['ROLE_MAGASINIER'])).toEqual([
-      ['Stock', ['Stock', 'Catalogue', 'Inventaire', 'Transferts']],
+      ['Stock', ['Stock', 'Catalogue', 'Inventaire', 'Péremptions', 'Transferts']],
       ['Achats', ['Commandes', 'Fournisseurs']],
     ]);
   });

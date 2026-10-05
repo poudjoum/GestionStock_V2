@@ -340,6 +340,12 @@ export class VenteAuComptoir {
   protected readonly coupures = COUPURES;
 
   /** Le ticket a imprimer : pose apres l'encaissement, retire quand le caissier le referme. */
+  /**
+   * Ce que le serveur a signale en vendant : un lot DLUO depasse est parti. Le caissier le dit au
+   * client avant qu'il ne s'en aille ; affiche avec le ticket, efface a la vente suivante.
+   */
+  protected readonly avertissementsLots = signal<string[]>([]);
+
   protected readonly aImprimer = signal<{
     facture: FactureDto;
     paiement: PaiementDuTicket;
@@ -834,6 +840,7 @@ export class VenteAuComptoir {
 
     this.service.vendre(vente).subscribe({
       next: (enregistree) => {
+        this.avertissementsLots.set(enregistree.avertissements ?? []);
         this.service.facturer(enregistree.id!).subscribe({
           next: (facture) =>
             bon
@@ -1099,6 +1106,7 @@ export class VenteAuComptoir {
 
   protected fermerLeTicket(): void {
     this.aImprimer.set(null);
+    this.avertissementsLots.set([]);
     this.rendreLePoint();
   }
 }

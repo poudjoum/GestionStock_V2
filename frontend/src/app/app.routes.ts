@@ -51,6 +51,12 @@ export const routes: Routes = [
         loadComponent: () => import('./stock/etat-du-stock').then((m) => m.EtatDuStock),
       },
       {
+        // Les lots qui perissent : le magasinier les retire, le gerant rappelle.
+        path: 'peremptions',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
+        loadComponent: () => import('./stock/peremptions').then((m) => m.Peremptions),
+      },
+      {
         path: 'articles',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER')],
         loadComponent: () => import('./catalogue/articles').then((m) => m.Articles),

@@ -12,6 +12,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MotifMvtStk, Stock } from './stock.service';
+import { LotDto, Lots } from './lots.service';
+import { DatePipe } from '@angular/common';
 import { Session } from '../noyau/session';
 import { Sites } from '../noyau/sites';
 import { messageDErreur } from '../noyau/erreurs';
@@ -34,6 +36,7 @@ import { EnTetePage, EtatVide, OptionSelecteur, Section, Selecteur, Statut } fro
   selector: 'app-etat-du-stock',
   imports: [
     DecimalPipe,
+    DatePipe,
     FormsModule,
     MatFormFieldModule,
     MatIconModule,
@@ -146,6 +149,14 @@ export class EtatDuStock implements OnInit {
   protected readonly unite = signal<number>(0);
   protected readonly envoiAjustement = signal(false);
   protected readonly erreurAjustement = signal<string | null>(null);
+  /**
+   * Pour un article suivi : ses lots en stock ici, et celui qui sort. 0 : le premier perime, comme
+   * au comptoir. Designer le lot sert surtout a sortir celui qui a perime.
+   */
+  private readonly lots = inject(Lots);
+  protected readonly lotsArticle = signal<LotDto[]>([]);
+  protected readonly lotChoisi = signal<number>(0);
+  protected readonly sortie = computed(() => MOTIFS.find((m) => m.valeur === this.motif())?.sens === 'sortie');
 
   /** Ce que l'ajustement fera au stock, en unites de base : on le lit avant de valider. */
   protected readonly effet = computed(() => {
@@ -237,6 +248,15 @@ export class EtatDuStock implements OnInit {
     this.quantiteAjustee.set(null);
     this.unite.set(0);
     this.erreurAjustement.set(null);
+    this.lotsArticle.set([]);
+    this.lotChoisi.set(0);
+    if (ligne.suiviLot && ligne.idArticle) {
+      this.lots.deLArticle(ligne.idArticle).subscribe({
+        next: (lots) => this.lotsArticle.set(lots.filter((l) => (l.quantite ?? 0) > 0)),
+        // Sans la liste, la sortie part du premier perime : rien n'empeche d'ajuster.
+        error: () => this.lotsArticle.set([]),
+      });
+    }
   }
 
   protected fermerAjustement(): void {
@@ -258,6 +278,7 @@ export class EtatDuStock implements OnInit {
         quantite,
         motif: motif.valeur,
         conditionnement: this.unite() === 0 ? undefined : { id: this.unite() },
+        idLot: motif.sens === 'sortie' && this.lotChoisi() !== 0 ? this.lotChoisi() : undefined,
       })
       .subscribe({
         next: () => {

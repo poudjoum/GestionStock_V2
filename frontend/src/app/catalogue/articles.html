@@ -314,6 +314,54 @@
             <mat-hint>Facultatif — laissez vide pour ne pas surveiller cet article</mat-hint>
           </mat-form-field>
 
+          <!--
+            Le suivi par lot ne sert qu'a ce qui perime ou se rappelle : alimentaire, pharmacie.
+            Le ciment n'en a pas besoin, et la reception d'un article suivi demande plus de saisie.
+          -->
+          <div class="mt-4 rounded-lg border p-3" style="border-color: var(--mat-sys-outline-variant)">
+            <mat-slide-toggle [checked]="s.suiviLot" (change)="champ('suiviLot', $event.checked)">
+              Suivi par lot
+            </mat-slide-toggle>
+            <p class="mt-1 text-xs opacity-60">
+              Numéro de lot demandé à chaque réception ; le lot qui périme le premier sort le premier.
+            </p>
+
+            @if (s.suiviLot) {
+              <mat-form-field appearance="outline" class="mt-3 w-full" subscriptSizing="dynamic">
+                <mat-label>Date sur l’emballage</mat-label>
+                <mat-select [value]="s.typeDate" (valueChange)="champ('typeDate', $event)">
+                  <mat-option value="">Aucune date</mat-option>
+                  <mat-option value="DLC">DLC — à consommer jusqu’au</mat-option>
+                  <mat-option value="DLUO">DLUO — de préférence avant</mat-option>
+                </mat-select>
+                <mat-hint>
+                  @switch (s.typeDate) {
+                    @case ('DLC') { Dépassée, le lot ne se vend plus }
+                    @case ('DLUO') { Dépassée, le lot se vend encore, avec un avertissement }
+                    @default { On trace le lot sans surveiller de date }
+                  }
+                </mat-hint>
+              </mat-form-field>
+
+              @if (s.typeDate) {
+                <mat-form-field appearance="outline" class="mt-4 w-full" subscriptSizing="dynamic">
+                  <mat-label>Prévenir avant la date</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    inputmode="numeric"
+                    min="0"
+                    [ngModel]="s.delaiAlertePeremption"
+                    (ngModelChange)="champ('delaiAlertePeremption', $event)"
+                    placeholder="réglage du magasin"
+                  />
+                  <span matTextSuffix>jours</span>
+                  <mat-hint>Vide : le délai réglé pour le magasin</mat-hint>
+                </mat-form-field>
+              }
+            }
+          </div>
+
           @if (erreurVolet(); as message) {
             <p class="mt-4 rounded px-3 py-2 text-sm" role="alert"
                style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)">
