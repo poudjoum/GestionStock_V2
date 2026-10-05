@@ -44,6 +44,8 @@ import { EtatVide } from '../design/etat-vide';
 import { Statut } from '../design/statut';
 import { ScanCamera, cameraDisponible } from '../design/scan-camera';
 import { Sites } from '../noyau/sites';
+import { codesDuGtin, Gs1, lireGs1 } from '../noyau/gs1';
+import { LotDto, Lots } from '../stock/lots.service';
 import { ConditionnementDto, fractionnable, libelleDeLigne, vendables } from '../noyau/conditionnements';
 import type { ArticleDto, ClientDto, EntrepriseDto } from '../noyau/api';
 
@@ -80,11 +82,17 @@ interface LignePanier {
   article: ArticleDto;
   conditionnement: ConditionnementDto | null;
   quantite: number;
+  /** Le lot scanne sur l'emballage : c'est lui qui sort, et non le premier perime. */
+  lot?: LotDto | null;
 }
 
-/** Ce qui distingue une ligne d'une autre : l'article, et l'unite dans laquelle on le vend. */
-function cleDe(article: ArticleDto, conditionnement: ConditionnementDto | null | undefined): string {
-  return `${article.id}:${conditionnement?.id ?? 0}`;
+/**
+ * Ce qui distingue une ligne d'une autre : l'article, l'unite dans laquelle on le vend, et le lot
+ * scanne — deux boites du meme yaourt de deux lots differents font deux lignes, chacune sortant
+ * de son lot.
+ */
+function cleDe(article: ArticleDto, conditionnement: ConditionnementDto | null | undefined, lot?: LotDto | null): string {
+  return `${article.id}:${conditionnement?.id ?? 0}:${lot?.id ?? 0}`;
 }
 
 /**
@@ -280,6 +288,9 @@ export class VenteAuComptoir {
   private readonly champRecherche = viewChild<ElementRef<HTMLInputElement>>('champRecherche');
 
   private readonly sites = inject(Sites);
+  private readonly lots = inject(Lots);
+  /** Le lot qu'on vient de refuser — DLC depassee —, dit sous le champ de scan. */
+  protected readonly lotRefuse = signal<string | null>(null);
   protected readonly siteActif = this.sites.actif;
   protected readonly siteVend = this.sites.vend;
   protected readonly camera = signal(false);
@@ -512,6 +523,7 @@ export class VenteAuComptoir {
     // Retaper efface le refus precedent : le garder ferait croire que le nouveau code est
     // inconnu lui aussi.
     this.codeInconnu.set(null);
+    this.lotRefuse.set(null);
     if (!q.trim()) {
       this.resultats.set([]);
       return;
@@ -535,19 +547,38 @@ export class VenteAuComptoir {
     }
     this.resolution.set(true);
     this.codeInconnu.set(null);
+    this.lotRefuse.set(null);
+
+    // Un code GS1 — le DataMatrix d'un medicament, d'un produit frais — porte le produit et son
+    // lot : on cherche le produit par son GTIN, puis le lot par son numero.
+    const gs1 = lireGs1(saisi);
+    const codes = gs1 ? codesDuGtin(gs1.gtin) : [saisi];
 
     if (!this.reseau.joignable()) {
-      this.resoudreSurLAppareil(saisi);
+      this.resoudreSurLAppareil(saisi, codes);
       return;
     }
-    this.service.scanner(saisi).subscribe({
+    this.scannerLePremier(codes, 0, saisi, gs1);
+  }
+
+  /** Les codes candidats l'un apres l'autre : le GTIN-14, puis l'EAN-13 qu'il contient. */
+  private scannerLePremier(codes: string[], rang: number, saisi: string, gs1: Gs1 | null): void {
+    this.service.scanner(codes[rang]).subscribe({
       next: (lu) => {
+        if (gs1?.lot && lu.article?.suiviLot) {
+          this.ajouterAvecLeLot(lu.article, lu.conditionnement ?? null, gs1);
+          return;
+        }
         this.resolution.set(false);
         this.ajouter(lu.article!, lu.conditionnement ?? null);
       },
       error: (echec: unknown) => {
         if (estUneCoupure(echec)) {
-          this.resoudreSurLAppareil(saisi);
+          this.resoudreSurLAppareil(saisi, codes);
+          return;
+        }
+        if (rang + 1 < codes.length) {
+          this.scannerLePremier(codes, rang + 1, saisi, gs1);
           return;
         }
         this.codeRefuse(saisi);
@@ -555,14 +586,63 @@ export class VenteAuComptoir {
     });
   }
 
-  /** Le code cherche dans la copie du catalogue, quand le serveur ne repond pas. */
-  private resoudreSurLAppareil(code: string): void {
-    const lu = this.catalogueLocal.parCode(code);
+  /**
+   * Le lot lu sur l'emballage, retrouve parmi ceux de l'article. Un lot a DLC depassee ne se vend
+   * pas : il est refuse ici, avant d'entrer au panier, plutot qu'a l'encaissement. Un lot que le
+   * logiciel ne connait pas ici ne bloque pas la vente : c'est alors le premier perime qui sort.
+   */
+  private ajouterAvecLeLot(article: ArticleDto, conditionnement: ConditionnementDto | null, gs1: Gs1): void {
+    this.lots.deLArticle(article.id!).subscribe({
+      next: (lots) => {
+        this.resolution.set(false);
+        const numero = gs1.lot!.toLowerCase();
+        const lot = lots.find((l) => (l.numero ?? '').toLowerCase() === numero) ?? null;
+        if (lot && lot.etat === 'PERIME' && lot.typeDate === 'DLC') {
+          this.lotRefuse.set(
+            `« ${article.designation} », lot ${lot.numero} : DLC dépassée le ${jourLisible(lot.datePeremption)}. ` +
+              'Il ne se vend plus — retirez-le du rayon.',
+          );
+          this.recherche.set('');
+          this.rendreLePoint();
+          return;
+        }
+        if (!lot || (lot.quantite ?? 0) <= 0) {
+          this.snack.open(
+            `Lot ${gs1.lot} inconnu en stock ici : c’est le lot qui périme le premier qui sortira.`,
+            'Fermer',
+            { duration: 6000 },
+          );
+          this.ajouter(article, conditionnement);
+          return;
+        }
+        if (lot.etat === 'PERIME') {
+          this.snack.open(
+            `Lot ${lot.numero} : DLUO dépassée le ${jourLisible(lot.datePeremption)} — prévenez le client.`,
+            'Fermer',
+            { duration: 6000 },
+          );
+        }
+        this.ajouter(article, conditionnement, lot);
+      },
+      // Sans la liste des lots, la vente part quand meme : le premier perime sortira.
+      error: () => {
+        this.resolution.set(false);
+        this.ajouter(article, conditionnement);
+      },
+    });
+  }
+
+  /**
+   * Le code cherche dans la copie du catalogue, quand le serveur ne repond pas. Un code GS1 y
+   * retrouve son produit, pas son lot : la copie ne les porte pas, et le premier perime sortira.
+   */
+  private resoudreSurLAppareil(saisi: string, codes: string[] = [saisi]): void {
+    const lu = codes.map((c) => this.catalogueLocal.parCode(c)).find((l) => !!l) ?? null;
     if (lu) {
       this.resolution.set(false);
       this.ajouter(lu.article, lu.conditionnement);
     } else {
-      this.codeRefuse(code);
+      this.codeRefuse(saisi);
     }
   }
 
@@ -585,13 +665,13 @@ export class VenteAuComptoir {
    * le ticket serait illisible et le total identique. Un carton, lui, fait sa propre ligne — il
    * ne se vend pas au meme prix.
    */
-  protected ajouter(article: ArticleDto, conditionnement: ConditionnementDto | null = null): void {
-    const cle = cleDe(article, conditionnement);
+  protected ajouter(article: ArticleDto, conditionnement: ConditionnementDto | null = null, lot: LotDto | null = null): void {
+    const cle = cleDe(article, conditionnement, lot);
     this.panier.update((liste) => {
-      const existante = liste.find((l) => cleDe(l.article, l.conditionnement) === cle);
+      const existante = liste.find((l) => cleDe(l.article, l.conditionnement, l.lot) === cle);
       return existante
-        ? liste.map((l) => (cleDe(l.article, l.conditionnement) === cle ? { ...l, quantite: l.quantite + 1 } : l))
-        : [...liste, { article, conditionnement, quantite: 1 }];
+        ? liste.map((l) => (cleDe(l.article, l.conditionnement, l.lot) === cle ? { ...l, quantite: l.quantite + 1 } : l))
+        : [...liste, { article, conditionnement, quantite: 1, lot }];
     });
     this.recherche.set('');
     this.resultats.set([]);
@@ -613,7 +693,7 @@ export class VenteAuComptoir {
       return;
     }
     this.panier.update((liste) =>
-      liste.map((l) => (cleDe(l.article, l.conditionnement) === cle ? { ...l, quantite } : l)),
+      liste.map((l) => (cleDe(l.article, l.conditionnement, l.lot) === cle ? { ...l, quantite } : l)),
     );
   }
 
@@ -633,15 +713,15 @@ export class VenteAuComptoir {
    */
   protected changerDeConditionnement(cle: string, conditionnement: ConditionnementDto | null): void {
     this.panier.update((liste) => {
-      const ligne = liste.find((l) => cleDe(l.article, l.conditionnement) === cle);
+      const ligne = liste.find((l) => cleDe(l.article, l.conditionnement, l.lot) === cle);
       if (!ligne) {
         return liste;
       }
-      const nouvelleCle = cleDe(ligne.article, conditionnement);
+      const nouvelleCle = cleDe(ligne.article, conditionnement, ligne.lot);
       // Un carton se compte en nombre entier ; un poids, non.
       const quantite =
         conditionnement || !fractionnable(ligne.article) ? Math.max(1, Math.round(ligne.quantite)) : ligne.quantite;
-      const deja = liste.find((l) => cleDe(l.article, l.conditionnement) === nouvelleCle);
+      const deja = liste.find((l) => cleDe(l.article, l.conditionnement, l.lot) === nouvelleCle);
       if (deja && deja !== ligne) {
         return liste
           .filter((l) => l !== ligne)
@@ -652,7 +732,7 @@ export class VenteAuComptoir {
   }
 
   protected retirer(cle: string): void {
-    this.panier.update((liste) => liste.filter((l) => cleDe(l.article, l.conditionnement) !== cle));
+    this.panier.update((liste) => liste.filter((l) => cleDe(l.article, l.conditionnement, l.lot) !== cle));
   }
 
   protected viderLePanier(): void {
@@ -804,6 +884,8 @@ export class VenteAuComptoir {
         conditionnement: l.conditionnement ? { id: l.conditionnement.id } : undefined,
         quantite: l.quantite,
         prixUnitaire: this.prixLigne(l),
+        // Le lot scanne sort tel quel ; sans lui, le serveur sort le premier perime.
+        idLot: l.lot?.id ?? undefined,
       })),
     };
     const bon = this.bon();
@@ -1109,4 +1191,9 @@ export class VenteAuComptoir {
     this.avertissementsLots.set([]);
     this.rendreLePoint();
   }
+}
+
+/** « 2027-06-30 » en « 30/06/2027 ». */
+function jourLisible(date: string | undefined): string {
+  return date ? date.split('-').reverse().join('/') : '';
 }

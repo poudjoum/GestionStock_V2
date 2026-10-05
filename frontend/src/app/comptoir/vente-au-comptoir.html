@@ -112,6 +112,14 @@
       </p>
     }
 
+    @if (lotRefuse(); as message) {
+      <!-- Un lot a DLC depassee n'entre pas au panier : on le dit la ou le caissier regarde. -->
+      <p class="bandeau bandeau--danger" role="alert">
+        <mat-icon aria-hidden="true">block</mat-icon>
+        <span>{{ message }}</span>
+      </p>
+    }
+
     @if (!recherche()) {
       <!-- Les rayons : on y va au doigt quand l'article n'a pas de code-barres. -->
       <div class="rayons" role="radiogroup" aria-label="Rayon">
@@ -253,8 +261,8 @@
       />
     } @else {
       <ul class="lignes">
-        @for (ligne of lignes; track cleDe(ligne.article, ligne.conditionnement)) {
-          @let cle = cleDe(ligne.article, ligne.conditionnement);
+        @for (ligne of lignes; track cleDe(ligne.article, ligne.conditionnement, ligne.lot)) {
+          @let cle = cleDe(ligne.article, ligne.conditionnement, ligne.lot);
           @let unites = vendables(ligne.article);
           <!--
             La ligne s'allume brievement quand elle vient d'etre scannee. Le caissier regarde la
@@ -272,6 +280,12 @@
                   {{ prixLigne(ligne) | number: '1.0-0' }} F
                   {{ ligne.conditionnement ? 'le ' + (ligne.conditionnement.libelle ?? '').toLowerCase() : (auDetail(ligne) ? 'le ' + libelleDeLigne(ligne.article, null) : 'l’unité') }}
                 </span>
+                @if (ligne.lot; as lot) {
+                  <span class="unitaire">
+                    Lot <span class="gs-code">{{ lot.numero }}</span>
+                    @if (lot.datePeremption) { · {{ lot.typeDate }} {{ lot.datePeremption | date: 'dd/MM/yyyy' }} }
+                  </span>
+                }
               </span>
               <span class="ligne-total nombre">{{ prixLigne(ligne) * ligne.quantite | number: '1.0-0' }} F</span>
             </div>
