@@ -69,6 +69,9 @@
             <th class="gs-num">Seuil</th>
             <th class="gs-num">Coût moyen</th>
             <th class="gs-num">Valeur</th>
+            @if (peutAjuster()) {
+              <th class="w-12"><span class="sr-only">Ajuster</span></th>
+            }
           </tr>
         </thead>
         <tbody>
@@ -81,10 +84,24 @@
               <td>
                 <gs-statut [ton]="statut(ligne).ton" [icone]="statut(ligne).icone">{{ statut(ligne).libelle }}</gs-statut>
               </td>
-              <td class="gs-num quantite" [class.danger]="estAnormal(ligne)">{{ ligne.quantite | number: '1.0-2' }}</td>
+              <td class="gs-num quantite" [class.danger]="estAnormal(ligne)">
+                {{ ligne.quantite | number: '1.0-3' }} <span class="unite-base">{{ unites(ligne, ligne.quantite) }}</span>
+                <!-- La reserve se compte en cartons : on la lit comme on la voit. -->
+                @if (enConditionnements(ligne, ligne.quantite); as enCartons) {
+                  <span class="en-cartons">{{ enCartons }}</span>
+                }
+              </td>
               <td class="gs-num gs-encre-3">{{ ligne.seuilAlerte != null ? (ligne.seuilAlerte | number: '1.0-2') : '—' }}</td>
               <td class="gs-num gs-encre-2">{{ ligne.coutMoyenAchat != null ? (ligne.coutMoyenAchat | number: '1.0-0') + ' F' : '—' }}</td>
               <td class="gs-num valeur">{{ ligne.valeurAuCout != null ? (ligne.valeurAuCout | number: '1.0-0') + ' F' : '—' }}</td>
+              @if (peutAjuster()) {
+                <td>
+                  <button mat-icon-button (click)="ouvrirAjustement(ligne)"
+                          [attr.aria-label]="'Déclarer une casse, une perte ou un retour : ' + ligne.designation">
+                    <mat-icon>edit_note</mat-icon>
+                  </button>
+                </td>
+              }
             </tr>
           }
         </tbody>
@@ -103,7 +120,15 @@
             </gs-statut>
           </span>
           <span class="chiffres">
-            <span class="quantite nombre" [class.danger]="estAnormal(ligne)">{{ ligne.quantite | number: '1.0-2' }}</span>
+            <span class="quantite nombre" [class.danger]="estAnormal(ligne)">
+              {{ ligne.quantite | number: '1.0-3' }} <span class="unite-base">{{ unites(ligne, ligne.quantite) }}</span>
+            </span>
+            @if (enConditionnements(ligne, ligne.quantite); as enCartons) {
+              <span class="gs-encre-3 text-xs">{{ enCartons }}</span>
+            }
+            @if (peutAjuster()) {
+              <button mat-button class="!-mr-2" (click)="ouvrirAjustement(ligne)">Ajuster</button>
+            }
             @if (ligne.prixUnitaireVente != null) {
               <span class="gs-encre-3 nombre text-xs">{{ ligne.prixUnitaireVente | number: '1.0-0' }} F</span>
             }
@@ -111,6 +136,78 @@
         </li>
       }
     </ul>
+
+    <!--
+      L'ajustement : une casse, une peremption, un retour. Il se declare avec son motif — c'est ce
+      qui permet ensuite de mesurer ce que le magasin perd sans le vendre.
+    -->
+    @if (ajustement(); as a) {
+      <div class="ajustement-fond" (click)="fermerAjustement()" aria-hidden="true"></div>
+      <section class="ajustement carte" role="dialog" aria-modal="true" aria-labelledby="titre-ajustement">
+        <header class="flex items-center gap-2">
+          <span class="min-w-0 flex-1">
+            <span id="titre-ajustement" class="block font-medium">Ajuster le stock</span>
+            <span class="block truncate text-xs opacity-70">
+              {{ a.designation }} · {{ a.quantite | number: '1.0-3' }} {{ unites(a, a.quantite) }} en stock
+            </span>
+          </span>
+          <button mat-icon-button (click)="fermerAjustement()" aria-label="Fermer">
+            <mat-icon>close</mat-icon>
+          </button>
+        </header>
+
+        <mat-form-field appearance="outline" class="mt-4 w-full" subscriptSizing="dynamic">
+          <mat-label>Motif</mat-label>
+          <mat-select [value]="motif()" (valueChange)="motif.set($event)">
+            @for (m of motifs; track m.valeur) {
+              <mat-option [value]="m.valeur">
+                {{ m.libelle }} <span class="opacity-60">· {{ m.sens === 'entree' ? 'entre en stock' : 'sort du stock' }}</span>
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="mt-3 flex gap-2">
+          <mat-form-field appearance="outline" class="w-32 shrink-0" subscriptSizing="dynamic">
+            <mat-label>Quantité</mat-label>
+            <input matInput type="number" inputmode="decimal" min="0"
+                   [ngModel]="quantiteAjustee()" (ngModelChange)="quantiteAjustee.set($event)"
+                   (keydown.enter)="ajuster()" />
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="min-w-0 flex-1" subscriptSizing="dynamic">
+            <mat-label>Compté en</mat-label>
+            <mat-select [value]="unite()" (valueChange)="unite.set($event)">
+              <mat-option [value]="0">{{ symbole(a) }}</mat-option>
+              @for (c of a.conditionnements ?? []; track c.id) {
+                <mat-option [value]="c.id">{{ c.libelle }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        @if (effet(); as e) {
+          <p class="mt-2 text-sm">
+            Le stock passera à
+            <b class="nombre" [class.danger]="e.apres < 0">{{ e.apres | number: '1.0-3' }} {{ unites(a, e.apres) }}</b>
+            @if (unite() !== 0) {
+              <span class="opacity-70">({{ e.mouvement | number: '1.0-3' }} {{ unites(a, e.mouvement) }})</span>
+            }
+          </p>
+        }
+
+        @if (erreurAjustement(); as m) {
+          <p class="message-erreur mt-3" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ m }}</span>
+          </p>
+        }
+
+        <button mat-flat-button class="mt-4 !h-12 w-full"
+                [disabled]="!quantiteAjustee() || envoiAjustement()" (click)="ajuster()">
+          {{ envoiAjustement() ? 'Enregistrement…' : 'Enregistrer' }}
+        </button>
+      </section>
+    }
 
     <p class="pied gs-encre-3">
       {{ lignesAffichees.length }} article{{ lignesAffichees.length > 1 ? 's' : '' }}

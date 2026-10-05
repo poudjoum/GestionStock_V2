@@ -6,6 +6,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -13,11 +14,14 @@ import { Achats, ArticleDto, Tiers } from './achats.service';
 import { Catalogue } from '../catalogue/catalogue.service';
 import { Repertoire } from '../repertoire/repertoire.service';
 import { messageDErreur } from '../noyau/erreurs';
+import { ConditionnementDto, achetables, libelleDeLigne, unites } from '../noyau/conditionnements';
 
 /** Une ligne en cours de composition. `id` n'existe que pour celles deja enregistrees. */
 interface LigneSaisie {
   id?: number;
   article: ArticleDto;
+  /** Le conditionnement d'achat ; nul, on achete a l'unite. Quantite et prix sont alors les siens. */
+  conditionnement: ConditionnementDto | null;
   quantite: number;
   prixAchat: number;
 }
@@ -55,6 +59,7 @@ interface LigneSaisie {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatSelectModule,
     RouterLink,
   ],
   templateUrl: './commande-fournisseur.html',
@@ -86,6 +91,9 @@ export class CommandeFournisseur implements OnInit {
   protected readonly chercheArticle = signal(false);
 
   protected readonly enregistree = computed(() => this.idCommande() !== null);
+  protected readonly achetables = achetables;
+  protected readonly libelleDeLigne = libelleDeLigne;
+  protected readonly unites = unites;
   protected readonly articles = computed(() => this.lignes().length);
   protected readonly total = computed(() =>
     this.lignes().reduce((somme, l) => somme + l.quantite * l.prixAchat, 0),
@@ -185,12 +193,14 @@ export class CommandeFournisseur implements OnInit {
     this.rechercheArticle.set('');
     this.articlesTrouves.set([]);
 
-    if (this.lignes().some((l) => l.article.id === article.id)) {
+    // On achete en general dans le plus grand conditionnement : c'est ce que le fournisseur livre.
+    const parDefaut = [...achetables(article)].sort((a, b) => (b.quantiteUnites ?? 0) - (a.quantiteUnites ?? 0))[0] ?? null;
+    if (this.lignes().some((l) => l.article.id === article.id && l.conditionnement?.id === parDefaut?.id)) {
       this.snack.open('Cet article est déjà dans la commande.', 'Fermer', { duration: 3000 });
       return;
     }
     // Le prix d'achat reste a zero : c'est au fournisseur de le dire, pas au catalogue.
-    const nouvelle: LigneSaisie = { article, quantite: 1, prixAchat: 0 };
+    const nouvelle: LigneSaisie = { article, conditionnement: parDefaut, quantite: 1, prixAchat: 0 };
 
     const id = this.idCommande();
     if (id === null) {
@@ -198,7 +208,12 @@ export class CommandeFournisseur implements OnInit {
       return;
     }
     this.service
-      .ajouterLigne(id, { article: { id: article.id }, quantite: 1, prixUnitaire: 0 })
+      .ajouterLigne(id, {
+        article: { id: article.id },
+        conditionnement: parDefaut ? { id: parDefaut.id } : undefined,
+        quantite: 1,
+        prixUnitaire: 0,
+      })
       .subscribe({
         next: (ligne) => this.lignes.update((l) => [...l, { ...nouvelle, id: ligne.id }]),
         error: (echec: unknown) =>
@@ -208,6 +223,46 @@ export class CommandeFournisseur implements OnInit {
 
   protected changerQuantite(index: number, quantite: number): void {
     this.majLigne(index, { quantite: Number.isFinite(quantite) ? quantite : 0 });
+  }
+
+  /**
+   * Achete au carton plutot qu'a l'unite, ou l'inverse. Le prix saisi ne vaut plus — celui d'un
+   * carton n'est pas celui d'une bouteille — et revient a zero pour etre redemande.
+   *
+   * Une ligne deja enregistree se remplace : l'API corrige la quantite et le prix d'une ligne, pas
+   * son unite.
+   */
+  protected choisirConditionnement(index: number, idConditionnement: number | null): void {
+    const ligne = this.lignes()[index];
+    const conditionnement =
+      !idConditionnement ? null : (achetables(ligne?.article).find((c) => c.id === idConditionnement) ?? null);
+    this.changerConditionnement(index, conditionnement);
+  }
+
+  private changerConditionnement(index: number, conditionnement: ConditionnementDto | null): void {
+    const ligne = this.lignes()[index];
+    const id = this.idCommande();
+    const changement: Partial<LigneSaisie> = { conditionnement, prixAchat: 0 };
+    if (id === null || !ligne?.id) {
+      this.majLigne(index, changement);
+      return;
+    }
+    this.service.retirerLigne(id, ligne.id).subscribe({
+      next: () =>
+        this.service
+          .ajouterLigne(id, {
+            article: { id: ligne.article.id },
+            conditionnement: conditionnement ? { id: conditionnement.id } : undefined,
+            quantite: ligne.quantite,
+            prixUnitaire: 0,
+          })
+          .subscribe({
+            next: (nouvelle) => this.majLigne(index, { ...changement, id: nouvelle.id }),
+            error: (echec: unknown) =>
+              this.erreur.set(messageDErreur(echec, "La ligne n'a pas pu être changée.")),
+          }),
+      error: (echec: unknown) => this.erreur.set(messageDErreur(echec, "La ligne n'a pas pu être changée.")),
+    });
   }
 
   protected changerPrix(index: number, prix: number): void {
@@ -269,6 +324,7 @@ export class CommandeFournisseur implements OnInit {
         fournisseur: { id: this.fournisseur()!.id },
         ligneCmndeFournisseur: this.lignes().map((l) => ({
           article: { id: l.article.id },
+          conditionnement: l.conditionnement ? { id: l.conditionnement.id } : undefined,
           quantite: l.quantite,
           prixUnitaire: l.prixAchat,
         })),
@@ -369,6 +425,7 @@ export class CommandeFournisseur implements OnInit {
           lignes.map((l) => ({
             id: l.id,
             article: l.article ?? {},
+            conditionnement: l.conditionnement ?? null,
             quantite: Number(l.quantite ?? 0),
             prixAchat: Number(l.prixUnitaire ?? 0),
           })),

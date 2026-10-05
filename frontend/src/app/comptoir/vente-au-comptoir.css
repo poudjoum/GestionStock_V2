@@ -384,6 +384,62 @@
   font-size: var(--gs-texte-lg);
 }
 
+/* Au poids : le champ remplace les boutons, et l'unite se lit a cote du nombre. */
+.quantite--pesee {
+  padding-right: 10px;
+  gap: 6px;
+}
+
+.quantite--pesee input {
+  width: 96px;
+  height: 40px;
+  border: 0;
+  padding: 0 10px;
+  background: var(--gs-surface-2);
+  color: var(--gs-encre);
+  font-size: var(--gs-texte-lg);
+  font-weight: 700;
+  text-align: right;
+}
+
+.quantite--pesee span {
+  min-width: 0;
+  font-weight: 500;
+  font-size: inherit;
+  opacity: 0.7;
+}
+
+/* L'unite de vente de la ligne : a l'unite, ou dans l'un des conditionnements. */
+.unites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 2px;
+}
+
+.unite {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--gs-trait);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--gs-encre);
+  font: inherit;
+  font-size: var(--gs-texte-sm, 0.8125rem);
+  cursor: pointer;
+}
+
+.unite:hover {
+  background: var(--gs-surface-2);
+}
+
+.unite--choisie {
+  border-color: var(--mat-sys-primary);
+  background: var(--mat-sys-secondary-container);
+  color: var(--mat-sys-on-secondary-container);
+  font-weight: 600;
+}
+
 .client {
   padding: 8px 12px;
   border-top: 1px solid var(--gs-trait);

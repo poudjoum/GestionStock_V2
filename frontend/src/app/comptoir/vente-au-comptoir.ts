@@ -42,6 +42,7 @@ import { PaiementDuTicket, Ticket } from '../ticket/ticket';
 import { MODES_DE_REGLEMENT } from '../noyau/reglements';
 import { EtatVide } from '../design/etat-vide';
 import { Statut } from '../design/statut';
+import { ConditionnementDto, fractionnable, libelleDeLigne, vendables } from '../noyau/conditionnements';
 import type { ArticleDto, ClientDto, EntrepriseDto } from '../noyau/api';
 
 /** Les montants suivent la regle du serveur : deux decimales, au plus pres. */
@@ -69,10 +70,19 @@ export function montantsTendus(total: number): number[] {
   return [...new Set(candidats)].sort((a, b) => a - b).slice(0, 3);
 }
 
-/** Un article dans le panier, avec la quantite que le caissier a saisie. */
+/**
+ * Un article dans le panier, avec la quantite que le caissier a saisie — en cartons si la ligne
+ * est en cartons. Le meme article peut tenir deux lignes : trois cartons, et cinq bouteilles.
+ */
 interface LignePanier {
   article: ArticleDto;
+  conditionnement: ConditionnementDto | null;
   quantite: number;
+}
+
+/** Ce qui distingue une ligne d'une autre : l'article, et l'unite dans laquelle on le vend. */
+function cleDe(article: ArticleDto, conditionnement: ConditionnementDto | null | undefined): string {
+  return `${article.id}:${conditionnement?.id ?? 0}`;
 }
 
 /**
@@ -221,6 +231,28 @@ export class VenteAuComptoir {
     return this.catalogueLocal.prixDe(article);
   }
 
+  /** Le prix hors taxes d'une ligne, par unite de la ligne : celui du carton si elle est en cartons. */
+  protected prixLigne(ligne: LignePanier): number {
+    return ligne.conditionnement
+      ? this.catalogueLocal.prixDuConditionnement(ligne.article, ligne.conditionnement)
+      : this.prix(ligne.article);
+  }
+
+  /** Le prix catalogue d'une unite de la ligne, pour le barrer quand une promotion s'applique. */
+  protected prixNormal(ligne: LignePanier): number {
+    return ligne.conditionnement ? (ligne.conditionnement.prixVenteHt ?? 0) : (ligne.article.prixUnitaireHt ?? 0);
+  }
+
+  protected readonly cleDe = cleDe;
+  protected readonly libelleDeLigne = libelleDeLigne;
+  protected readonly vendables = vendables;
+  protected readonly fractionnable = fractionnable;
+
+  /** La ligne se pese ou se mesure : sa quantite se tape, elle ne se compte pas au bouton. */
+  protected auDetail(ligne: LignePanier): boolean {
+    return !ligne.conditionnement && fractionnable(ligne.article);
+  }
+
   /** La promotion du jour de l'article, pour barrer le prix normal a cote du prix reduit. */
   protected promotion(article: ArticleDto) {
     return this.catalogueLocal.promotionDe(article);
@@ -262,7 +294,7 @@ export class VenteAuComptoir {
    * rien ne distingue un scan qui a porte d'un scan que la douchette a manque, et on s'en aperçoit
    * au total.
    */
-  protected readonly dernierAjout = signal<number | null>(null);
+  protected readonly dernierAjout = signal<string | null>(null);
   private clignotement?: ReturnType<typeof setTimeout>;
 
   /**
@@ -304,7 +336,7 @@ export class VenteAuComptoir {
 
   protected readonly total = computed(() =>
     this.panier().reduce(
-      (somme, l) => somme + arrondi(this.prix(l.article) * l.quantite),
+      (somme, l) => somme + arrondi(this.prixLigne(l) * l.quantite),
       0,
     ),
   );
@@ -322,7 +354,7 @@ export class VenteAuComptoir {
    */
   protected readonly totalTva = computed(() =>
     this.panier().reduce((somme, l) => {
-      const ht = arrondi(this.prix(l.article) * l.quantite);
+      const ht = arrondi(this.prixLigne(l) * l.quantite);
       return somme + arrondi((ht * this.taux(l.article)) / 100);
     }, 0),
   );
@@ -486,10 +518,10 @@ export class VenteAuComptoir {
       this.resoudreSurLAppareil(saisi);
       return;
     }
-    this.service.parCode(saisi).subscribe({
-      next: (article) => {
+    this.service.scanner(saisi).subscribe({
+      next: (lu) => {
         this.resolution.set(false);
-        this.ajouter(article);
+        this.ajouter(lu.article!, lu.conditionnement ?? null);
       },
       error: (echec: unknown) => {
         if (estUneCoupure(echec)) {
@@ -503,10 +535,10 @@ export class VenteAuComptoir {
 
   /** Le code cherche dans la copie du catalogue, quand le serveur ne repond pas. */
   private resoudreSurLAppareil(code: string): void {
-    const article = this.catalogueLocal.parCode(code);
-    if (article) {
+    const lu = this.catalogueLocal.parCode(code);
+    if (lu) {
       this.resolution.set(false);
-      this.ajouter(article);
+      this.ajouter(lu.article, lu.conditionnement);
     } else {
       this.codeRefuse(code);
     }
@@ -528,14 +560,16 @@ export class VenteAuComptoir {
    * Ajoute un article, ou incremente celui qui est deja la.
    *
    * Passer deux fois le meme article au comptoir veut dire « deux unites », pas « deux lignes » :
-   * le ticket serait illisible et le total identique.
+   * le ticket serait illisible et le total identique. Un carton, lui, fait sa propre ligne — il
+   * ne se vend pas au meme prix.
    */
-  protected ajouter(article: ArticleDto): void {
+  protected ajouter(article: ArticleDto, conditionnement: ConditionnementDto | null = null): void {
+    const cle = cleDe(article, conditionnement);
     this.panier.update((liste) => {
-      const existante = liste.find((l) => l.article.id === article.id);
+      const existante = liste.find((l) => cleDe(l.article, l.conditionnement) === cle);
       return existante
-        ? liste.map((l) => (l.article.id === article.id ? { ...l, quantite: l.quantite + 1 } : l))
-        : [...liste, { article, quantite: 1 }];
+        ? liste.map((l) => (cleDe(l.article, l.conditionnement) === cle ? { ...l, quantite: l.quantite + 1 } : l))
+        : [...liste, { article, conditionnement, quantite: 1 }];
     });
     this.recherche.set('');
     this.resultats.set([]);
@@ -545,24 +579,58 @@ export class VenteAuComptoir {
 
     // Le clignotement de la ligne, et le point rendu au champ : le caissier enchaine les scans
     // sans jamais toucher la souris.
-    this.dernierAjout.set(article.id ?? null);
+    this.dernierAjout.set(cle);
     clearTimeout(this.clignotement);
     this.clignotement = setTimeout(() => this.dernierAjout.set(null), 900);
     this.rendreLePoint();
   }
 
-  protected changerQuantite(idArticle: number, quantite: number): void {
-    if (quantite <= 0) {
-      this.retirer(idArticle);
+  protected changerQuantite(cle: string, quantite: number): void {
+    if (!(quantite > 0)) {
+      this.retirer(cle);
       return;
     }
     this.panier.update((liste) =>
-      liste.map((l) => (l.article.id === idArticle ? { ...l, quantite } : l)),
+      liste.map((l) => (cleDe(l.article, l.conditionnement) === cle ? { ...l, quantite } : l)),
     );
   }
 
-  protected retirer(idArticle: number): void {
-    this.panier.update((liste) => liste.filter((l) => l.article.id !== idArticle));
+  /**
+   * La quantite tapee d'une ligne au detail — 1,250 kg. Vide ou nulle, la ligne reste : le
+   * caissier est en train de taper, et la retirer sous ses doigts lui ferait perdre l'article.
+   */
+  protected peser(cle: string, saisie: number | null): void {
+    if (saisie != null && saisie > 0) {
+      this.changerQuantite(cle, Math.round(saisie * 1000) / 1000);
+    }
+  }
+
+  /**
+   * Passe une ligne a un autre conditionnement : le client prend finalement le carton. Si le
+   * panier a deja une ligne dans ce conditionnement, les deux se rejoignent.
+   */
+  protected changerDeConditionnement(cle: string, conditionnement: ConditionnementDto | null): void {
+    this.panier.update((liste) => {
+      const ligne = liste.find((l) => cleDe(l.article, l.conditionnement) === cle);
+      if (!ligne) {
+        return liste;
+      }
+      const nouvelleCle = cleDe(ligne.article, conditionnement);
+      // Un carton se compte en nombre entier ; un poids, non.
+      const quantite =
+        conditionnement || !fractionnable(ligne.article) ? Math.max(1, Math.round(ligne.quantite)) : ligne.quantite;
+      const deja = liste.find((l) => cleDe(l.article, l.conditionnement) === nouvelleCle);
+      if (deja && deja !== ligne) {
+        return liste
+          .filter((l) => l !== ligne)
+          .map((l) => (l === deja ? { ...l, quantite: l.quantite + quantite } : l));
+      }
+      return liste.map((l) => (l === ligne ? { ...l, conditionnement, quantite } : l));
+    });
+  }
+
+  protected retirer(cle: string): void {
+    this.panier.update((liste) => liste.filter((l) => cleDe(l.article, l.conditionnement) !== cle));
   }
 
   protected viderLePanier(): void {
@@ -708,8 +776,9 @@ export class VenteAuComptoir {
       client: this.client() ?? undefined,
       ligneVente: this.panier().map((l) => ({
         article: { id: l.article.id },
+        conditionnement: l.conditionnement ? { id: l.conditionnement.id } : undefined,
         quantite: l.quantite,
-        prixUnitaire: this.prix(l.article),
+        prixUnitaire: this.prixLigne(l),
       })),
     };
     const bon = this.bon();
@@ -848,7 +917,7 @@ export class VenteAuComptoir {
       // Meme regle que le serveur : sans magasin connu, la TVA s'applique.
       tvaApplicable: magasin?.assujettieTva !== false,
       lignes: instantane.lignes.map((l, rang) => {
-        const prix = this.prix(l.article);
+        const prix = this.prixLigne(l);
         const taux = this.taux(l.article);
         const ht = arrondi(prix * l.quantite);
         const tva = arrondi((ht * taux) / 100);
@@ -856,6 +925,7 @@ export class VenteAuComptoir {
           id: rang,
           codeArticle: l.article.codeArticle,
           designation: l.article.designation,
+          conditionnement: l.conditionnement?.libelle,
           quantite: l.quantite,
           prixUnitaireHt: prix,
           tauxTva: taux,

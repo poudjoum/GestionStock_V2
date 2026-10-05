@@ -171,7 +171,7 @@
                       <td class="py-1.5">
                         <span class="block">{{ ligne.designation }}</span>
                         <span class="nombre block opacity-60">
-                          {{ ligne.quantite | number: '1.0-2' }} × {{ ligne.prixUnitaireHt | number: '1.0-0' }} F
+                          {{ ligne.quantite | number: '1.0-3' }}{{ ligne.conditionnement ? ' ' + ligne.conditionnement : '' }} × {{ ligne.prixUnitaireHt | number: '1.0-0' }} F
                         </span>
                       </td>
                       <td class="nombre py-1.5 text-right align-top">

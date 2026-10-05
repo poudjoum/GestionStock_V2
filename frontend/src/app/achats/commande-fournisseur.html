@@ -180,7 +180,7 @@
             </div>
           } @else {
             <ul class="flex list-none flex-col gap-0 p-0">
-              @for (ligne of liste; track ligne.article.id; let i = $index) {
+              @for (ligne of liste; track $index; let i = $index) {
                 <li
                   class="border-b px-3 py-2 last:border-b-0"
                   style="border-color: var(--mat-sys-outline-variant)"
@@ -202,6 +202,20 @@
                     </button>
                   </div>
 
+                  <!-- L'unite d'achat : ce que le fournisseur livre et facture, le carton ou la piece. -->
+                  @if (achetables(ligne.article).length) {
+                    <mat-form-field appearance="outline" class="mt-1 w-full" subscriptSizing="dynamic">
+                      <mat-label>Acheté</mat-label>
+                      <mat-select [value]="ligne.conditionnement?.id ?? 0"
+                                  (valueChange)="choisirConditionnement(i, $event)">
+                        <mat-option [value]="0">Au détail ({{ libelleDeLigne(ligne.article, null) }})</mat-option>
+                        @for (c of achetables(ligne.article); track c.id) {
+                          <mat-option [value]="c.id">{{ c.libelle }} ({{ c.quantiteUnites | number: '1.0-3' }} {{ unites(ligne.article, c.quantiteUnites) }})</mat-option>
+                        }
+                      </mat-select>
+                    </mat-form-field>
+                  }
+
                   <div class="mt-1 flex gap-2">
                     <mat-form-field appearance="outline" class="w-24 shrink-0" subscriptSizing="dynamic">
                       <mat-label>Quantité</mat-label>
@@ -222,7 +236,7 @@
                       fausserait la valorisation sans que personne s'en apercoive.
                     -->
                     <mat-form-field appearance="outline" class="min-w-0 flex-1" subscriptSizing="dynamic">
-                      <mat-label>Prix d’achat unitaire</mat-label>
+                      <mat-label>Prix d’achat {{ ligne.conditionnement ? 'du ' + (ligne.conditionnement.libelle ?? '').toLowerCase() : 'unitaire' }}</mat-label>
                       <input
                         matInput
                         type="number"

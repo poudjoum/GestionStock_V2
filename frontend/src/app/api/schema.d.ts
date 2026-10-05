@@ -4,6 +4,27 @@
  */
 
 export interface paths {
+    "/gestiondestock/v1/fidelite/politique": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** La politique de fidélité de mon magasin */
+        get: operations["lire"];
+        /**
+         * Régler la politique de fidélité de mon magasin
+         * @description Un champ absent reste inchangé. Vaut pour les prochains tickets et les prochains bons.
+         */
+        put: operations["regler"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/entreprises/mienne": {
         parameters: {
             query?: never;
@@ -15,6 +36,39 @@ export interface paths {
         put: operations["mettreAJourMienne"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/campagnes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["lire_1"];
+        /** Corriger une campagne pas encore finie */
+        put: operations["modifier"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/articles/{idArticle}/conditionnements/{idConditionnement}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["modifier_1"];
+        post?: never;
+        delete: operations["retirer"];
         options?: never;
         head?: never;
         patch?: never;
@@ -100,6 +154,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/users/personnel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ajouterCollaborateur"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/users/create": {
         parameters: {
             query?: never;
@@ -111,6 +181,90 @@ export interface paths {
         put?: never;
         post: operations["save_1"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/plateforme/commerces/{idCommerce}/suspension": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ferme l'accès d'un commerce et révoque les jetons de ses comptes */
+        post: operations["suspendre"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/plateforme/commerces/{idCommerce}/reprise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rouvre l'accès d'un commerce suspendu */
+        post: operations["reprendre"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/plateforme/commerces/{idCommerce}/renouvellement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reporte l'échéance d'un an */
+        post: operations["renouveler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/plateforme/commerces/{idCommerce}/echeance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fixe l'échéance à une date choisie ; sans date, retire l'abonnement */
+        post: operations["fixerEcheance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/notifications/push/abonnements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["abonnerCetAppareil"];
+        delete: operations["desabonnerCetAppareil"];
         options?: never;
         head?: never;
         patch?: never;
@@ -148,6 +302,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/inventaires": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les séances passées, la plus récente d'abord */
+        get: operations["historique"];
+        put?: never;
+        /** Ouvre une séance et y inscrit tout le catalogue avec son stock théorique */
+        post: operations["ouvrir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/inventaires/{idSeance}/validation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clôture la séance et rattrape les écarts par des mouvements de stock */
+        post: operations["valider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/inventaires/{idSeance}/comptages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Note ce qu'on a trouvé pour un article, par identifiant ou par code-barres */
+        post: operations["compter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/inventaires/{idSeance}/abandon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ferme la séance sans rien corriger */
+        post: operations["abandonner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fournisseur/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer des fournisseurs depuis un classeur Excel
+         * @description Simule par defaut. Les fiches sont reconnues par leur telephone.
+         */
+        post: operations["importerFournisseurs"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/fournisseur/create": {
         parameters: {
             query?: never;
@@ -164,6 +407,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/fidelite/tickets/reclamer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Scanner / Réclamer un ticket de caisse
+         * @description Valide le code du ticket et crédite les points au client
+         */
+        post: operations["reclamerTicket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fidelite/bons/convertir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Convertir des points en bon d'achat
+         * @description Échange des points d'un magasin contre un bon d'achat FCFA
+         */
+        post: operations["convertirPoints"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fidelite/auth/inscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inscription d'un client mobile
+         * @description Crée un compte fidélité avec numéro de téléphone et mot de passe
+         */
+        post: operations["inscrire"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fidelite/auth/connexion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Connexion d'un client mobile
+         * @description Authentifie le client et retourne le jeton JWT
+         */
+        post: operations["connecter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/factures/{idFacture}/reglements": {
         parameters: {
             query?: never;
@@ -173,7 +496,7 @@ export interface paths {
         };
         get: operations["reglements"];
         put?: never;
-        post: operations["regler"];
+        post: operations["regler_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -205,7 +528,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["inscrire"];
+        post: operations["inscrire_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -372,6 +695,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/clients/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Importer des clients depuis un classeur Excel
+         * @description Simule par defaut. Les fiches sont reconnues par leur telephone.
+         */
+        post: operations["importerClients"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/clients/create": {
         parameters: {
             query?: never;
@@ -398,6 +741,92 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["save_7"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/campagnes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les campagnes de mon magasin, des plus récentes aux plus anciennes */
+        get: operations["lister"];
+        put?: never;
+        /** Préparer une campagne */
+        post: operations["creer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/campagnes/{id}/arret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Arrêter une campagne avant son terme
+         * @description Les prix normaux reprennent aussitôt
+         */
+        post: operations["arreter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/articles/{idArticle}/conditionnements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["conditionnements"];
+        put?: never;
+        post: operations["ajouter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/articles/{idArticle}/codes-barres": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["codes"];
+        put?: never;
+        post: operations["ajouterCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/articles/{idArticle}/codes-barres/interne": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["genererCodeInterne"];
         delete?: never;
         options?: never;
         head?: never;
@@ -792,6 +1221,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/users/roles-attribuables": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["rolesAttribuables"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/users/moi": {
         parameters: {
             query?: never;
@@ -832,6 +1277,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["findAll_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/tickets/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ticket"];
         put?: never;
         post?: never;
         delete?: never;
@@ -888,6 +1349,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/plateforme/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les quelques nombres qui tiennent en haut du tableau de bord */
+        get: operations["resume"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/plateforme/commerces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les commerces et leur activité, le plus récemment inscrit d'abord */
+        get: operations["commerces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/notifications": {
         parameters: {
             query?: never;
@@ -896,6 +1391,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["mesNotifications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/notifications/push/cle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["clePush"];
         put?: never;
         post?: never;
         delete?: never;
@@ -952,6 +1463,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/inventaires/{idSeance}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Une séance et ses compteurs */
+        get: operations["seance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/inventaires/{idSeance}/lignes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Les lignes d'une séance ; `vue` vaut TOUTES, A_COMPTER ou ECARTS */
+        get: operations["lignes_3"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/inventaires/ouverte": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** La séance en cours, ou 204 s'il n'y en a pas */
+        get: operations["seanceOuverte"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/fournisseur": {
         parameters: {
             query?: never;
@@ -1000,6 +1562,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/fournisseur/import/modele": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["modeleFournisseurs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/fournisseur/all": {
         parameters: {
             query?: never;
@@ -1008,6 +1586,126 @@ export interface paths {
             cookie?: never;
         };
         get: operations["findAll_4"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fidelite/tickets/historique": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Historique des tickets réclamés
+         * @description Liste tous les tickets scannés par le client connecté
+         */
+        get: operations["mesTickets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fidelite/profil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Profil fidélité du client connecté
+         * @description Solde total et détail des points par magasin
+         */
+        get: operations["monProfil"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fidelite/magasins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lister les magasins abonnés en promotion
+         * @description Retourne la liste des magasins partenaires avec leur taux de points
+         */
+        get: operations["magasins"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fidelite/campagnes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les campagnes en cours, tous magasins
+         * @description La vitrine de l'application mobile, lisible sans compte
+         */
+        get: operations["vitrine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fidelite/bons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Mes bons d'achat
+         * @description Liste tous les bons d'achat du client connecté (actifs et utilisés)
+         */
+        get: operations["mesBons"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/fidelite/bons/{codeBon}/verifier": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Vérifier la validité d'un bon d'achat
+         * @description Vérifie si un bon d'achat est valide, non expiré et utilisable
+         */
+        get: operations["verifierBon"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1240,6 +1938,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/clients/import/modele": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["modeleClients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/clients/all": {
         parameters: {
             query?: never;
@@ -1304,6 +2018,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/campagnes/promotions-en-cours": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Les articles en promotion aujourd'hui
+         * @description Ce que la caisse garde pour vendre au bon prix, même hors ligne
+         */
+        get: operations["promotionsEnCours"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/caisse/reglements": {
         parameters: {
             query?: never;
@@ -1360,6 +2094,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["findById_9"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/articles/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["scanner"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1444,6 +2194,23 @@ export interface paths {
         put?: never;
         post?: never;
         delete: operations["delete_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/inventaires/{idSeance}/comptages/{idLigne}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remet une ligne à « pas encore comptée » */
+        delete: operations["annulerComptage"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1561,6 +2328,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/articles/{idArticle}/codes-barres/{idCode}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["retirerCode"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/article/delete/{idArticle}": {
         parameters: {
             query?: never;
@@ -1581,6 +2364,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PolitiqueFideliteDto: {
+            fideliteActive?: boolean;
+            montantParPoint?: number;
+            valeurPointFcfa?: number;
+            /** Format: int32 */
+            pointsMinimumBon?: number;
+            /** Format: int32 */
+            dureeValiditeBonJours?: number;
+        };
         AdresseDto: {
             adresse1?: string;
             adresse2?: string;
@@ -1603,6 +2395,55 @@ export interface components {
             logo?: string;
             assujettieTva?: boolean;
             tauxTva?: number;
+            fideliteActive?: boolean;
+            montantParPoint?: number;
+            adresseTickets?: string;
+        };
+        CampagneDto: {
+            /** Format: int64 */
+            id?: number;
+            titre?: string;
+            message?: string;
+            image?: string;
+            /** Format: date */
+            dateDebut?: string;
+            /** Format: date */
+            dateFin?: string;
+            /** @enum {string} */
+            statut?: "A_VENIR" | "EN_COURS" | "TERMINEE" | "ARRETEE";
+            promotions?: components["schemas"]["PromotionArticleDto"][];
+        };
+        PromotionArticleDto: {
+            /** Format: int64 */
+            idArticle?: number;
+            /** @enum {string} */
+            typeRemise?: "POURCENTAGE" | "PRIX_FIXE";
+            valeur?: number;
+            codeArticle?: string;
+            designation?: string;
+            photo?: string;
+            prixNormalHt?: number;
+            prixPromoHt?: number;
+            tauxTva?: number;
+            /** Format: int64 */
+            idCampagne?: number;
+            titreCampagne?: string;
+            /** Format: date */
+            dateDebut?: string;
+            /** Format: date */
+            dateFin?: string;
+        };
+        ConditionnementDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            idArticle?: number;
+            libelle?: string;
+            quantiteUnites?: number;
+            prixVenteHt?: number;
+            vendable?: boolean;
+            achetable?: boolean;
+            actif?: boolean;
         };
         ArticleDto: {
             codeArticle?: string;
@@ -1614,6 +2455,10 @@ export interface components {
             category?: components["schemas"]["CategoryDto"];
             /** Format: int64 */
             idEntreprise?: number;
+            /** @enum {string} */
+            uniteBase?: "PIECE" | "KG" | "LITRE" | "METRE" | "M2" | "M3";
+            conditionnements?: components["schemas"]["ConditionnementDto"][];
+            codesBarres?: components["schemas"]["CodeBarresDto"][];
             /** Format: int64 */
             id?: number;
             photo?: string;
@@ -1626,11 +2471,24 @@ export interface components {
             /** Format: int64 */
             id?: number;
         };
+        CodeBarresDto: {
+            /** Format: int64 */
+            id?: number;
+            code?: string;
+            /** @enum {string} */
+            type?: "EAN13" | "EAN8" | "UPCA" | "ITF14" | "CODE128" | "QR" | "INTERNE";
+            /** Format: int64 */
+            idArticle?: number;
+            /** Format: int64 */
+            idConditionnement?: number;
+        };
         LigneVenteDto: {
             /** Format: int64 */
             id?: number;
             quantite?: number;
             prixUnitaire?: number;
+            conditionnement?: components["schemas"]["ConditionnementDto"];
+            contenance?: number;
             article?: components["schemas"]["ArticleDto"];
             /** Format: int64 */
             idEntreprise?: number;
@@ -1644,6 +2502,7 @@ export interface components {
             /** Format: int64 */
             idVente?: number;
             codeVente?: string;
+            codeTicket?: string;
             totalHt?: number;
             totalTva?: number;
             totalTtc?: number;
@@ -1665,6 +2524,7 @@ export interface components {
             id?: number;
             codeArticle?: string;
             designation?: string;
+            conditionnement?: string;
             quantite?: number;
             prixUnitaireHt?: number;
             tauxTva?: number;
@@ -1684,6 +2544,19 @@ export interface components {
             /** Format: int64 */
             id?: number;
         };
+        ReglementDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            idFacture?: number;
+            numeroFacture?: string;
+            /** Format: date-time */
+            dateReglement?: string;
+            montant?: number;
+            /** @enum {string} */
+            mode?: "ESPECES" | "MOBILE_MONEY" | "VIREMENT" | "CHEQUE" | "BON_ACHAT" | "AUTRE";
+            reference?: string;
+        };
         VenteDto: {
             /** Format: int64 */
             id?: number;
@@ -1691,6 +2564,7 @@ export interface components {
             /** Format: date-time */
             datevente?: string;
             referenceClient?: string;
+            codeTicket?: string;
             annulee?: boolean;
             client?: components["schemas"]["ClientDto"];
             /** Format: int64 */
@@ -1698,7 +2572,17 @@ export interface components {
             /** Format: int64 */
             idCommandeClient?: number;
             ligneVente?: components["schemas"]["LigneVenteDto"][];
+            encaissement?: components["schemas"]["ReglementDto"];
             commentaires?: string;
+        };
+        NouveauCollaborateurDto: {
+            nom?: string;
+            prenoms?: string;
+            username?: string;
+            email?: string;
+            numTel?: string;
+            motDePasse?: string;
+            roles?: ("ROLE_SUPER_ADMIN" | "ROLE_USER" | "ROLE_CAISSIER" | "ROLE_ADMIN" | "ROLE_COMPTABLE" | "ROLE_MANAGER" | "ROLE_MAGASINIER")[];
         };
         RoleDto: {
             /** Format: int64 */
@@ -1714,6 +2598,7 @@ export interface components {
             username?: string;
             email?: string;
             actif?: boolean;
+            motdepasseAChanger?: boolean;
             motdepasse?: string;
             /** Format: date-time */
             dateNaissance?: string;
@@ -1722,6 +2607,38 @@ export interface components {
             numTel?: string;
             entreprise?: components["schemas"]["EntrepriseDto"];
             roles?: components["schemas"]["RoleDto"][];
+        };
+        CommerceDto: {
+            /** Format: int64 */
+            id?: number;
+            nom?: string;
+            ville?: string;
+            tel?: string;
+            email?: string;
+            /** Format: date */
+            abonnementEcheance?: string;
+            suspendue?: boolean;
+            /** @enum {string} */
+            statut?: "ACTIF" | "ECHU" | "SUSPENDU";
+            /** Format: int32 */
+            joursRestants?: number;
+            /** Format: int64 */
+            comptes?: number;
+            /** Format: int64 */
+            articles?: number;
+            /** Format: int64 */
+            ventes?: number;
+            chiffreFacture?: number;
+            /** Format: date-time */
+            derniereVente?: string;
+        };
+        AbonnementPushDto: {
+            endpoint?: string;
+            keys?: components["schemas"]["Cles"];
+        };
+        Cles: {
+            p256dh?: string;
+            auth?: string;
         };
         MvtStkDto: {
             /** Format: int64 */
@@ -1733,9 +2650,69 @@ export interface components {
             /** @enum {string} */
             typeMvt?: "ENTREE" | "SORTIE";
             /** @enum {string} */
-            motif?: "LIVRAISON_COMMANDE" | "VENTE" | "ANNULATION_VENTE" | "CORRECTION_VENTE" | "SAISIE_MANUELLE";
+            motif?: "LIVRAISON_COMMANDE" | "VENTE" | "ANNULATION_VENTE" | "CORRECTION_VENTE" | "SAISIE_MANUELLE" | "INVENTAIRE" | "PERTE" | "CASSE" | "PEREMPTION" | "RETOUR_FOURNISSEUR" | "RETOUR_CLIENT" | "CONSOMMATION_INTERNE";
             /** Format: int64 */
             idEntreprise?: number;
+            conditionnement?: components["schemas"]["ConditionnementDto"];
+        };
+        OuvertureInventaireDto: {
+            commentaire?: string;
+        };
+        SeanceInventaireDto: {
+            /** Format: int64 */
+            id?: number;
+            reference?: string;
+            /** Format: date-time */
+            dateOuverture?: string;
+            /** Format: date-time */
+            dateCloture?: string;
+            /** @enum {string} */
+            statut?: "OUVERTE" | "VALIDEE" | "ABANDONNEE";
+            commentaire?: string;
+            /** Format: int64 */
+            idEntreprise?: number;
+            /** Format: int64 */
+            articles?: number;
+            /** Format: int64 */
+            comptes?: number;
+            /** Format: int64 */
+            ecarts?: number;
+        };
+        ComptageDto: {
+            /** Format: int64 */
+            idArticle?: number;
+            codeArticle?: string;
+            quantite?: number;
+        };
+        LigneComptageDto: {
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            idArticle?: number;
+            codeArticle?: string;
+            designation?: string;
+            quantiteTheorique?: number;
+            quantiteComptee?: number;
+            ecart?: number;
+            correction?: number;
+            /** Format: date-time */
+            compteLe?: string;
+        };
+        LigneRefuseeDto: {
+            /** Format: int32 */
+            ligne?: number;
+            code?: string;
+            raison?: string;
+        };
+        RapportImportDto: {
+            simulation?: boolean;
+            /** Format: int32 */
+            lues?: number;
+            /** Format: int32 */
+            creees?: number;
+            /** Format: int32 */
+            modifiees?: number;
+            refusees?: components["schemas"]["LigneRefuseeDto"][];
         };
         FournisseurDto: {
             /** Format: int64 */
@@ -1747,18 +2724,72 @@ export interface components {
             photo?: string;
             mail?: string;
         };
-        ReglementDto: {
+        ReclamationTicketDto: {
+            codeTicket?: string;
+        };
+        ReclamationResultatDto: {
+            codeTicket?: string;
+            /** Format: int64 */
+            idEntreprise?: number;
+            nomMagasin?: string;
+            montantAchatTtc?: number;
+            /** Format: int32 */
+            pointsGagnes?: number;
+            /** Format: int32 */
+            nouveauSoldeMagasin?: number;
+            /** Format: int32 */
+            nouveauTotalPoints?: number;
+            /** Format: date-time */
+            dateAchat?: string;
+            /** Format: date-time */
+            dateReclamation?: string;
+            message?: string;
+        };
+        ConversionPointsDto: {
+            /** Format: int64 */
+            idEntreprise?: number;
+            /** Format: int32 */
+            pointsAConvertir?: number;
+        };
+        BonDAchatDto: {
             /** Format: int64 */
             id?: number;
+            codeBon?: string;
             /** Format: int64 */
-            idFacture?: number;
-            numeroFacture?: string;
-            /** Format: date-time */
-            dateReglement?: string;
-            montant?: number;
+            idEntreprise?: number;
+            nomMagasin?: string;
+            /** Format: int32 */
+            pointsUtilises?: number;
+            montantFcfa?: number;
             /** @enum {string} */
-            mode?: "ESPECES" | "MOBILE_MONEY" | "VIREMENT" | "CHEQUE" | "AUTRE";
-            reference?: string;
+            statut?: "ACTIF" | "UTILISE" | "EXPIRE";
+            /** Format: date-time */
+            dateEmission?: string;
+            /** Format: date-time */
+            dateExpiration?: string;
+            /** Format: date-time */
+            dateUtilisation?: string;
+            utilisable?: boolean;
+        };
+        InscriptionClientDto: {
+            telephone?: string;
+            nom?: string;
+            prenom?: string;
+            motDePasse?: string;
+        };
+        AuthClientResponseDto: {
+            jeton?: string;
+            /** Format: int64 */
+            id?: number;
+            telephone?: string;
+            nom?: string;
+            prenom?: string;
+            /** Format: int32 */
+            totalPoints?: number;
+        };
+        ConnexionClientDto: {
+            telephone?: string;
+            motDePasse?: string;
         };
         InscriptionEntrepriseDto: {
             entreprise?: components["schemas"]["EntrepriseDto"];
@@ -1791,6 +2822,8 @@ export interface components {
             quantiteLivree?: number;
             resteALivrer?: number;
             prixUnitaire?: number;
+            conditionnement?: components["schemas"]["ConditionnementDto"];
+            contenance?: number;
         };
         ClotureDto: {
             motif?: string;
@@ -1803,6 +2836,8 @@ export interface components {
             quantiteLivree?: number;
             resteAServir?: number;
             prixUnitaire?: number;
+            conditionnement?: components["schemas"]["ConditionnementDto"];
+            contenance?: number;
         };
         CommandeClientDto: {
             code?: string;
@@ -1817,22 +2852,6 @@ export interface components {
             ligneCmndeClients?: components["schemas"]["LigneCommandeClientDto"][];
             /** Format: int64 */
             id?: number;
-        };
-        LigneRefuseeDto: {
-            /** Format: int32 */
-            ligne?: number;
-            code?: string;
-            raison?: string;
-        };
-        RapportImportDto: {
-            simulation?: boolean;
-            /** Format: int32 */
-            lues?: number;
-            /** Format: int32 */
-            creees?: number;
-            /** Format: int32 */
-            modifiees?: number;
-            refusees?: components["schemas"]["LigneRefuseeDto"][];
         };
         SignupRequest: {
             username: string;
@@ -1857,8 +2876,8 @@ export interface components {
             username?: string;
             email?: string;
             roles?: string[];
-            tokenType?: string;
             accessToken?: string;
+            tokenType?: string;
         };
         RafraichissementRequest: {
             refreshToken: string;
@@ -1922,12 +2941,34 @@ export interface components {
             sorted?: boolean;
             unsorted?: boolean;
         };
+        Ligne: {
+            designation?: string;
+            quantite?: number;
+            montant?: number;
+        };
+        TicketPublicDto: {
+            code?: string;
+            magasin?: string;
+            ville?: string;
+            /** Format: date-time */
+            date?: string;
+            articles?: components["schemas"]["Ligne"][];
+            totalTtc?: number;
+            /** Format: int32 */
+            points?: number;
+            fideliteActive?: boolean;
+            montantParPoint?: number;
+            annulee?: boolean;
+        };
         LigneInventaireDto: {
             /** Format: int64 */
             idArticle?: number;
             codeArticle?: string;
             designation?: string;
             quantite?: number;
+            /** @enum {string} */
+            uniteBase?: "PIECE" | "KG" | "LITRE" | "METRE" | "M2" | "M3";
+            conditionnements?: components["schemas"]["ConditionnementDto"][];
             seuilAlerte?: number;
             /** @enum {string} */
             statut?: "NEGATIF" | "RUPTURE" | "SOUS_SEUIL" | "SUFFISANT" | "SANS_SEUIL";
@@ -1966,6 +3007,23 @@ export interface components {
             nombreSansCoutConnu?: number;
             valeurAuPrixDeVente?: number;
         };
+        ResumePlateformeDto: {
+            /** Format: int64 */
+            commerces?: number;
+            /** Format: int64 */
+            actifs?: number;
+            /** Format: int64 */
+            echus?: number;
+            /** Format: int64 */
+            suspendus?: number;
+            /** Format: int64 */
+            aRelancer?: number;
+            /** Format: int64 */
+            comptes?: number;
+            /** Format: int64 */
+            ventes?: number;
+            chiffreFacture?: number;
+        };
         PageNotificationDto: {
             /** Format: int32 */
             totalPages?: number;
@@ -1974,6 +3032,42 @@ export interface components {
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["NotificationDto"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"];
+            pageable?: components["schemas"]["PageableObject"];
+            /** Format: int32 */
+            numberOfElements?: number;
+            first?: boolean;
+            last?: boolean;
+            empty?: boolean;
+        };
+        PageSeanceInventaireDto: {
+            /** Format: int32 */
+            totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["SeanceInventaireDto"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"];
+            pageable?: components["schemas"]["PageableObject"];
+            /** Format: int32 */
+            numberOfElements?: number;
+            first?: boolean;
+            last?: boolean;
+            empty?: boolean;
+        };
+        PageLigneComptageDto: {
+            /** Format: int32 */
+            totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["LigneComptageDto"][];
             /** Format: int32 */
             number?: number;
             sort?: components["schemas"]["SortObject"];
@@ -2001,6 +3095,89 @@ export interface components {
             first?: boolean;
             last?: boolean;
             empty?: boolean;
+        };
+        TicketHistoriqueDto: {
+            codeTicket?: string;
+            /** Format: int64 */
+            idEntreprise?: number;
+            nomMagasin?: string;
+            montantAchatTtc?: number;
+            /** Format: int32 */
+            pointsAttribues?: number;
+            /** Format: date-time */
+            dateReclamation?: string;
+        };
+        ProfilClientFideliteDto: {
+            /** Format: int64 */
+            id?: number;
+            telephone?: string;
+            nom?: string;
+            prenom?: string;
+            /** Format: int32 */
+            totalPoints?: number;
+            soldesParMagasin?: components["schemas"]["SoldePointsMagasinDto"][];
+        };
+        SoldePointsMagasinDto: {
+            /** Format: int64 */
+            idEntreprise?: number;
+            nomMagasin?: string;
+            ville?: string;
+            logo?: string;
+            /** Format: int32 */
+            soldePoints?: number;
+            /** Format: int32 */
+            pointsCumulesTotal?: number;
+            montantParPoint?: number;
+            valeurPointFcfa?: number;
+            /** Format: int32 */
+            pointsMinimumBon?: number;
+            fideliteActive?: boolean;
+        };
+        MagasinPromotionDto: {
+            /** Format: int64 */
+            id?: number;
+            nom?: string;
+            description?: string;
+            ville?: string;
+            adresse?: string;
+            telephone?: string;
+            logo?: string;
+            montantParPoint?: number;
+            valeurPointFcfa?: number;
+            /** Format: int32 */
+            pointsMinimumBon?: number;
+            /** Format: int32 */
+            dureeValiditeBonJours?: number;
+            fideliteActive?: boolean;
+            /** Format: int32 */
+            pointsClient?: number;
+        };
+        Article: {
+            /** Format: int64 */
+            id?: number;
+            designation?: string;
+            photo?: string;
+            prixNormalTtc?: number;
+            prixPromoTtc?: number;
+            /** Format: int32 */
+            remisePourcent?: number;
+        };
+        CampagnePubliqueDto: {
+            /** Format: int64 */
+            id?: number;
+            titre?: string;
+            message?: string;
+            image?: string;
+            /** Format: date */
+            dateDebut?: string;
+            /** Format: date */
+            dateFin?: string;
+            /** Format: int64 */
+            idMagasin?: number;
+            nomMagasin?: string;
+            villeMagasin?: string;
+            logoMagasin?: string;
+            articles?: components["schemas"]["Article"][];
         };
         PageFactureDto: {
             /** Format: int32 */
@@ -2056,6 +3233,19 @@ export interface components {
             last?: boolean;
             empty?: boolean;
         };
+        Campagne: {
+            /** Format: int64 */
+            id?: number;
+            titre?: string;
+            /** Format: date */
+            dateDebut?: string;
+            /** Format: date */
+            dateFin?: string;
+        };
+        PromotionsDuJourDto: {
+            campagnes?: components["schemas"]["Campagne"][];
+            promotions?: components["schemas"]["PromotionArticleDto"][];
+        };
         PageReglementDto: {
             /** Format: int32 */
             totalPages?: number;
@@ -2083,10 +3273,11 @@ export interface components {
             /** Format: int64 */
             nombreReglements?: number;
             parMode?: components["schemas"]["TotalParModeDto"][];
+            bonsAchat?: components["schemas"]["TotalParModeDto"];
         };
         TotalParModeDto: {
             /** @enum {string} */
-            mode?: "ESPECES" | "MOBILE_MONEY" | "VIREMENT" | "CHEQUE" | "AUTRE";
+            mode?: "ESPECES" | "MOBILE_MONEY" | "VIREMENT" | "CHEQUE" | "BON_ACHAT" | "AUTRE";
             total?: number;
             /** Format: int64 */
             nombre?: number;
@@ -2109,6 +3300,10 @@ export interface components {
             last?: boolean;
             empty?: boolean;
         };
+        ResultatScanDto: {
+            article?: components["schemas"]["ArticleDto"];
+            conditionnement?: components["schemas"]["ConditionnementDto"];
+        };
     };
     responses: never;
     parameters: never;
@@ -2118,6 +3313,50 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    lire: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolitiqueFideliteDto"];
+                };
+            };
+        };
+    };
+    regler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolitiqueFideliteDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolitiqueFideliteDto"];
+                };
+            };
+        };
+    };
     mienne: {
         parameters: {
             query?: never;
@@ -2159,6 +3398,102 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["EntrepriseDto"];
                 };
+            };
+        };
+    };
+    lire_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampagneDto"];
+                };
+            };
+        };
+    };
+    modifier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampagneDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampagneDto"];
+                };
+            };
+        };
+    };
+    modifier_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+                idConditionnement: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConditionnementDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionnementDto"];
+                };
+            };
+        };
+    };
+    retirer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+                idConditionnement: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2324,6 +3659,30 @@ export interface operations {
             };
         };
     };
+    ajouterCollaborateur: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NouveauCollaborateurDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
     save_1: {
         parameters: {
             query?: never;
@@ -2345,6 +3704,142 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UserDto"];
                 };
+            };
+        };
+    };
+    suspendre: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idCommerce: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceDto"];
+                };
+            };
+        };
+    };
+    reprendre: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idCommerce: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceDto"];
+                };
+            };
+        };
+    };
+    renouveler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idCommerce: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceDto"];
+                };
+            };
+        };
+    };
+    fixerEcheance: {
+        parameters: {
+            query?: {
+                echeance?: string;
+            };
+            header?: never;
+            path: {
+                idCommerce: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceDto"];
+                };
+            };
+        };
+    };
+    abonnerCetAppareil: {
+        parameters: {
+            query?: never;
+            header?: {
+                "User-Agent"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AbonnementPushDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    desabonnerCetAppareil: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AbonnementPushDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2396,6 +3891,151 @@ export interface operations {
             };
         };
     };
+    historique: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageSeanceInventaireDto"];
+                };
+            };
+        };
+    };
+    ouvrir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["OuvertureInventaireDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeanceInventaireDto"];
+                };
+            };
+        };
+    };
+    valider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idSeance: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeanceInventaireDto"];
+                };
+            };
+        };
+    };
+    compter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idSeance: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ComptageDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LigneComptageDto"];
+                };
+            };
+        };
+    };
+    abandonner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idSeance: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeanceInventaireDto"];
+                };
+            };
+        };
+    };
+    importerFournisseurs: {
+        parameters: {
+            query?: {
+                simulation?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    fichier: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RapportImportDto"];
+                };
+            };
+        };
+    };
     save_2: {
         parameters: {
             query?: never;
@@ -2416,6 +4056,102 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FournisseurDto"];
+                };
+            };
+        };
+    };
+    reclamerTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReclamationTicketDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReclamationResultatDto"];
+                };
+            };
+        };
+    };
+    convertirPoints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversionPointsDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BonDAchatDto"];
+                };
+            };
+        };
+    };
+    inscrire: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InscriptionClientDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthClientResponseDto"];
+                };
+            };
+        };
+    };
+    connecter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnexionClientDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthClientResponseDto"];
                 };
             };
         };
@@ -2442,7 +4178,7 @@ export interface operations {
             };
         };
     };
-    regler: {
+    regler_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2490,7 +4226,7 @@ export interface operations {
             };
         };
     };
-    inscrire: {
+    inscrire_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -2808,6 +4544,35 @@ export interface operations {
             };
         };
     };
+    importerClients: {
+        parameters: {
+            query?: {
+                simulation?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    fichier: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RapportImportDto"];
+                };
+            };
+        };
+    };
     save_6: {
         parameters: {
             query?: never;
@@ -2852,6 +4617,192 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryDto"];
+                };
+            };
+        };
+    };
+    lister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampagneDto"][];
+                };
+            };
+        };
+    };
+    creer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CampagneDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampagneDto"];
+                };
+            };
+        };
+    };
+    arreter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampagneDto"];
+                };
+            };
+        };
+    };
+    conditionnements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionnementDto"][];
+                };
+            };
+        };
+    };
+    ajouter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConditionnementDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConditionnementDto"];
+                };
+            };
+        };
+    };
+    codes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodeBarresDto"][];
+                };
+            };
+        };
+    };
+    ajouterCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodeBarresDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodeBarresDto"];
+                };
+            };
+        };
+    };
+    genererCodeInterne: {
+        parameters: {
+            query?: {
+                idConditionnement?: number;
+            };
+            header?: never;
+            path: {
+                idArticle: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CodeBarresDto"];
                 };
             };
         };
@@ -3485,6 +5436,26 @@ export interface operations {
             };
         };
     };
+    rolesAttribuables: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": ("ROLE_SUPER_ADMIN" | "ROLE_USER" | "ROLE_CAISSIER" | "ROLE_ADMIN" | "ROLE_COMPTABLE" | "ROLE_MANAGER" | "ROLE_MAGASINIER")[];
+                };
+            };
+        };
+    };
     moi: {
         parameters: {
             query?: never;
@@ -3543,6 +5514,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserDto"][];
+                };
+            };
+        };
+    };
+    ticket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketPublicDto"];
                 };
             };
         };
@@ -3610,6 +5603,46 @@ export interface operations {
             };
         };
     };
+    resume: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumePlateformeDto"];
+                };
+            };
+        };
+    };
+    commerces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommerceDto"][];
+                };
+            };
+        };
+    };
     mesNotifications: {
         parameters: {
             query: {
@@ -3629,6 +5662,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageNotificationDto"];
+                };
+            };
+        };
+    };
+    clePush: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
         };
@@ -3693,6 +5748,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MvtStkDto"][];
+                };
+            };
+        };
+    };
+    seance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idSeance: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeanceInventaireDto"];
+                };
+            };
+        };
+    };
+    lignes_3: {
+        parameters: {
+            query: {
+                q?: string;
+                vue?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path: {
+                idSeance: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageLigneComptageDto"];
+                };
+            };
+        };
+    };
+    seanceOuverte: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeanceInventaireDto"];
                 };
             };
         };
@@ -3764,6 +5887,26 @@ export interface operations {
             };
         };
     };
+    modeleFournisseurs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
     findAll_4: {
         parameters: {
             query?: never;
@@ -3780,6 +5923,128 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FournisseurDto"][];
+                };
+            };
+        };
+    };
+    mesTickets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketHistoriqueDto"][];
+                };
+            };
+        };
+    };
+    monProfil: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfilClientFideliteDto"];
+                };
+            };
+        };
+    };
+    magasins: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MagasinPromotionDto"][];
+                };
+            };
+        };
+    };
+    vitrine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CampagnePubliqueDto"][];
+                };
+            };
+        };
+    };
+    mesBons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BonDAchatDto"][];
+                };
+            };
+        };
+    };
+    verifierBon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                codeBon: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BonDAchatDto"];
                 };
             };
         };
@@ -4091,6 +6356,26 @@ export interface operations {
             };
         };
     };
+    modeleClients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
     findAll_10: {
         parameters: {
             query?: never;
@@ -4171,6 +6456,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryDto"][];
+                };
+            };
+        };
+    };
+    promotionsEnCours: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PromotionsDuJourDto"];
                 };
             };
         };
@@ -4264,6 +6569,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticleDto"];
+                };
+            };
+        };
+    };
+    scanner: {
+        parameters: {
+            query: {
+                code: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResultatScanDto"];
                 };
             };
         };
@@ -4370,6 +6697,29 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["UserDto"];
+                };
+            };
+        };
+    };
+    annulerComptage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idSeance: number;
+                idLigne: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LigneComptageDto"];
                 };
             };
         };
@@ -4524,6 +6874,27 @@ export interface operations {
                 content: {
                     "*/*": string;
                 };
+            };
+        };
+    };
+    retirerCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idArticle: number;
+                idCode: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

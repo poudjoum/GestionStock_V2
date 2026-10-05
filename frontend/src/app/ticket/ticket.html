@@ -50,7 +50,7 @@
     <div class="ticket__article">
       <div class="ticket__designation">{{ ligne.designation }}</div>
       <div class="ticket__ligne">
-        <span>{{ ligne.quantite | number: '1.0-2' }} × {{ ligne.prixUnitaireHt | number: '1.0-0' }}</span>
+        <span>{{ ligne.quantite | number: '1.0-3' }}{{ ligne.conditionnement ? ' ' + ligne.conditionnement : '' }} × {{ ligne.prixUnitaireHt | number: '1.0-0' }}</span>
         <span>{{ ligne.montantHt | number: '1.0-0' }}</span>
       </div>
     </div>

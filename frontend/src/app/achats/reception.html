@@ -50,6 +50,10 @@
                 </span>
                 <span class="block truncate text-xs opacity-60">
                   {{ saisie.ligne.article?.codeArticle }}
+                  <!-- On compte ce qui arrive dans l'unite de la commande : des cartons, pas des bouteilles. -->
+                  @if (saisie.ligne.conditionnement; as c) {
+                    · en {{ c.libelle }}
+                  }
                 </span>
                 <span class="nombre mt-1 block text-xs opacity-70">
                   Commandé {{ saisie.ligne.quantite | number: '1.0-2' }}
