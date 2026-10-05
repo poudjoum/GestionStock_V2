@@ -91,7 +91,6 @@
   gap: var(--gs-esp-2);
   overflow-x: auto;
   padding-bottom: 2px;
-  scrollbar-width: thin;
 }
 
 .rayon {
