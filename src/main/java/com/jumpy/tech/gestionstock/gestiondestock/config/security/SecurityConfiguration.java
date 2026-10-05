@@ -360,6 +360,11 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.POST, API + "/sites", API + "/sites/**")
                             .hasAnyRole(ADMIN, MANAGER)
 
+                        // Retirer une ligne d'un transfert en preparation est un geste de quai : la
+                        // regle DELETE generique l'interdirait au magasinier qui charge le camion.
+                        .requestMatchers(HttpMethod.DELETE, API + "/transferts/*/lignes/*")
+                            .hasAnyRole(ADMIN, MANAGER, MAGASINIER)
+
                         // Faire avancer une commande — la declarer livree, donc faire entrer la
                         // marchandise en stock — est un geste de magasin, pas une consultation.
                         // Sans cette ligne, PATCH tombait dans le authenticated() final et tout

@@ -53,7 +53,13 @@ public enum MotifMvtStk {
     RETOUR_CLIENT,
 
     /** Utilisee par l'entreprise elle-meme : echantillon, usage interne. */
-    CONSOMMATION_INTERNE;
+    CONSOMMATION_INTERNE,
+
+    /** Partie vers un autre site de l'entreprise, a l'expedition d'un transfert. */
+    TRANSFERT_SORTIE,
+
+    /** Arrivee d'un autre site, a la reception d'un transfert : ce qui a ete compte au dechargement. */
+    TRANSFERT_ENTREE;
 
     /** Un motif qu'une saisie a la main peut declarer pour une entree. */
     public boolean saisissableEnEntree() {
