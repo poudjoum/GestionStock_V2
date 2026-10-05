@@ -37,4 +37,19 @@ public class LigneCmndeFournisseur extends AbstractEntity{
     private BigDecimal prixUnitaire;
     @Column(name="idEntreprise")
     private Long idEntreprise;
+
+    /**
+     * Le conditionnement dans lequel la ligne a ete saisie ; nul, elle est a l'unite de base.
+     * `quantite` et `prixUnitaire` sont alors exprimes dans ce conditionnement.
+     */
+    @ManyToOne
+    @JoinColumn(name="id_conditionnement")
+    private Conditionnement conditionnement;
+
+    /**
+     * Combien d'unites de base vaut une unite de la ligne, figee a la saisie. Le stock bouge de
+     * `quantite x contenance` : un carton redefini plus tard ne reecrit pas ce qui est deja sorti.
+     */
+    @Column(name="contenance", nullable = false)
+    private BigDecimal contenance = BigDecimal.ONE;
 }

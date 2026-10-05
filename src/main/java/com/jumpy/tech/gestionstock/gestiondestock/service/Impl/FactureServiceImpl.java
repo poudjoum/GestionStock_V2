@@ -198,6 +198,8 @@ public class FactureServiceImpl implements FactureService {
         ligne.setFacture(facture);
         ligne.setCodeArticle(article == null ? null : article.getCodeArticle());
         ligne.setDesignation(article == null ? null : article.getDesignation());
+        ligne.setConditionnement(ligneVente.getConditionnement() == null
+                ? null : ligneVente.getConditionnement().getLibelle());
         ligne.setQuantite(quantite);
         ligne.setPrixUnitaireHt(prixUnitaire);
         ligne.setTauxTva(tauxTva);
@@ -253,6 +255,11 @@ public class FactureServiceImpl implements FactureService {
     private BigDecimal prixUnitaire(LigneVente ligneVente, Article article) {
         if (ligneVente.getPrixUnitaire() != null) {
             return ligneVente.getPrixUnitaire();
+        }
+        // Une ligne en cartons se facture au prix du carton, jamais a celui de la bouteille.
+        if (ligneVente.getConditionnement() != null) {
+            return ligneVente.getConditionnement().getPrixVenteHt() == null
+                    ? BigDecimal.ZERO : ligneVente.getConditionnement().getPrixVenteHt();
         }
         if (article != null && article.getPrixUnitaire() != null) {
             return article.getPrixUnitaire();

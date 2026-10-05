@@ -31,5 +31,38 @@ public enum MotifMvtStk {
      * C'est le seul motif qui ne vient d'aucun document ni d'aucun geste de comptoir : il dit que
      * l'etagere ne disait pas la meme chose que le logiciel, et lequel des deux a eu raison.
      */
-    INVENTAIRE
+    INVENTAIRE,
+
+    // Les motifs d'une saisie a la main. Tous aboutissaient a SAISIE_MANUELLE, si bien que la
+    // demarque — ce que le magasin perd sans le vendre — ne se mesurait pas : une casse, une
+    // peremption et un echantillon offert se confondaient.
+
+    /** Marchandise disparue : vol, erreur de livraison constatee apres coup. */
+    PERTE,
+
+    /** Marchandise abimee, invendable. */
+    CASSE,
+
+    /** Date limite depassee : retiree de la vente. */
+    PEREMPTION,
+
+    /** Marchandise rendue au fournisseur, hors commande. */
+    RETOUR_FOURNISSEUR,
+
+    /** Marchandise rapportee par un client, hors annulation de vente. */
+    RETOUR_CLIENT,
+
+    /** Utilisee par l'entreprise elle-meme : echantillon, usage interne. */
+    CONSOMMATION_INTERNE;
+
+    /** Un motif qu'une saisie a la main peut declarer pour une entree. */
+    public boolean saisissableEnEntree() {
+        return this == SAISIE_MANUELLE || this == RETOUR_CLIENT;
+    }
+
+    /** Un motif qu'une saisie a la main peut declarer pour une sortie. */
+    public boolean saisissableEnSortie() {
+        return this == SAISIE_MANUELLE || this == PERTE || this == CASSE || this == PEREMPTION
+                || this == RETOUR_FOURNISSEUR || this == CONSOMMATION_INTERNE;
+    }
 }

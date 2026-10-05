@@ -25,6 +25,13 @@ public class LigneCommandeClientDto {
      */
     private BigDecimal resteAServir;
     private BigDecimal prixUnitaire;
+    /**
+     * Le conditionnement de la ligne ; nul, elle est a l'unite de base. A l'ecriture, seul son
+     * identifiant compte.
+     */
+    private ConditionnementDto conditionnement;
+    /** Combien d'unites de base vaut une unite de la ligne. Calculee, jamais lue de la requete. */
+    private BigDecimal contenance;
 
     public static LigneCommandeClientDto fromEntity(LigneCmndeClient ligneCmndeClient){
         if(ligneCmndeClient==null){
@@ -38,6 +45,8 @@ public class LigneCommandeClientDto {
                                                         .quantiteLivree(ligneCmndeClient.getQuantiteLivree())
                                                                 .resteAServir(reste(ligneCmndeClient.getQuantite(), ligneCmndeClient.getQuantiteLivree()))
                                                         .prixUnitaire(ligneCmndeClient.getPrixUnitaire())
+                .conditionnement(ConditionnementDto.fromEntity(ligneCmndeClient.getConditionnement()))
+                .contenance(ligneCmndeClient.getContenance())
                                                                 .build();
     }
 

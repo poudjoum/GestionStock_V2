@@ -15,6 +15,13 @@ public class LigneVenteDto {
     private VenteDto vente;
     private BigDecimal quantite;
     private BigDecimal prixUnitaire;
+    /**
+     * Le conditionnement de la ligne ; nul, elle est a l'unite de base. A l'ecriture, seul son
+     * identifiant compte.
+     */
+    private ConditionnementDto conditionnement;
+    /** Combien d'unites de base vaut une unite de la ligne. Calculee, jamais lue de la requete. */
+    private BigDecimal contenance;
     private ArticleDto article;
     private Long idEntreprise;
 
@@ -27,6 +34,8 @@ public class LigneVenteDto {
                 .vente(VenteDto.fromEntity(lgv.getVente()))
                 .quantite(lgv.getQuantite())
                 .prixUnitaire(lgv.getPrixUnitaire())
+                .conditionnement(ConditionnementDto.fromEntity(lgv.getConditionnement()))
+                .contenance(lgv.getContenance())
                 .article(ArticleDto.fromEntity(lgv.getArticles()))
                 .idEntreprise(lgv.getIdEntreprise())
                 .build();

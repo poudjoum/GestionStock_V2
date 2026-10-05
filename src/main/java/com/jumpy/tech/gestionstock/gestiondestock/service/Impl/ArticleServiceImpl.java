@@ -7,6 +7,8 @@ import com.jumpy.tech.gestionstock.gestiondestock.exception.EntityNotFoundExcept
 import com.jumpy.tech.gestionstock.gestiondestock.exception.ErrorCodes;
 import com.jumpy.tech.gestionstock.gestiondestock.exception.InvalidEntityException;
 import com.jumpy.tech.gestionstock.gestiondestock.repository.ArticleRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.repository.CodeBarresRepository;
+import com.jumpy.tech.gestionstock.gestiondestock.service.ConditionnementService;
 import com.jumpy.tech.gestionstock.gestiondestock.service.ArticleService;
 import com.jumpy.tech.gestionstock.gestiondestock.validator.ArticleValidators;
 import lombok.extern.slf4j.Slf4j;
@@ -24,10 +26,16 @@ import java.util.stream.Collectors;
 public class ArticleServiceImpl implements ArticleService {
     private ArticleRepository articleRepository;
     private final Cloisonnement cloisonnement;
+    private final ConditionnementService conditionnementService;
+    private final CodeBarresRepository codeBarresRepository;
 
-    public ArticleServiceImpl(ArticleRepository articleRepository, Cloisonnement cloisonnement){
+    public ArticleServiceImpl(ArticleRepository articleRepository, Cloisonnement cloisonnement,
+                              ConditionnementService conditionnementService,
+                              CodeBarresRepository codeBarresRepository){
         this.articleRepository=articleRepository;
         this.cloisonnement=cloisonnement;
+        this.conditionnementService=conditionnementService;
+        this.codeBarresRepository=codeBarresRepository;
     }
     @Override
     @Transactional
@@ -43,11 +51,37 @@ public class ArticleServiceImpl implements ArticleService {
             // connaitre un identifiant suffirait a reecrire le catalogue du voisin.
             Article existant = article(article.getId());
             article.setIdEntreprise(existant.getIdEntreprise());
+            // Un ecran qui ne connait pas encore l'unite ne la remet pas a la piece.
+            if (dto.getUniteBase() == null) {
+                article.setUniteBase(existant.getUniteBase());
+            }
         } else if (cloisonnement.filtre()) {
             // L'entreprise vient du compte, jamais du corps de la requete.
             article.setIdEntreprise(cloisonnement.entrepriseCourante());
         }
-        return ArticleDto.fromEntity(articleRepository.save(article));
+        verifierCodeLibre(article);
+        return completer(ArticleDto.fromEntity(articleRepository.save(article)));
+    }
+
+    /**
+     * Le code d'article se scanne comme un code-barres : il ne doit pas etre celui qu'un autre
+     * article porte deja sur son etiquette, sans quoi la douchette ne saurait pas lequel vendre.
+     */
+    private void verifierCodeLibre(Article article) {
+        if (!StringUtils.hasText(article.getCodeArticle()) || article.getIdEntreprise() == null) {
+            return;
+        }
+        codeBarresRepository.findByCodeAndIdEntreprise(article.getCodeArticle(), article.getIdEntreprise())
+                .filter(code -> !code.getArticle().getId().equals(article.getId()))
+                .ifPresent(code -> {
+                    throw new InvalidEntityException("L'article n'est pas valide", ErrorCodes.ARTICLE_NOT_VALID,
+                            List.of("Le code " + article.getCodeArticle() + " est le code-barres de l'article "
+                                    + code.getArticle().getDesignation()));
+                });
+    }
+
+    private ArticleDto completer(ArticleDto article) {
+        return conditionnementService.completer(List.of(article)).get(0);
     }
 
     @Override
@@ -60,7 +94,7 @@ public class ArticleServiceImpl implements ArticleService {
         // `article.get()` precedait le orElseThrow : sur un identifiant inconnu, c'est
         // NoSuchElementException qui partait — une erreur 500 — et le orElseThrow, applique a un
         // Optional.of() toujours plein, ne pouvait jamais lever le 404 qu'il decrivait.
-        return ArticleDto.fromEntity(article(id));
+        return completer(ArticleDto.fromEntity(article(id)));
     }
 
     /**
@@ -92,6 +126,7 @@ public class ArticleServiceImpl implements ArticleService {
                 ? articleRepository.findArticleByCodeArticleAndIdEntreprise(codeArticle, cloisonnement.entrepriseCourante())
                 : articleRepository.findArticleByCodeArticle(codeArticle))
                 .map(ArticleDto::fromEntity)
+                .map(this::completer)
                 .orElseThrow(() -> new EntityNotFoundException(
                         "Aucun article avec le code " + codeArticle + " n'a été trouvé",
                         ErrorCodes.ARTICLE_NOT_FOUND));
@@ -103,20 +138,23 @@ public class ArticleServiceImpl implements ArticleService {
                 ? articleRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante())
                 : articleRepository.findAll()).stream()
                 .map(ArticleDto::fromEntity)
-                .collect(Collectors.toList());
+                .collect(Collectors.collectingAndThen(Collectors.toList(), conditionnementService::completer));
     }
 
     @Override
     public Page<ArticleDto> findAll(String q, Long idCategory, Pageable pageable) {
         // `map` sur la Page conserve le total et le numero de page : reconstruire une Page a la
         // main a partir du contenu ferait perdre ce que le client utilise pour naviguer.
-        return articleRepository.rechercher(
+        Page<ArticleDto> page = articleRepository.rechercher(
                         cloisonnement.filtre(),
                         cloisonnement.filtre() ? cloisonnement.entrepriseCourante() : null,
                         RechercheUtils.normaliser(q),
                         idCategory,
                         pageable)
                 .map(ArticleDto::fromEntity);
+        // Une page a la fois, en deux requetes : le comptoir lit les codes-barres de chaque article.
+        conditionnementService.completer(page.getContent());
+        return page;
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 
+import com.jumpy.tech.gestionstock.gestiondestock.conditionnement.Conditionnements;
+import com.jumpy.tech.gestionstock.gestiondestock.entities.Conditionnement;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.PromotionArticle;
 import com.jumpy.tech.gestionstock.gestiondestock.promotion.PrixDuJour;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
@@ -73,6 +75,7 @@ public class VenteServiceImpl implements VenteService {
     private final MvtStkService mvtStkService;
     private final FactureService factureService;
     private final PrixDuJour prixDuJour;
+    private final Conditionnements conditionnements;
 
     public VenteServiceImpl(VenteRepository venteRepository, ArticleRepository articleRepository,
                             LigneVenteRepository ligneVenteRepository,
@@ -83,7 +86,9 @@ public class VenteServiceImpl implements VenteService {
                             Cloisonnement cloisonnement,
                             MvtStkService mvtStkService,
                             FactureService factureService,
-                            PrixDuJour prixDuJour) {
+                            PrixDuJour prixDuJour,
+                            Conditionnements conditionnements) {
+        this.conditionnements = conditionnements;
         this.factureService = factureService;
         this.prixDuJour = prixDuJour;
         this.clientRepository = clientRepository;
@@ -259,14 +264,27 @@ public class VenteServiceImpl implements VenteService {
         for (LigneVenteDto ligneDto : lignes) {
             LigneVente ligne = LigneVenteDto.toEntity(ligneDto);
             Article article = articlesCharges.get(ligneDto.getArticle().getId());
+            // Au comptoir, le carton doit etre en vente ; une vente faite hors ligne a deja eu lieu,
+            // et le carton qu'on a retire depuis n'en a pas moins ete vendu.
+            Conditionnement conditionnement = quand == null
+                    ? conditionnements.pourLigne(article, ligneDto.getConditionnement(), Conditionnements.Usage.VENTE)
+                    : conditionnements.pourLigneConstatee(article, ligneDto.getConditionnement());
+            if (quand == null) {
+                Conditionnements.verifierFraction(article, conditionnement, ligne.getQuantite(),
+                        ErrorCodes.LIGNE_VENTE_NOT_VALID);
+            }
+            ligne.setConditionnement(conditionnement);
+            ligne.setContenance(Conditionnements.contenance(conditionnement));
+            BigDecimal prixCatalogue = Conditionnements.prixCatalogue(article, conditionnement);
             PromotionArticle promotion = promotions.get(article.getId());
             if (quand == null) {
                 // Au comptoir, maintenant : le prix de la promotion, meme si la caisse l'ignorait.
-                ligne.setPrixUnitaire(PrixDuJour.pourLigne(ligne.getPrixUnitaire(), article.getPrixUnitaire(), promotion));
+                ligne.setPrixUnitaire(PrixDuJour.pourLigne(ligne.getPrixUnitaire(), prixCatalogue, promotion,
+                        conditionnement != null));
             } else if (ligne.getPrixUnitaire() == null) {
                 // Une vente faite hors ligne garde le prix que le client a paye et que son ticket
                 // imprime. Le serveur ne le complete que s'il manque.
-                ligne.setPrixUnitaire(PrixDuJour.pourLigne(null, article.getPrixUnitaire(), promotion));
+                ligne.setPrixUnitaire(PrixDuJour.pourLigne(null, prixCatalogue, promotion, conditionnement != null));
             }
             // L'article charge, et non celui que construit le DTO, qui ne porte que son
             // identifiant. Quand la facture est emise dans la meme transaction — une vente
@@ -276,7 +294,7 @@ public class VenteServiceImpl implements VenteService {
             ligne.setArticles(article);
             ligne.setVente(savedVente);
             ligneVenteRepository.save(ligne);
-            sortirDuStock(ligneDto, savedVente, quand);
+            sortirDuStock(ligne, savedVente, quand);
         }
 
         return VenteDto.fromEntity(savedVente);
@@ -323,10 +341,10 @@ public class VenteServiceImpl implements VenteService {
      * commande client, que le stock diminue. Une commande n'est qu'un engagement : tant qu'elle
      * n'est pas servie, rien n'est sorti des rayons.
      */
-    private void sortirDuStock(LigneVenteDto ligne, Vente vente, Instant quand) {
+    private void sortirDuStock(LigneVente ligne, Vente vente, Instant quand) {
         MvtStkDto mouvement = MvtStkDto.builder()
-                .article(ArticleDto.builder().Id(ligne.getArticle().getId()).build())
-                .quantite(ligne.getQuantite())
+                .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
+                .quantite(enStock(ligne))
                 .motif(MotifMvtStk.VENTE)
                 .idEntreprise(vente.getIdEntreprise())
                 .build();
@@ -368,12 +386,16 @@ public class VenteServiceImpl implements VenteService {
                         "Aucun article avec l'identifiant " + ligne.getArticle().getId() + " n'a été trouvé",
                         ErrorCodes.ARTICLE_NOT_FOUND));
         BigDecimal quantite = quantiteValide(ligne.getQuantite());
+        Conditionnement conditionnement = conditionnements.pourLigne(article, ligne.getConditionnement(),
+                Conditionnements.Usage.VENTE);
+        Conditionnements.verifierFraction(article, conditionnement, quantite, ErrorCodes.LIGNE_VENTE_NOT_VALID);
+        BigDecimal contenance = Conditionnements.contenance(conditionnement);
 
         // Le stock est debite avant l'ecriture de la ligne : s'il manque, la transaction echoue et
         // la vente reste telle qu'elle etait.
         mvtStkService.sortieStock(MvtStkDto.builder()
                 .article(ArticleDto.builder().Id(article.getId()).build())
-                .quantite(quantite)
+                .quantite(Conditionnements.enUnitesDeBase(quantite, contenance))
                 .motif(MotifMvtStk.VENTE)
                 .build());
 
@@ -381,8 +403,12 @@ public class VenteServiceImpl implements VenteService {
         nouvelle.setVente(vente);
         nouvelle.setArticles(article);
         nouvelle.setQuantite(quantite);
-        nouvelle.setPrixUnitaire(PrixDuJour.pourLigne(ligne.getPrixUnitaire(), article.getPrixUnitaire(),
-                prixDuJour.promotions(vente.getIdEntreprise(), null).get(article.getId())));
+        nouvelle.setConditionnement(conditionnement);
+        nouvelle.setContenance(contenance);
+        nouvelle.setPrixUnitaire(PrixDuJour.pourLigne(ligne.getPrixUnitaire(),
+                Conditionnements.prixCatalogue(article, conditionnement),
+                prixDuJour.promotions(vente.getIdEntreprise(), null).get(article.getId()),
+                conditionnement != null));
         nouvelle.setIdEntreprise(vente.getIdEntreprise());
 
         return LigneVenteDto.fromEntity(ligneVenteRepository.save(nouvelle));
@@ -481,12 +507,16 @@ public class VenteServiceImpl implements VenteService {
             ligneVente.setArticles(ligneCommande.getArticles());
             ligneVente.setQuantite(quantite);
             ligneVente.setPrixUnitaire(ligneCommande.getPrixUnitaire());
+            // La vente reprend le conditionnement de la commande, et la contenance qu'elle avait
+            // figee : on livre les cartons qui ont ete commandes, pas ceux d'aujourd'hui.
+            ligneVente.setConditionnement(ligneCommande.getConditionnement());
+            ligneVente.setContenance(ligneCommande.getContenance());
             ligneVente.setIdEntreprise(commande.getIdEntreprise());
             ligneVenteRepository.save(ligneVente);
 
             mvtStkService.sortieStock(MvtStkDto.builder()
                     .article(ArticleDto.builder().Id(ligneCommande.getArticles().getId()).build())
-                    .quantite(quantite)
+                    .quantite(enStock(ligneVente))
                     .motif(MotifMvtStk.VENTE)
                     .build());
 
@@ -570,7 +600,7 @@ public class VenteServiceImpl implements VenteService {
         ligneVenteRepository.findAllByVenteId(idVente).forEach(ligne ->
                 mvtStkService.entreeStock(MvtStkDto.builder()
                         .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
-                        .quantite(ligne.getQuantite())
+                        .quantite(enStock(ligne))
                         .motif(MotifMvtStk.ANNULATION_VENTE)
                         .build()));
 
@@ -585,6 +615,8 @@ public class VenteServiceImpl implements VenteService {
         venteModifiable(idVente);
         LigneVente ligne = ligne(idVente, idLigne);
         BigDecimal nouvelle = quantiteValide(quantite);
+        Conditionnements.verifierFraction(ligne.getArticles(), ligne.getConditionnement(), nouvelle,
+                ErrorCodes.LIGNE_VENTE_NOT_VALID);
         BigDecimal ancienne = ligne.getQuantite();
 
         // La marchandise est deja sortie : seule la difference se rattrape. Augmenter sort le
@@ -610,12 +642,18 @@ public class VenteServiceImpl implements VenteService {
         ligneVenteRepository.delete(ligne);
     }
 
+    /** Le mouvement qui corrige `quantite` unites de la ligne — des cartons si elle est en cartons. */
     private MvtStkDto mouvementDe(LigneVente ligne, BigDecimal quantite) {
         return MvtStkDto.builder()
                 .article(ArticleDto.builder().Id(ligne.getArticles().getId()).build())
-                .quantite(quantite)
+                .quantite(Conditionnements.enUnitesDeBase(quantite, ligne.getContenance()))
                 .motif(MotifMvtStk.CORRECTION_VENTE)
                 .build();
+    }
+
+    /** Ce que la ligne a fait sortir du stock, en unites de base. */
+    private static BigDecimal enStock(LigneVente ligne) {
+        return Conditionnements.enUnitesDeBase(ligne.getQuantite(), ligne.getContenance());
     }
 
     private Vente vente(Long id) {
