@@ -42,6 +42,7 @@ import { PaiementDuTicket, Ticket } from '../ticket/ticket';
 import { MODES_DE_REGLEMENT } from '../noyau/reglements';
 import { EtatVide } from '../design/etat-vide';
 import { Statut } from '../design/statut';
+import { ScanCamera, cameraDisponible } from '../design/scan-camera';
 import { ConditionnementDto, fractionnable, libelleDeLigne, vendables } from '../noyau/conditionnements';
 import type { ArticleDto, ClientDto, EntrepriseDto } from '../noyau/api';
 
@@ -141,6 +142,7 @@ interface Instantane {
     MatInputModule,
     MatProgressBarModule,
     Ticket,
+    ScanCamera,
   ],
   templateUrl: './vente-au-comptoir.html',
   styleUrl: './vente-au-comptoir.css',
@@ -275,6 +277,16 @@ export class VenteAuComptoir {
 
   /** Le champ de recherche, qu'on rend au caissier apres chaque geste : le scan suivant y va. */
   private readonly champRecherche = viewChild<ElementRef<HTMLInputElement>>('champRecherche');
+
+  protected readonly camera = signal(false);
+  protected readonly cameraDisponible = cameraDisponible();
+
+  /** Un code lu a la camera suit le chemin d'un code tape par la douchette. */
+  protected lireALaCamera(code: string): void {
+    this.camera.set(false);
+    this.recherche.set(code);
+    this.valider();
+  }
 
   /** Resolution d'un code en cours : deux scans coup sur coup ne doivent pas se chevaucher. */
   protected readonly resolution = signal(false);

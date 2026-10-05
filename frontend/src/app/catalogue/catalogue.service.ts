@@ -31,6 +31,8 @@ export interface RapportImport {
   creees: number;
   modifiees: number;
   refusees: LigneRefusee[];
+  /** Les conditionnements de la feuille du meme nom ; zero sans elle, et pour les repertoires. */
+  conditionnements?: number;
 }
 
 @Injectable({ providedIn: 'root' })

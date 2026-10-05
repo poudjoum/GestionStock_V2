@@ -10,6 +10,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { forkJoin } from 'rxjs';
 import { Catalogue } from './catalogue.service';
 import { messageDErreur } from '../noyau/erreurs';
+import { Entreprise } from '../noyau/entreprise';
+import { imprimable } from '../noyau/code-barres';
+import { imprimerEtiquettes } from '../noyau/etiquettes';
+import { ScanCamera, cameraDisponible } from '../design';
 import type { ArticleDto } from '../noyau/api';
 import {
   CodeBarresDto,
@@ -52,6 +56,7 @@ function vide(): SaisieConditionnement {
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    ScanCamera,
   ],
   template: `
     @let a = article();
@@ -169,6 +174,13 @@ function vide(): SaisieConditionnement {
               <span class="code-barres block truncate">{{ code.code }}</span>
               <span class="block truncate text-xs opacity-60">{{ designe(code) }} · {{ libelleDuType(code.type) }}</span>
             </span>
+            <!-- Une planche de 21 etiquettes : de quoi etiqueter un arrivage sans etiquette fabricant. -->
+            @if (imprimable(code.code ?? '')) {
+              <button mat-icon-button (click)="etiqueter(code)"
+                      [attr.aria-label]="'Imprimer des étiquettes du code ' + code.code">
+                <mat-icon class="!h-5 !w-5 !text-xl">print</mat-icon>
+              </button>
+            }
             <button mat-icon-button (click)="retirerCode(code)" [attr.aria-label]="'Retirer le code ' + code.code">
               <mat-icon class="!h-5 !w-5 !text-xl">close</mat-icon>
             </button>
@@ -187,6 +199,11 @@ function vide(): SaisieConditionnement {
           <input #champCode matInput autocomplete="off" autocapitalize="none" inputmode="numeric"
                  [ngModel]="nouveauCode()" (ngModelChange)="nouveauCode.set($event)"
                  (keydown.enter)="ajouterCode(champCode)" />
+          @if (cameraDisponible) {
+            <button matSuffix mat-icon-button (click)="camera.set(true)" aria-label="Lire le code à la caméra">
+              <mat-icon>photo_camera</mat-icon>
+            </button>
+          }
         </mat-form-field>
         <mat-form-field appearance="outline" class="w-36 shrink-0" subscriptSizing="dynamic">
           <mat-label>Désigne</mat-label>
@@ -206,6 +223,9 @@ function vide(): SaisieConditionnement {
         <button mat-stroked-button [disabled]="!nouveauCode().trim() || envoi()" (click)="ajouterCode(champCode)">
           <mat-icon>add</mat-icon> Ajouter le code
         </button>
+        @if (camera()) {
+          <gs-scan-camera (lu)="lireALaCamera($event, champCode)" (ferme)="camera.set(false)" />
+        }
         <!-- Pour le vrac, le fait-maison, ce que le fournisseur livre sans etiquette. -->
         <button mat-button [disabled]="envoi()" (click)="genererCode()">
           <mat-icon>auto_awesome</mat-icon> Produit sans étiquette : créer un code
@@ -223,6 +243,16 @@ function vide(): SaisieConditionnement {
 })
 export class ConditionnementsArticle {
   private readonly service = inject(Catalogue);
+  private readonly magasin = inject(Entreprise);
+  protected readonly imprimable = imprimable;
+  protected readonly camera = signal(false);
+  protected readonly cameraDisponible = cameraDisponible();
+
+  protected lireALaCamera(code: string, champ: HTMLInputElement): void {
+    this.camera.set(false);
+    this.nouveauCode.set(code);
+    this.ajouterCode(champ);
+  }
 
   /** L'article enregistre : il a un identifiant, et son unite fait foi. */
   readonly article = input.required<ArticleDto>();
@@ -399,6 +429,30 @@ export class ConditionnementsArticle {
         this.envoi.set(false);
         this.erreurCode.set(messageDErreur(echec, 'Le code n’a pas pu être créé.'));
       },
+    });
+  }
+
+  /**
+   * Imprime une planche d'etiquettes : la designation, le conditionnement, le code et le prix TTC
+   * — celui qu'on lit en rayon. Le taux est celui de l'article, a defaut celui du magasin.
+   */
+  protected etiqueter(code: CodeBarresDto): void {
+    const article = this.article();
+    const conditionnement = this.conditionnements().find((c) => c.id === code.idConditionnement) ?? null;
+    const ht = conditionnement ? conditionnement.prixVenteHt : article.prixUnitaireHt;
+    this.magasin.charger().subscribe({
+      next: (m) => this.lancerEtiquettes(code, conditionnement?.libelle ?? null, ht, m.assujettieTva === false ? 0 : (article.tauxTva ?? m.tauxTva ?? 0)),
+      // Sans le magasin, l'etiquette sort quand meme, au taux de l'article.
+      error: () => this.lancerEtiquettes(code, conditionnement?.libelle ?? null, ht, article.tauxTva ?? 0),
+    });
+  }
+
+  private lancerEtiquettes(code: CodeBarresDto, conditionnement: string | null, ht: number | undefined, taux: number): void {
+    imprimerEtiquettes({
+      designation: this.article().designation ?? '',
+      conditionnement,
+      prixTtc: ht == null ? null : ht * (1 + taux / 100),
+      code: code.code!,
     });
   }
 

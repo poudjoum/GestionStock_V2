@@ -20,6 +20,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { messageDErreur } from '../noyau/erreurs';
+import { ConditionnementDto, ResultatScanDto } from '../noyau/conditionnements';
+import { ScanCamera, cameraDisponible } from '../design';
 import {
   Inventaire as ServiceInventaire,
   LigneComptageDto,
@@ -56,6 +58,7 @@ import {
     MatIconModule,
     MatInputModule,
     MatProgressBarModule,
+    ScanCamera,
   ],
   templateUrl: './inventaire.html',
 })
@@ -87,6 +90,24 @@ export class InventaireEcran implements OnInit {
    */
   protected readonly enCours = signal<LigneComptageDto | null>(null);
   protected readonly quantite = signal<number | null>(null);
+  /**
+   * Le plus grand conditionnement de l'article en main, et le nombre qu'on en compte. Une reserve
+   * se compte en cartons fermes plus les unites en vrac : « 12 cartons et 5 bouteilles », pas
+   * « 293 bouteilles » calcule de tete.
+   */
+  protected readonly carton = signal<ConditionnementDto | null>(null);
+  protected readonly cartons = signal<number | null>(null);
+  /** Ce qui sera note, en unites de base. Nul tant que rien n'est saisi. */
+  protected readonly total = computed(() => {
+    const vrac = this.quantite();
+    const cartons = this.cartons();
+    if (vrac === null && cartons === null) {
+      return null;
+    }
+    return (cartons ?? 0) * (this.carton()?.quantiteUnites ?? 0) + (vrac ?? 0);
+  });
+  protected readonly camera = signal(false);
+  protected readonly cameraDisponible = cameraDisponible();
   protected readonly envoiEnCours = signal(false);
   protected readonly codeInconnu = signal<string | null>(null);
 
@@ -236,16 +257,31 @@ export class InventaireEcran implements OnInit {
       this.prendreEnMain(connue);
       return;
     }
-    // Pas dans la page affichee : on le demande au serveur, qui cherche dans toute la seance.
+    // Le code de l'etiquette, et non celui de l'article : le serveur dit lequel il designe.
     this.envoiEnCours.set(true);
-    this.service.lignes(this.seance()!.id!, saisi, 'TOUTES', 0, 5).subscribe({
+    this.service.scanner(saisi).subscribe({
+      next: (lu) => this.trouverLaLigne(lu, lu.article?.codeArticle ?? saisi, saisi),
+      error: () => this.trouverLaLigne(null, saisi, saisi),
+    });
+  }
+
+  /** La ligne de la seance qui porte cet article : elle peut ne pas etre dans la page affichee. */
+  private trouverLaLigne(lu: ResultatScanDto | null, codeArticle: string, saisi: string): void {
+    // On le demande au serveur, qui cherche dans toute la seance.
+    this.service.lignes(this.seance()!.id!, codeArticle, 'TOUTES', 0, 5).subscribe({
       next: (page) => {
         this.envoiEnCours.set(false);
-        const ligne = (page.content ?? []).find(
-          (l) => (l.codeArticle ?? '').toLowerCase() === saisi.toLowerCase(),
+        const ligne = (page.content ?? []).find((l) =>
+          lu?.article?.id != null
+            ? l.idArticle === lu.article.id
+            : (l.codeArticle ?? '').toLowerCase() === codeArticle.toLowerCase(),
         );
         if (ligne) {
-          this.prendreEnMain(ligne);
+          // L'EAN ne filtre rien dans la liste : la laisser filtree dessus la montrerait vide.
+          if (saisi !== ligne.codeArticle) {
+            this.chercher('');
+          }
+          this.prendreEnMain(ligne, lu);
         } else {
           // Dit sans bloquer : on ne perd pas un comptage parce qu'un article manque.
           this.codeInconnu.set(saisi);
@@ -259,22 +295,53 @@ export class InventaireEcran implements OnInit {
     });
   }
 
-  protected prendreEnMain(ligne: LigneComptageDto): void {
+  protected prendreEnMain(ligne: LigneComptageDto, lu: ResultatScanDto | null = null): void {
     this.codeInconnu.set(null);
     this.enCours.set(ligne);
     this.quantite.set(ligne.quantiteComptee ?? null);
+    this.cartons.set(null);
+    this.carton.set(null);
+    if (lu?.article) {
+      this.retenirLeCarton(lu.article.conditionnements ?? []);
+    } else if (ligne.codeArticle) {
+      // Ses conditionnements, pour compter les cartons fermes. Sans eux, on compte a l'unite.
+      this.service.scanner(ligne.codeArticle).subscribe({
+        next: (r) => {
+          if (this.enCours() === ligne) {
+            this.retenirLeCarton(r.article?.conditionnements ?? []);
+          }
+        },
+        error: () => undefined,
+      });
+    }
+  }
+
+  private retenirLeCarton(conditionnements: ConditionnementDto[]): void {
+    const plusGrand = [...conditionnements]
+      .filter((c) => c.actif !== false && (c.quantiteUnites ?? 0) > 1)
+      .sort((a, b) => (b.quantiteUnites ?? 0) - (a.quantiteUnites ?? 0))[0];
+    this.carton.set(plusGrand ?? null);
+    // Un comptage deja note se reprend tel quel, en unites : on ne devine pas comment il a ete fait.
+  }
+
+  protected lireALaCamera(code: string): void {
+    this.camera.set(false);
+    this.recherche.set(code);
+    this.valider();
   }
 
   protected abandonnerLArticle(): void {
     this.enCours.set(null);
     this.quantite.set(null);
+    this.cartons.set(null);
+    this.carton.set(null);
     this.recherche.set('');
   }
 
   /** Enregistre la quantite trouvee et rend le point au champ du code. */
   protected noter(): void {
     const ligne = this.enCours();
-    const quantite = this.quantite();
+    const quantite = this.total();
     if (!ligne || quantite === null || quantite < 0 || this.envoiEnCours()) {
       return;
     }
@@ -287,6 +354,8 @@ export class InventaireEcran implements OnInit {
           this.envoiEnCours.set(false);
           this.enCours.set(null);
           this.quantite.set(null);
+          this.cartons.set(null);
+          this.carton.set(null);
           this.recherche.set('');
           this.clignoter(notee.id);
           this.rafraichirLeTout();

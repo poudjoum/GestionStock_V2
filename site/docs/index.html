@@ -108,7 +108,7 @@
           <h3>Importer le catalogue</h3>
           <p>Saisir six cents articles à la main décourage n’importe qui. <strong>Catalogue › Importer</strong> le remplit depuis un classeur Excel, en trois temps :</p>
           <ol>
-            <li><strong>Télécharger le modèle.</strong> Les colonnes sont imposées : code, désignation, prix HT, taux de TVA, seuil d’alerte, catégorie. Le code est celui que lira la douchette : mettez le code-barres quand il y en a un.</li>
+            <li><strong>Télécharger le modèle.</strong> Les colonnes sont imposées : code, désignation, prix HT, taux de TVA, seuil d’alerte, catégorie, puis l’unité (facultative : pièce, kg, litre, mètre, m2, m3). Le code est celui que lira la douchette : mettez le code-barres quand il y en a un. Une seconde feuille, <strong>Conditionnements</strong>, facultative elle aussi, porte les cartons et les sacs : code de l’article, libellé, contenance, prix HT et code-barres du carton.</li>
             <li><strong>Déposer le fichier rempli</strong> (format <code>.xlsx</code>).</li>
             <li><strong>Lire le rapport, puis confirmer.</strong> Rien n’entre avant votre confirmation. Le rapport dit ligne par ligne ce qui sera créé, modifié ou refusé, et pourquoi.</li>
           </ol>
@@ -116,6 +116,25 @@
             <svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg>
             <p>Le rapport n’est pas une estimation : la simulation passe par le même code que l’import réel. Ce qui est montré est exactement ce qui entrera.</p>
           </div>
+          <h3>Unités, cartons et codes-barres</h3>
+          <p>
+            Chaque article a une <strong>unité de stock</strong> : la pièce, le kilo, le litre, le
+            mètre, le m² ou le m³. Le stock se compte toujours dans cette unité. Le kilo, le litre et
+            le mètre se vendent au détail (2,5 kg de riz) ; la pièce, en nombre entier.
+          </p>
+          <p>
+            Dans la fiche de l’article, <strong>Vente en gros</strong> ajoute ses conditionnements :
+            le carton de 24, le sac de 25 kg, la boîte de 30 comprimés. Chacun a son propre prix HT,
+            fixé par vous — l’écran montre ce qu’il revient à l’unité et la remise par rapport au
+            prix à l’unité. La TVA est celle de l’article. Un conditionnement sans prix ne sert qu’à
+            l’achat : la palette que vous recevez et ne vendez pas.
+          </p>
+          <p>
+            Sous <strong>Codes-barres</strong>, scannez l’étiquette de la bouteille puis celle du
+            carton, en disant ce que chaque code désigne. Un produit sans étiquette (vrac,
+            fait-maison) reçoit un <strong>code interne</strong> ; le bouton imprimante sort une
+            planche A4 de 21 étiquettes avec le code et le prix TTC.
+          </p>
           <h3>Importer ses clients et ses fournisseurs</h3>
           <p>
             Sur les écrans <strong>Clients</strong> et <strong>Fournisseurs</strong>, le bouton
@@ -150,6 +169,17 @@
             prix réduit.
           </p>
           <p>Le ticket reste visible à droite (en bas sur téléphone) : quantités, total TTC et bouton <strong>Encaisser</strong>.</p>
+          <p>
+            <strong>Le carton et la bouteille.</strong> Scanner le code du carton ajoute un carton,
+            au prix du carton ; celui de la bouteille, une bouteille. Sur la ligne du ticket, les
+            boutons <strong>À l’unité</strong> / <strong>Carton de 24</strong> changent d’avis sans
+            recommencer. Un article au kilo se pèse : tapez le poids que montre la balance.
+          </p>
+          <p>
+            <strong>Sans douchette</strong>, le bouton appareil photo du champ de recherche lit le
+            code avec la caméra du téléphone (Chrome sur Android). Il n’apparaît que sur les
+            appareils qui savent le faire.
+          </p>
           <h3>Encaisser</h3>
           <p>Choisissez le moyen de paiement :</p>
           <div class="tableau-cadre">
@@ -200,11 +230,18 @@
               </tbody>
             </table>
           </div>
-          <p>La valeur du stock se calcule au coût moyen d’achat, alimenté par les prix saisis à chaque commande fournisseur.</p>
+          <p>La valeur du stock se calcule au coût moyen d’achat, alimenté par les prix saisis à chaque commande fournisseur — par unité, même quand vous achetez au carton.</p>
+          <p>
+            La quantité se lit aussi en conditionnements : <em>269 pièces — 11 × Carton de 24 + 5
+            pièces</em>. Le bouton <strong>Ajuster</strong> déclare ce qui sort sans être vendu, avec
+            son motif : casse, péremption, perte ou vol, retour au fournisseur, usage interne — ou
+            ce qui revient d’un client. Il se compte au carton si besoin. Ces motifs mesurent ce
+            que le magasin perd sans le vendre.
+          </p>
           <h3>Faire l’inventaire</h3>
           <ol>
             <li>Ouvrez <strong>Stock › Inventaire</strong>. Le compteur de ce qui reste à compter reste visible en haut.</li>
-            <li>Scannez l’article, tapez la quantité comptée, validez : le champ reprend la main pour le suivant.</li>
+            <li>Scannez l’article, tapez la quantité comptée, validez : le champ reprend la main pour le suivant. Si l’article se vend en cartons, comptez les cartons fermés puis le vrac : l’écran fait le total.</li>
             <li>Une fois tout compté, passez aux <strong>écarts</strong> : ce que le stock croyait, ce que vous avez compté, la différence.</li>
             <li><strong>Valider et corriger le stock</strong> pose les mouvements de correction.</li>
           </ol>
@@ -222,7 +259,7 @@
           <h3>Préparer une commande</h3>
           <ol>
             <li><strong>Nouvelle commande</strong>, choisissez le fournisseur, ajoutez les articles.</li>
-            <li>Pour chaque ligne, la quantité et le <strong>prix d’achat</strong>.</li>
+            <li>Pour chaque ligne, l’unité d’achat (le pack, le carton, ou au détail), la quantité et le <strong>prix d’achat</strong> de cette unité. À la réception, on compte dans la même unité : trois cartons reçus font entrer 72 bouteilles.</li>
             <li>Enregistrez : c’est un brouillon, il se corrige ligne par ligne.</li>
             <li><strong>Valider</strong> passe la commande au fournisseur : les lignes ne bougent plus.</li>
           </ol>

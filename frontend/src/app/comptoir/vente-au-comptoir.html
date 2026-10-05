@@ -74,8 +74,16 @@
         <button matSuffix mat-icon-button (click)="chercher('')" aria-label="Effacer la recherche">
           <mat-icon>close</mat-icon>
         </button>
+      } @else if (cameraDisponible) {
+        <!-- Le petit commerce sans douchette scanne avec le telephone. -->
+        <button matSuffix mat-icon-button (click)="camera.set(true)" aria-label="Scanner à la caméra">
+          <mat-icon>photo_camera</mat-icon>
+        </button>
       }
     </mat-form-field>
+    @if (camera()) {
+      <gs-scan-camera (lu)="lireALaCamera($event)" (ferme)="camera.set(false)" />
+    }
 
     @if (codeInconnu(); as code) {
       <!--
