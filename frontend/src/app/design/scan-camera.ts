@@ -12,7 +12,8 @@ declare const BarcodeDetector: {
 };
 
 /** Les symbologies du commerce, et le QR. */
-const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'code_128', 'code_39', 'qr_code'];
+// `data_matrix` : le code des boites de medicaments et des produits frais, qui porte le lot (GS1).
+const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'itf', 'code_128', 'code_39', 'qr_code', 'data_matrix'];
 
 /**
  * Le telephone peut-il lire un code a la camera ?
