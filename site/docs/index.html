@@ -37,7 +37,9 @@
           <li><a href="#stock">Le stock et l’inventaire</a></li>
           <li><a href="#sites">Magasins, entrepôt et transferts</a></li>
           <li><a href="#lots">Lots et dates de péremption</a></li>
+          <li><a href="#commandes-clients">Commandes clients</a></li>
           <li><a href="#achats">Commander et recevoir</a></li>
+          <li><a href="#analyses">Analyses</a></li>
           <li><a href="#factures">Factures et caisse</a></li>
           <li><a href="#repertoire">Clients et fournisseurs</a></li>
           <li><a href="#campagnes">Campagnes</a></li>
@@ -339,6 +341,35 @@
           </div>
         </section>
 
+        <section id="commandes-clients">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#facture" /></svg></span>Commandes clients</h2>
+          <ul class="qui"><li>Gérant</li><li>Magasinier pour servir</li></ul>
+          <p>
+            Un client commande trente sacs pour la semaine prochaine ? <strong>Ventes › Commandes
+            clients</strong>, <strong>Nouvelle commande</strong> : le client, les articles — au prix du
+            catalogue, modifiable pour une remise —, et le site qui livre.
+          </p>
+          <h3>Valider, c’est réserver</h3>
+          <p>
+            Tant qu’elle est en préparation, la commande n’engage rien. <strong>Valider et
+            réserver</strong> met la marchandise de côté dans le site qui livre : le comptoir ne vend
+            plus que le <strong>disponible</strong>, le stock moins ce qui est réservé. L’état du stock
+            l’affiche sous la quantité.
+          </p>
+          <h3>Servir</h3>
+          <p>
+            Ouvrez la commande dans <strong>À servir</strong>, indiquez ce qui part maintenant — ou
+            <strong>Tout ce qui reste</strong> — et <strong>Servir</strong> : une vente est créée et la
+            marchandise sort du site qui livre. Une livraison en plusieurs fois laisse un
+            <strong>reliquat</strong>, toujours réservé ; le gérant peut le clôturer avec son motif si le
+            client y renonce. Annuler ou clôturer lève la réservation.
+          </p>
+          <div class="encadre">
+            <svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg>
+            <p>Une casse, une péremption ou une vente faite hors ligne se constatent même sur du stock réservé : la marchandise n’est plus là. Le réapprovisionnement en tient compte.</p>
+          </div>
+        </section>
+
         <!-- 5 ------------------------------------------------------------------------------- -->
         <section id="achats">
           <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#camion" /></svg></span>Commander et recevoir</h2>
@@ -364,6 +395,30 @@
             recevoir » pour la suite.
           </p>
           <p>Si le reliquat n’arrivera jamais, <strong>clôturez-le</strong> avec son motif. Rien n’entre en stock : clôturer, c’est constater une absence.</p>
+          <h3>Réapprovisionner</h3>
+          <p>
+            <strong>Achats › Réapprovisionner</strong> calcule ce qu’il faut commander pour tenir
+            <strong>15 jours de ventes</strong> (réglable dans <strong>Paramètres</strong>) au rythme des
+            30 derniers jours, plus le seuil d’alerte. Le disponible tient compte des réservations, et ce
+            qui est déjà commandé — brouillons compris — est déduit.
+          </p>
+          <p>
+            Chaque article est proposé chez son dernier fournisseur, dans l’unité du dernier achat,
+            arrondi au carton entier. Cochez, corrigez les quantités et les prix, choisissez le
+            fournisseur d’un article jamais acheté, puis <strong>Créer les commandes</strong> : une par
+            fournisseur, <strong>en préparation</strong>. Rien ne part sans être relu et validé dans les achats.
+          </p>
+        </section>
+
+        <section id="analyses">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg></span>Analyses</h2>
+          <ul class="qui"><li>Gérant</li><li>Comptable</li></ul>
+          <p><strong>Stock › Analyses</strong> répond à trois questions, sur 30 jours, 3 mois ou un an :</p>
+          <ul>
+            <li><strong>Qu’est-ce qui fait mon chiffre ?</strong> Les articles de <strong>classe A</strong> font les premiers 80 % du chiffre d’affaires : ce sont eux à ne jamais laisser en rupture. B fait les 15 % suivants, C le reste.</li>
+            <li><strong>Qu’est-ce qui dort ?</strong> Les <strong>dormants</strong> ont du stock et pas une vente sur la période. La tuile dit ce qu’ils immobilisent au coût d’achat.</li>
+            <li><strong>Combien de temps ça tient ?</strong> La colonne « Tient » donne le nombre de jours que dure le stock au rythme actuel.</li>
+          </ul>
         </section>
 
         <!-- 6 ------------------------------------------------------------------------------- -->

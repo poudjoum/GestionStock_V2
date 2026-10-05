@@ -60,7 +60,8 @@ class MvtStkServiceTest {
                 mock(SiteRepository.class), mock(ArticleSiteRepository.class),
                 mock(com.jumpy.tech.gestionstock.gestiondestock.lot.Lots.class),
                 mock(com.jumpy.tech.gestionstock.gestiondestock.repository.LotRepository.class),
-                mock(com.jumpy.tech.gestionstock.gestiondestock.promotion.Calendrier.class));
+                mock(com.jumpy.tech.gestionstock.gestiondestock.promotion.Calendrier.class),
+                mock(com.jumpy.tech.gestionstock.gestiondestock.reservation.Reservations.class));
 
         Article article = new Article();
         article.setId(ID_ARTICLE);

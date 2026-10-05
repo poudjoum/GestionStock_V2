@@ -75,6 +75,10 @@ public class Entreprise extends AbstractEntity{
     /** Combien de jours avant la date d'un lot le magasin veut etre prevenu, sauf article qui en decide autrement. */
     @Column(name="delai_alerte_peremption", nullable = false)
     private int delaiAlertePeremption = 30;
+
+    /** Combien de jours de ventes la proposition de reapprovisionnement couvre. */
+    @Column(name="jours_couverture", nullable = false)
+    private int joursCouverture = 15;
     /**
      * L'echeance de l'abonnement annuel. Nulle pour un commerce qui n'en a pas encore.
      *

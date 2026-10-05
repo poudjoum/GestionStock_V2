@@ -25,6 +25,10 @@ public class LigneInventaireDto {
 
     /** En unites de base. */
     private BigDecimal quantite;
+    /** Ce que les commandes clients validees retiennent ici, en unites de base. */
+    private BigDecimal reserve;
+    /** Ce qui peut encore se vendre : le stock moins le reserve, jamais sous zero. */
+    private BigDecimal disponible;
     private UniteMesure uniteBase;
     /** Suivi par lot : une entree a la main demande son lot, une sortie peut le designer. */
     private boolean suiviLot;

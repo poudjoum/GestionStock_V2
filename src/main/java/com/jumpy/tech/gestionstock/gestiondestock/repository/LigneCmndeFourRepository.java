@@ -7,6 +7,32 @@ import java.util.List;
 
 public interface LigneCmndeFourRepository extends JpaRepository<LigneCmndeFournisseur,Long> {
 
+    /**
+     * Ce qui est deja commande et pas encore arrive dans un site, par article, en unites de base.
+     * Les brouillons comptent : une proposition de reapprovisionnement transformee en brouillon ne
+     * doit pas etre proposee une seconde fois le lendemain.
+     */
+    @org.springframework.data.jpa.repository.Query(
+            "select l.articles.id, coalesce(sum((l.quantite - l.quantiteLivree) * l.contenance), 0) " +
+            "from LigneCmndeFournisseur l " +
+            "where l.commandeFournisseur.site.id = :idSite and l.commandeFournisseur.etat in :etats " +
+            "and l.quantite > l.quantiteLivree group by l.articles.id")
+    List<Object[]> enCommandeDansSite(
+            @org.springframework.data.repository.query.Param("idSite") Long idSite,
+            @org.springframework.data.repository.query.Param("etats")
+            java.util.Collection<com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande> etats);
+
+    /**
+     * Les achats passes des articles, le plus recent en tete : le premier de chaque article dit son
+     * fournisseur habituel, l'unite dans laquelle on l'achete et ce qu'il a coute.
+     */
+    @org.springframework.data.jpa.repository.Query(
+            "select l from LigneCmndeFournisseur l join fetch l.commandeFournisseur c join fetch c.fournisseur " +
+            "where l.articles.id in :idsArticles and c.etat <> com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande.ANNULEE " +
+            "order by c.dateCommande desc, l.id desc")
+    List<LigneCmndeFournisseur> achatsRecents(
+            @org.springframework.data.repository.query.Param("idsArticles") java.util.Collection<Long> idsArticles);
+
     /** Les lignes d'une commande, relues a la livraison pour faire entrer la marchandise. */
     List<LigneCmndeFournisseur> findAllByCommandeFournisseurId(Long idCommandeFournisseur);
 

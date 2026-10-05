@@ -108,6 +108,14 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
   },
   {
+    chemin: '/analyses',
+    groupe: 'stock',
+    libelle: 'Analyses',
+    icone: 'insights',
+    // Ce que rapporte chaque article : une lecture de gestion, comme la caisse.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
+  },
+  {
     chemin: '/peremptions',
     groupe: 'stock',
     libelle: 'Péremptions',
@@ -137,6 +145,13 @@ export const MENU: EntreeDeMenu[] = [
     principal: true,
   },
   {
+    chemin: '/reappro',
+    groupe: 'achats',
+    libelle: 'Réapprovisionner',
+    icone: 'autorenew',
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
+  },
+  {
     chemin: '/clients',
     groupe: 'clients',
     libelle: 'Clients',
@@ -159,6 +174,15 @@ export const MENU: EntreeDeMenu[] = [
     libelle: 'Factures',
     icone: 'receipt_long',
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
+  },
+  {
+    // Apres le stock dans ce tableau, et non avant : la premiere entree d'un role est son ecran
+    // d'arrivee, et le magasinier doit continuer d'arriver sur le stock.
+    chemin: '/commandes',
+    groupe: 'ventes',
+    libelle: 'Commandes clients',
+    icone: 'assignment',
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
   },
   {
     chemin: '/caisse',

@@ -163,6 +163,28 @@ public class CommandeClientServiceImpl implements CommandeClientService {
      * prennent ou qu'ils livrent : l'equipe de l'entrepot y trouve ce qu'elle a a preparer.
      */
     @Override
+    public org.springframework.data.domain.Page<CommandeClientDto> rechercher(
+            List<EtatCommande> etats, String q, org.springframework.data.domain.Pageable pageable) {
+        Long entreprise = cloisonnement.entrepriseCourante();
+        boolean tous = siteCourant.voitTousLesSites();
+        // Une liste vide dans `in` n'est pas comprise de toutes les bases : un identifiant qui ne
+        // designe aucun site tient lieu de « aucun ».
+        List<Long> sites = tous || entreprise == null ? List.of(-1L)
+                : siteRepository.findAllByIdEntrepriseOrderByPrincipalDescNomAsc(entreprise).stream()
+                        .filter(siteCourant::peutVoir).map(com.jumpy.tech.gestionstock.gestiondestock.entities.Site::getId)
+                        .collect(Collectors.toList());
+        return commandeClientRepository.rechercher(
+                        cloisonnement.filtre(),
+                        cloisonnement.filtre() ? entreprise : null,
+                        etats == null || etats.isEmpty() ? null : etats,
+                        tous,
+                        sites.isEmpty() ? List.of(-1L) : sites,
+                        com.jumpy.tech.gestionstock.gestiondestock.service.Impl.RechercheUtils.normaliser(q),
+                        pageable)
+                .map(CommandeClientDto::fromEntity);
+    }
+
+    @Override
     public List<CommandeClientDto> findAll() {
         return (cloisonnement.filtre()
                 ? commandeClientRepository.findAllByIdEntreprise(cloisonnement.entrepriseCourante())

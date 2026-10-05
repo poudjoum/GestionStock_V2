@@ -41,6 +41,13 @@ public class CommandeClientController implements CommandeClientApi {
     }
 
     @Override
+    public ResponseEntity<org.springframework.data.domain.Page<CommandeClientDto>> rechercher(
+            List<com.jumpy.tech.gestionstock.gestiondestock.entities.EtatCommande> etat, String q,
+            org.springframework.data.domain.Pageable pageable) {
+        return ResponseEntity.ok(cmdeCliService.rechercher(etat, q, pageable));
+    }
+
+    @Override
     public ResponseEntity<List<CommandeClientDto>> findAll() {
         return ResponseEntity.status(HttpStatus.OK).body(cmdeCliService.findAll());
     }

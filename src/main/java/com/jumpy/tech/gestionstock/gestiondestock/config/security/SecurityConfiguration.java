@@ -330,6 +330,15 @@ public class SecurityConfiguration {
                                 API + "/commandes-clients/*/cloture")
                             .hasAnyRole(ADMIN, MANAGER)
 
+                        // Le reapprovisionnement montre les prix d'achat et prepare des commandes :
+                        // ceux qui commandent deja. La regle GET generique l'ouvrirait au caissier.
+                        .requestMatchers(API + "/reappro", API + "/reappro/**")
+                            .hasAnyRole(ADMIN, MANAGER, MAGASINIER)
+                        // Les analyses disent ce que rapporte chaque article : une lecture de
+                        // gestion, comme la caisse, pas une information de rayon.
+                        .requestMatchers(HttpMethod.GET, API + "/analyses/**")
+                            .hasAnyRole(ADMIN, MANAGER, COMPTABLE)
+
                         // L'inventaire.
                         //
                         // Ouvrir fige le stock de tout le catalogue ; valider le corrige, et

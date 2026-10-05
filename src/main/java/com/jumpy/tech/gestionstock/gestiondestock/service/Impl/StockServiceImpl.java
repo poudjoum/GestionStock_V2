@@ -47,13 +47,16 @@ public class StockServiceImpl implements StockService {
     private final SiteCourant siteCourant;
     private final SiteRepository siteRepository;
     private final ArticleSiteRepository articleSiteRepository;
+    private final com.jumpy.tech.gestionstock.gestiondestock.reservation.Reservations reservations;
 
     public StockServiceImpl(ArticleRepository articleRepository, MvtStkRepository mvtStkRepository,
                             LigneCmndeFourRepository ligneCmndeFourRepository,
                             Cloisonnement cloisonnement,
                             ConditionnementRepository conditionnementRepository,
                             SiteCourant siteCourant, SiteRepository siteRepository,
-                            ArticleSiteRepository articleSiteRepository) {
+                            ArticleSiteRepository articleSiteRepository,
+                            com.jumpy.tech.gestionstock.gestiondestock.reservation.Reservations reservations) {
+        this.reservations = reservations;
         this.siteCourant = siteCourant;
         this.siteRepository = siteRepository;
         this.articleSiteRepository = articleSiteRepository;
@@ -189,6 +192,7 @@ public class StockServiceImpl implements StockService {
                         .collect(Collectors.toMap(l -> l.getArticle().getId(), ArticleSite::getSeuilAlerte));
         Map<Long, List<StockSiteDto>> parSite = detail ? repartition(ids) : Map.of();
         Map<Long, BigDecimal> couts = coutsMoyens(ids);
+        Map<Long, Map<Long, BigDecimal>> reserves = reservations.parArticleEtSite(ids);
         Map<Long, List<ConditionnementDto>> conditionnements =
                 conditionnementRepository.findAllByArticleIdInOrderByQuantiteUnitesAsc(ids).stream()
                         .filter(Conditionnement::isActif)
@@ -197,8 +201,13 @@ public class StockServiceImpl implements StockService {
 
         return articles.stream()
                 .map(article -> {
+                    Map<Long, BigDecimal> reserveParSite = reserves.getOrDefault(article.getId(), Map.of());
+                    // Le reserve du site lu ; en vue « tous sites », celui de toute l'entreprise.
+                    BigDecimal reserve = site == null
+                            ? reserveParSite.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add)
+                            : reserveParSite.getOrDefault(site.getId(), BigDecimal.ZERO);
                     LigneInventaireDto ligne = ligne(article, stocks.getOrDefault(article.getId(), BigDecimal.ZERO),
-                            couts.get(article.getId()),
+                            reserve, couts.get(article.getId()),
                             conditionnements.getOrDefault(article.getId(), List.of()),
                             seuils.getOrDefault(article.getId(), article.getSeuilAlerte()));
                     ligne.setIdSite(site == null ? null : site.getId());
@@ -236,20 +245,23 @@ public class StockServiceImpl implements StockService {
         return resultat;
     }
 
-    private LigneInventaireDto ligne(Article article, BigDecimal quantite, BigDecimal coutMoyen,
+    private LigneInventaireDto ligne(Article article, BigDecimal quantite, BigDecimal reserve, BigDecimal coutMoyen,
                                      List<ConditionnementDto> conditionnements, BigDecimal seuil) {
         BigDecimal prixVente = article.getPrixUnitaire();
+        BigDecimal disponible = quantite.subtract(reserve).max(BigDecimal.ZERO);
         return LigneInventaireDto.builder()
                 .idArticle(article.getId())
                 .codeArticle(article.getCodeArticle())
                 .designation(article.getDesignation())
                 .quantite(quantite)
+                .reserve(reserve)
+                .disponible(disponible)
                 .uniteBase(article.getUniteBase())
                 .suiviLot(article.isSuiviLot())
                 .typeDate(article.getTypeDate())
                 .conditionnements(conditionnements)
                 .seuilAlerte(seuil)
-                .statut(statut(quantite, seuil))
+                .statut(statut(quantite, disponible, seuil))
                 .coutMoyenAchat(coutMoyen)
                 // Nul quand le cout est inconnu : une valeur inventee se melerait aux vraies sans
                 // qu'on puisse ensuite les distinguer.
@@ -267,17 +279,19 @@ public class StockServiceImpl implements StockService {
      * synchronisee apres coup peut desormais la faire passer sous zero. Les deux n'appellent pas
      * le meme geste : la rupture se commande au fournisseur, le negatif se compte sur l'etagere.
      */
-    private StatutStock statut(BigDecimal quantite, BigDecimal seuil) {
+    private StatutStock statut(BigDecimal quantite, BigDecimal disponible, BigDecimal seuil) {
         if (quantite.signum() < 0) {
             return StatutStock.NEGATIF;
         }
-        if (quantite.signum() == 0) {
+        // Le seuil et la rupture se jugent sur le disponible : un rayon plein dont tout est promis a
+        // des commandes ne peut plus rien vendre, et c'est bien a recommander.
+        if (disponible.signum() == 0) {
             return StatutStock.RUPTURE;
         }
         if (seuil == null) {
             return StatutStock.SANS_SEUIL;
         }
-        return quantite.compareTo(seuil) <= 0 ? StatutStock.SOUS_SEUIL : StatutStock.SUFFISANT;
+        return disponible.compareTo(seuil) <= 0 ? StatutStock.SOUS_SEUIL : StatutStock.SUFFISANT;
     }
 
     private Map<Long, BigDecimal> stocks(List<Long> idsArticles, Site site) {

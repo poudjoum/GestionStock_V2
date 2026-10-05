@@ -226,6 +226,13 @@ public class EntrepriseServiceImpl implements EntrepriseService {
             }
             entreprise.setDelaiAlertePeremption(dto.getDelaiAlertePeremption());
         }
+        if (dto.getJoursCouverture() != null) {
+            if (dto.getJoursCouverture() < 1 || dto.getJoursCouverture() > 365) {
+                throw new InvalidEntityException("Les jours de ventes à couvrir vont de 1 à 365",
+                        ErrorCodes.ENTREPRISE_NOT_VALID);
+            }
+            entreprise.setJoursCouverture(dto.getJoursCouverture());
+        }
         if (dto.getMontantParPoint() != null) {
             if (dto.getMontantParPoint().signum() <= 0) {
                 throw new InvalidEntityException("Le montant pour un point doit être positif",

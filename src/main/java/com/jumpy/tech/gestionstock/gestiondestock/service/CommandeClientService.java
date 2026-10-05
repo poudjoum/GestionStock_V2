@@ -45,6 +45,10 @@ public interface CommandeClientService {
 
     CommandeClientDto save(CommandeClientDto dto);
     CommandeClientDto findById(Long id);
+
+    /** Liste paginee, filtree par etat (vide : tous) et par code ou nom du client. */
+    org.springframework.data.domain.Page<CommandeClientDto> rechercher(
+            List<EtatCommande> etats, String q, org.springframework.data.domain.Pageable pageable);
     CommandeClientDto findByCode(String code);
     List<CommandeClientDto> findAll();
 

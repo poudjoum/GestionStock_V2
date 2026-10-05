@@ -33,6 +33,13 @@ public interface CommandeClientApi {
     @GetMapping(value = APP_ROOT+"/commandes-clients/code/{code}",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<CommandeClientDto> findByCode(@PathVariable("code") String code);
 
+    /** Liste paginee et filtrable : `?etat=VALIDEE&etat=PARTIELLEMENT_LIVREE&q=mbarga&page=0&size=20`. */
+    @GetMapping(value = APP_ROOT+"/commandes-clients",produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<org.springframework.data.domain.Page<CommandeClientDto>> rechercher(
+            @RequestParam(required = false) List<EtatCommande> etat,
+            @RequestParam(required = false) String q,
+            org.springframework.data.domain.Pageable pageable);
+
     @GetMapping(value = APP_ROOT+"/commandes-clients/all",produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<List<CommandeClientDto>>findAll();
 

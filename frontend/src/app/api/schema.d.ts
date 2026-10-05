@@ -330,6 +330,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/reappro/commandes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["creerLesCommandes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/plateforme/commerces/{idCommerce}/suspension": {
         parameters: {
             query?: never;
@@ -1557,6 +1573,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/reappro": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["proposition"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/plateforme/resume": {
         parameters: {
             query?: never;
@@ -2130,6 +2162,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/commandes-clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["rechercher_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/commandes-clients/{idCommandClient}": {
         parameters: {
             query?: never;
@@ -2439,6 +2487,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/analyses/articles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["articles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/ventes/delete/{id}": {
         parameters: {
             query?: never;
@@ -2696,6 +2760,8 @@ export interface components {
             tauxTva?: number;
             /** Format: int32 */
             delaiAlertePeremption?: number;
+            /** Format: int32 */
+            joursCouverture?: number;
             fideliteActive?: boolean;
             montantParPoint?: number;
             adresseTickets?: string;
@@ -2966,6 +3032,57 @@ export interface components {
             quantiteRecue?: number;
             motifEcart?: string;
         };
+        CommandesReapproDto: {
+            lignes?: components["schemas"]["LigneCommandeReappro"][];
+        };
+        LigneCommandeReappro: {
+            /** Format: int64 */
+            idArticle?: number;
+            /** Format: int64 */
+            idFournisseur?: number;
+            /** Format: int64 */
+            idConditionnement?: number;
+            quantite?: number;
+            prixUnitaire?: number;
+        };
+        CommandeFourDto: {
+            /** Format: int64 */
+            id?: number;
+            code?: string;
+            /** Format: date-time */
+            dateCommande?: string;
+            fournisseur?: components["schemas"]["FournisseurDto"];
+            /** Format: int64 */
+            idEntreprise?: number;
+            /** @enum {string} */
+            etat?: "EN_PREPARATION" | "VALIDEE" | "PARTIELLEMENT_LIVREE" | "LIVREE" | "CLOTUREE" | "ANNULEE";
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            motifCloture?: string;
+            ligneCmndeFournisseur?: components["schemas"]["LigneCmndeFournisseurDto"][];
+        };
+        FournisseurDto: {
+            /** Format: int64 */
+            id?: number;
+            nom?: string;
+            prenom?: string;
+            adresse?: components["schemas"]["AdresseDto"];
+            tel?: string;
+            photo?: string;
+            mail?: string;
+        };
+        LigneCmndeFournisseurDto: {
+            /** Format: int64 */
+            id?: number;
+            article?: components["schemas"]["ArticleDto"];
+            quantite?: number;
+            quantiteLivree?: number;
+            resteALivrer?: number;
+            prixUnitaire?: number;
+            conditionnement?: components["schemas"]["ConditionnementDto"];
+            contenance?: number;
+        };
         CommerceDto: {
             /** Format: int64 */
             id?: number;
@@ -3086,16 +3203,6 @@ export interface components {
             /** Format: int32 */
             conditionnements?: number;
         };
-        FournisseurDto: {
-            /** Format: int64 */
-            id?: number;
-            nom?: string;
-            prenom?: string;
-            adresse?: components["schemas"]["AdresseDto"];
-            tel?: string;
-            photo?: string;
-            mail?: string;
-        };
         ReclamationTicketDto: {
             codeTicket?: string;
         };
@@ -3174,34 +3281,6 @@ export interface components {
             numeroLot?: string;
             /** Format: date */
             datePeremption?: string;
-        };
-        CommandeFourDto: {
-            /** Format: int64 */
-            id?: number;
-            code?: string;
-            /** Format: date-time */
-            dateCommande?: string;
-            fournisseur?: components["schemas"]["FournisseurDto"];
-            /** Format: int64 */
-            idEntreprise?: number;
-            /** @enum {string} */
-            etat?: "EN_PREPARATION" | "VALIDEE" | "PARTIELLEMENT_LIVREE" | "LIVREE" | "CLOTUREE" | "ANNULEE";
-            /** Format: int64 */
-            idSite?: number;
-            nomSite?: string;
-            motifCloture?: string;
-            ligneCmndeFournisseur?: components["schemas"]["LigneCmndeFournisseurDto"][];
-        };
-        LigneCmndeFournisseurDto: {
-            /** Format: int64 */
-            id?: number;
-            article?: components["schemas"]["ArticleDto"];
-            quantite?: number;
-            quantiteLivree?: number;
-            resteALivrer?: number;
-            prixUnitaire?: number;
-            conditionnement?: components["schemas"]["ConditionnementDto"];
-            contenance?: number;
         };
         ClotureDto: {
             motif?: string;
@@ -3355,6 +3434,8 @@ export interface components {
             codeArticle?: string;
             designation?: string;
             quantite?: number;
+            reserve?: number;
+            disponible?: number;
             /** @enum {string} */
             uniteBase?: "PIECE" | "KG" | "LITRE" | "METRE" | "M2" | "M3";
             suiviLot?: boolean;
@@ -3416,6 +3497,39 @@ export interface components {
             /** Format: int64 */
             actif?: number;
             tousLesSites?: boolean;
+        };
+        LigneReappro: {
+            /** Format: int64 */
+            idArticle?: number;
+            codeArticle?: string;
+            designation?: string;
+            /** @enum {string} */
+            uniteBase?: "PIECE" | "KG" | "LITRE" | "METRE" | "M2" | "M3";
+            stock?: number;
+            reserve?: number;
+            disponible?: number;
+            enCommande?: number;
+            seuil?: number;
+            vendu?: number;
+            parJour?: number;
+            couvertureJours?: number;
+            besoin?: number;
+            fournisseur?: components["schemas"]["FournisseurDto"];
+            conditionnement?: components["schemas"]["ConditionnementDto"];
+            contenance?: number;
+            quantiteProposee?: number;
+            prixAchat?: number;
+            raison?: string;
+        };
+        ReapproDto: {
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            /** Format: int32 */
+            joursCouverture?: number;
+            /** Format: int32 */
+            joursObserves?: number;
+            lignes?: components["schemas"]["LigneReappro"][];
         };
         ResumePlateformeDto: {
             /** Format: int64 */
@@ -3663,6 +3777,24 @@ export interface components {
             last?: boolean;
             empty?: boolean;
         };
+        PageCommandeClientDto: {
+            /** Format: int32 */
+            totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            size?: number;
+            content?: components["schemas"]["CommandeClientDto"][];
+            /** Format: int32 */
+            number?: number;
+            sort?: components["schemas"]["SortObject"];
+            pageable?: components["schemas"]["PageableObject"];
+            /** Format: int32 */
+            numberOfElements?: number;
+            first?: boolean;
+            last?: boolean;
+            empty?: boolean;
+        };
         PageClientDto: {
             /** Format: int32 */
             totalPages?: number;
@@ -3751,6 +3883,43 @@ export interface components {
         ResultatScanDto: {
             article?: components["schemas"]["ArticleDto"];
             conditionnement?: components["schemas"]["ConditionnementDto"];
+        };
+        AnalyseArticlesDto: {
+            /** Format: int32 */
+            jours?: number;
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            chiffreAffaires?: number;
+            /** Format: int64 */
+            nombreA?: number;
+            /** Format: int64 */
+            nombreB?: number;
+            /** Format: int64 */
+            nombreC?: number;
+            /** Format: int64 */
+            nombreDormants?: number;
+            valeurDormante?: number;
+            articles?: components["schemas"]["LigneAnalyse"][];
+        };
+        LigneAnalyse: {
+            /** Format: int64 */
+            idArticle?: number;
+            codeArticle?: string;
+            designation?: string;
+            /** @enum {string} */
+            uniteBase?: "PIECE" | "KG" | "LITRE" | "METRE" | "M2" | "M3";
+            chiffreAffaires?: number;
+            quantiteVendue?: number;
+            part?: number;
+            partCumulee?: number;
+            classe?: string;
+            stock?: number;
+            couvertureJours?: number;
+            dormant?: boolean;
+            valeurStock?: number;
+            /** Format: date-time */
+            derniereVente?: string;
         };
     };
     responses: never;
@@ -4410,6 +4579,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SiteDto"];
+                };
+            };
+        };
+    };
+    creerLesCommandes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommandesReapproDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommandeFourDto"][];
                 };
             };
         };
@@ -6406,6 +6599,26 @@ export interface operations {
             };
         };
     };
+    proposition: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReapproDto"];
+                };
+            };
+        };
+    };
     resume: {
         parameters: {
             query?: never;
@@ -7138,6 +7351,30 @@ export interface operations {
             };
         };
     };
+    rechercher_1: {
+        parameters: {
+            query: {
+                etat?: ("EN_PREPARATION" | "VALIDEE" | "PARTIELLEMENT_LIVREE" | "LIVREE" | "CLOTUREE" | "ANNULEE")[];
+                q?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageCommandeClientDto"];
+                };
+            };
+        };
+    };
     findById_6: {
         parameters: {
             query?: never;
@@ -7546,6 +7783,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ArticleDto"][];
+                };
+            };
+        };
+    };
+    articles: {
+        parameters: {
+            query?: {
+                jours?: number;
+                tousSites?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalyseArticlesDto"];
                 };
             };
         };
