@@ -216,6 +216,31 @@
         </section>
 
         <section class="carte p-5">
+          <h2 class="gs-etiquette mb-1 mt-0">Résumés par courriel</h2>
+          <p class="mb-4 gs-encre-2 text-sm">
+            Les chiffres arrivent dans la boîte des administrateurs et des gérants, à 7 h, sans ouvrir
+            l’application : chiffre d’affaires, marge, démarque, impayés.
+          </p>
+          <div class="flex flex-col gap-3">
+            <mat-slide-toggle
+              [ngModel]="brouillon().resumeHebdo !== false"
+              (ngModelChange)="changer('resumeHebdo', $event)"
+              name="resumeHebdo"
+            >
+              Le résumé de la semaine, chaque lundi
+            </mat-slide-toggle>
+            <mat-slide-toggle
+              [ngModel]="brouillon().resumeQuotidien === true"
+              (ngModelChange)="changer('resumeQuotidien', $event)"
+              name="resumeQuotidien"
+            >
+              Le résumé de la veille, chaque matin
+            </mat-slide-toggle>
+          </div>
+          <p class="mt-3 gs-encre-3 text-xs">Une journée sans vente n’envoie rien.</p>
+        </section>
+
+        <section class="carte p-5">
           <h2 class="gs-etiquette mb-1 mt-0">Réapprovisionnement</h2>
           <p class="mb-4 gs-encre-2 text-sm">
             Combien de jours de ventes la proposition de commande doit couvrir, en plus du seuil

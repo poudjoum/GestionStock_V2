@@ -130,6 +130,10 @@ public class Expediteur {
     }
 
     private void envoyer(Envoi envoi) {
+        if (StringUtils.hasText(envoi.getCorpsHtml())) {
+            envoyerMisEnForme(envoi);
+            return;
+        }
         SimpleMailMessage message = new SimpleMailMessage();
         if (StringUtils.hasText(expediteur)) {
             message.setFrom(expediteur);
@@ -138,6 +142,27 @@ public class Expediteur {
         message.setSubject(envoi.getSujet());
         message.setText(envoi.getCorps());
         mailSender.send(message);
+    }
+
+    /**
+     * Le texte et le HTML dans le meme courriel (multipart/alternative) : chaque messagerie montre
+     * celui qu'elle sait afficher.
+     */
+    private void envoyerMisEnForme(Envoi envoi) {
+        try {
+            jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+            org.springframework.mail.javamail.MimeMessageHelper aide =
+                    new org.springframework.mail.javamail.MimeMessageHelper(message, true, "UTF-8");
+            if (StringUtils.hasText(expediteur)) {
+                aide.setFrom(expediteur);
+            }
+            aide.setTo(envoi.getDestination());
+            aide.setSubject(envoi.getSujet());
+            aide.setText(envoi.getCorps(), envoi.getCorpsHtml());
+            mailSender.send(message);
+        } catch (jakarta.mail.MessagingException e) {
+            throw new org.springframework.mail.MailPreparationException("Courriel mal forme : " + e.getMessage(), e);
+        }
     }
 
     /**

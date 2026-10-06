@@ -92,6 +92,12 @@ export const routes: Routes = [
         loadComponent: () => import('./rapports/comptabilite').then((m) => m.Comptabilite),
       },
       {
+        // Le document du mois, en A4 : a imprimer ou a enregistrer en PDF.
+        path: 'rapport-du-mois',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],
+        loadComponent: () => import('./rapports/mois').then((m) => m.RapportDuMois),
+      },
+      {
         // Ce que rapporte chaque article : classes ABC, couverture, dormants.
         path: 'analyses',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],

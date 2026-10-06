@@ -132,6 +132,13 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
   },
   {
+    chemin: '/rapport-du-mois',
+    groupe: 'rapports',
+    libelle: 'Rapport du mois',
+    icone: 'picture_as_pdf',
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
+  },
+  {
     chemin: '/analyses',
     groupe: 'rapports',
     libelle: 'Analyses',

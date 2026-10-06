@@ -53,6 +53,9 @@ public class EntrepriseDto {
     private Integer delaiAlertePeremption;
     /** Jours de ventes que couvre la proposition de reapprovisionnement. */
     private Integer joursCouverture;
+    /** Les resumes par courriel : la semaine le lundi, la veille chaque matin. */
+    private Boolean resumeHebdo;
+    private Boolean resumeQuotidien;
 
     /** Si les tickets rapportent des points de fidelite. Vrai par defaut. */
     private Boolean fideliteActive;
@@ -93,6 +96,8 @@ public class EntrepriseDto {
                 .tauxTva(en.getTauxTva())
                 .delaiAlertePeremption(en.getDelaiAlertePeremption())
                 .joursCouverture(en.getJoursCouverture())
+                .resumeHebdo(en.isResumeHebdo())
+                .resumeQuotidien(en.isResumeQuotidien())
                 .fideliteActive(en.isFideliteActive())
                 .montantParPoint(en.getMontantParPoint())
                 .build();

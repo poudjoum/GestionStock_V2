@@ -1,0 +1,182 @@
+@let r = rapports();
+@let c = commerce();
+
+<div class="page">
+  <gs-en-tete-page titre="Rapport du mois" sousTitre="Le document à garder, à envoyer ou à présenter : deux pages, en PDF ou sur papier.">
+    @if (peutVoirTout()) {
+      <gs-selecteur aria-label="Rapport de" [options]="portees()" [valeur]="portee()" (valeurChange)="changerPortee($event)" />
+    }
+    <button mat-flat-button (click)="imprimer()" [disabled]="!r || chargement()">
+      <mat-icon>print</mat-icon>
+      Imprimer ou enregistrer en PDF
+    </button>
+  </gs-en-tete-page>
+
+  <div class="barre-outils">
+    <div class="choix-mois" role="group" aria-label="Mois du rapport">
+      <button mat-icon-button (click)="changerDeMois(-1)" aria-label="Mois précédent"><mat-icon>chevron_left</mat-icon></button>
+      <span class="nom-mois">{{ nomDuMois() }}</span>
+      <button mat-icon-button (click)="changerDeMois(1)" [disabled]="dernierMois()" aria-label="Mois suivant"><mat-icon>chevron_right</mat-icon></button>
+    </div>
+  </div>
+
+  @if (erreur(); as message) {
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  } @else if (chargement() && !r) {
+    <div class="squelette feuille-squelette"></div>
+  } @else if (r) {
+    @let v = r.ventes.courant!;
+    @let p = r.ventes.precedent!;
+    @let a = r.ventes.anneePrecedente!;
+    @let d = r.pertes.demarque!;
+    @let i = r.pertes.impayes!;
+    @let z = r.pertes.dormants!;
+
+    <!-- La feuille : ce qui s'imprime, et rien d'autre. -->
+    <article #feuille class="feuille" [class.recharge]="chargement()">
+      <header class="entete">
+        @if (c?.logo) {
+          <img class="logo" [src]="c?.logo" alt="" />
+        }
+        <div class="identite">
+          <div class="commerce">{{ c?.nom ?? 'Votre commerce' }}</div>
+          <h1>Rapport de {{ nomDuMois() }}</h1>
+          <div class="meta">
+            {{ r.ventes.nomSite ?? 'Tous les sites' }}
+            @if (c?.niu) { · NIU {{ c?.niu }} }
+            · édité le {{ edition }}
+          </div>
+        </div>
+      </header>
+
+      <section class="bloc">
+        <h2>Ventes et marge</h2>
+        <table class="chiffres">
+          <thead>
+            <tr><th></th><th>{{ nomDuMois() }}</th><th>vs mois précédent</th><th>vs l’an dernier</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Chiffre d’affaires HT</td>
+              <td class="fort">{{ v.chiffreAffaires | number: '1.0-0' }} F</td>
+              <td>{{ variation(ecart(v.chiffreAffaires, p.chiffreAffaires)) }}</td>
+              <td>{{ variation(ecart(v.chiffreAffaires, a.chiffreAffaires)) }}</td>
+            </tr>
+            <tr>
+              <td>Marge @if (v.tauxMarge != null) { <span class="leger">({{ v.tauxMarge | number: '1.0-1' }} %)</span> }</td>
+              <td class="fort">{{ v.tauxMarge == null ? '—' : (v.marge | number: '1.0-0') + ' F' }}</td>
+              <td>{{ variation(ecart(v.marge, p.marge)) }}</td>
+              <td>{{ variation(ecart(v.marge, a.marge)) }}</td>
+            </tr>
+            <tr>
+              <td>Tickets</td>
+              <td class="fort">{{ v.tickets | number }}</td>
+              <td>{{ variation(ecart(v.tickets, p.tickets)) }}</td>
+              <td>{{ variation(ecart(v.tickets, a.tickets)) }}</td>
+            </tr>
+            <tr>
+              <td>Panier moyen</td>
+              <td class="fort">{{ v.panierMoyen | number: '1.0-0' }} F</td>
+              <td>{{ variation(ecart(v.panierMoyen, p.panierMoyen)) }}</td>
+              <td>{{ variation(ecart(v.panierMoyen, a.panierMoyen)) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="graphique">
+          <gs-courbe [series]="series()" [libelles]="joursLongs()" [libellesCourts]="jours()" titreAbscisse="Jour"
+                     description="Chiffre d’affaires et marge, jour par jour" />
+        </div>
+
+        <div class="deux">
+          <div>
+            <h3>Les rayons</h3>
+            <table class="liste">
+              @for (rayon of (r.ventes.parCategorie ?? []).slice(0, 6); track rayon.libelle) {
+                <tr><td>{{ rayon.libelle }}</td><td class="nombre">{{ rayon.chiffreAffaires | number: '1.0-0' }} F</td><td class="leger nombre">{{ rayon.part | number: '1.0-1' }} %</td></tr>
+              } @empty {
+                <tr><td class="leger">Aucune vente.</td></tr>
+              }
+            </table>
+          </div>
+          <div>
+            <h3>Les vendeurs</h3>
+            <table class="liste">
+              @for (vendeur of (r.ventes.parVendeur ?? []).slice(0, 6); track vendeur.libelle) {
+                <tr><td>{{ vendeur.libelle }}</td><td class="nombre">{{ vendeur.chiffreAffaires | number: '1.0-0' }} F</td><td class="leger nombre">{{ vendeur.tickets }} tickets</td></tr>
+              } @empty {
+                <tr><td class="leger">Aucune vente.</td></tr>
+              }
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>Où le commerce perd</h2>
+        <div class="trois">
+          <div class="encadre">
+            <div class="etiquette">Démarque</div>
+            <div class="montant">{{ d.valeur | number: '1.0-0' }} F</div>
+            <div class="leger">@if (d.tauxDuChiffre != null) { {{ d.tauxDuChiffre | number: '1.0-1' }} % du chiffre d’affaires } @else { — }</div>
+          </div>
+          <div class="encadre">
+            <div class="etiquette">Impayés à ce jour</div>
+            <div class="montant">{{ i.total | number: '1.0-0' }} F</div>
+            <div class="leger">{{ i.clients }} client{{ (i.clients ?? 0) > 1 ? 's' : '' }}@if (impayesAnciens() > 0) {, dont {{ impayesAnciens() | number: '1.0-0' }} F à plus de 60 jours}</div>
+          </div>
+          <div class="encadre">
+            <div class="etiquette">Stock qui dort</div>
+            <div class="montant">{{ z.valeur | number: '1.0-0' }} F</div>
+            <div class="leger">{{ z.nombre }} article{{ (z.nombre ?? 0) > 1 ? 's' : '' }} sans vente depuis {{ z.jours }} jours</div>
+          </div>
+        </div>
+        @if ((d.parMotif ?? []).length > 0) {
+          <h3>La démarque par cause</h3>
+          <table class="liste">
+            @for (m of d.parMotif; track m.cle) {
+              <tr><td>{{ m.libelle }}</td><td class="nombre">{{ m.valeur | number: '1.0-0' }} F</td><td class="leger nombre">{{ m.mouvements }} mouvement{{ (m.mouvements ?? 0) > 1 ? 's' : '' }}</td></tr>
+            }
+          </table>
+        }
+      </section>
+
+      <section class="bloc">
+        <h2>TVA et encaissements</h2>
+        <div class="deux">
+          <div>
+            <h3>TVA collectée</h3>
+            <table class="liste">
+              @for (t of r.compta.tva ?? []; track t.libelle) {
+                <tr><td>{{ t.libelle }}</td><td class="nombre">base {{ t.baseHt | number: '1.0-0' }} F</td><td class="nombre fort">{{ t.tva | number: '1.2-2' }} F</td></tr>
+              } @empty {
+                <tr><td class="leger">Aucune facture émise.</td></tr>
+              }
+              @if ((r.compta.tva ?? []).length > 0) {
+                <tr class="total"><td>Total</td><td class="nombre">{{ r.compta.totalHt | number: '1.0-0' }} F</td><td class="nombre">{{ r.compta.totalTva | number: '1.2-2' }} F</td></tr>
+              }
+            </table>
+          </div>
+          <div>
+            <h3>Encaissé : {{ r.compta.totalEncaisse | number: '1.0-0' }} F</h3>
+            <table class="liste">
+              @for (m of r.compta.encaissementsParMode ?? []; track m.mode) {
+                <tr><td>{{ m.libelle }}</td><td class="nombre">{{ m.montant | number: '1.0-0' }} F</td><td class="leger nombre">{{ m.nombre }}</td></tr>
+              } @empty {
+                <tr><td class="leger">Aucun règlement.</td></tr>
+              }
+            </table>
+          </div>
+        </div>
+      </section>
+
+      @if (v.estimee || d.estimee) {
+        <p class="note">Une partie de la marge et de la démarque est estimée au coût d’achat actuel : ces mouvements datent d’avant que GestionStock fige le coût.</p>
+      }
+      <footer class="pied">{{ c?.nom }} · Rapport de {{ nomDuMois() }} · GestionStock</footer>
+    </article>
+  }
+</div>
