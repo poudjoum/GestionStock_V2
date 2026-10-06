@@ -108,3 +108,15 @@ gs-section + .grille-2,
 .gs-tableau a:focus-visible {
   text-decoration: underline;
 }
+
+/* La ligne des totaux d'un tableau : ce que le comptable reporte. */
+.ligne-total td {
+  font-weight: 700;
+  border-top: 2px solid var(--gs-trait-fort);
+}
+
+/* Une facture annulee reste au journal, effacee : elle justifie la numerotation. */
+tr.annulee td {
+  color: var(--gs-encre-3);
+  font-style: italic;
+}

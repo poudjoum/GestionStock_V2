@@ -86,6 +86,12 @@ export const routes: Routes = [
         loadComponent: () => import('./rapports/pertes').then((m) => m.Pertes),
       },
       {
+        // La TVA par taux, les journaux, et le classeur du comptable.
+        path: 'comptabilite',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],
+        loadComponent: () => import('./rapports/comptabilite').then((m) => m.Comptabilite),
+      },
+      {
         // Ce que rapporte chaque article : classes ABC, couverture, dormants.
         path: 'analyses',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],
