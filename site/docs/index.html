@@ -39,6 +39,7 @@
           <li><a href="#lots">Lots et dates de péremption</a></li>
           <li><a href="#commandes-clients">Commandes clients</a></li>
           <li><a href="#achats">Commander et recevoir</a></li>
+          <li><a href="#rapports">Ventes et marge</a></li>
           <li><a href="#analyses">Analyses</a></li>
           <li><a href="#factures">Factures et caisse</a></li>
           <li><a href="#repertoire">Clients et fournisseurs</a></li>
@@ -418,6 +419,25 @@
             fournisseur d’un article jamais acheté, puis <strong>Créer les commandes</strong> : une par
             fournisseur, <strong>en préparation</strong>. Rien ne part sans être relu et validé dans les achats.
           </p>
+        </section>
+
+        <section id="rapports">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg></span>Ventes et marge</h2>
+          <ul class="qui"><li>Gérant</li><li>Comptable</li></ul>
+          <p>
+            <strong>Rapports › Ventes et marge</strong> dit, pour la période choisie — aujourd’hui, 7 jours,
+            ce mois, le mois dernier, l’année, ou des dates libres — le <strong>chiffre d’affaires HT</strong>,
+            la <strong>marge</strong>, le nombre de tickets et le panier moyen. Chaque chiffre se compare à la
+            période précédente de même longueur et à la même période l’an dernier.
+          </p>
+          <p>
+            Dessous : la courbe du chiffre et de la marge (survolez-la pour lire un jour précis), puis où se
+            fait le chiffre — par rayon, par vendeur, par site, par heure et par jour de la semaine.
+          </p>
+          <div class="encadre">
+            <svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg>
+            <p>La marge se calcule avec le coût d’achat moyen <strong>figé au moment de chaque vente</strong> : une livraison plus chère ne change pas ce que les ventes passées ont rapporté. Les ventes enregistrées avant la mise en service des rapports (octobre 2026) n’ont pas ce coût : leur marge est <strong>estimée</strong> au coût actuel, et l’écran le signale. Un article jamais reçu par une commande fournisseur n’a pas de coût : il compte dans le chiffre, pas dans la marge.</p>
+          </div>
         </section>
 
         <section id="analyses">

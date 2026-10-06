@@ -64,6 +64,10 @@ public class Vente extends AbstractEntity{
      * mouvement de compensation, et la vente reste lisible. Supprimer la ligne ferait disparaitre
      * une recette encaissee puis rendue, que la caisse doit pourtant pouvoir retrouver.
      */
+    /** Le compte qui a enregistre la vente ; nul pour les ventes d'avant qu'on le note. */
+    @Column(name="id_vendeur")
+    private Long idVendeur;
+
     @Column(name="annulee", nullable = false)
     private boolean annulee;
     /**

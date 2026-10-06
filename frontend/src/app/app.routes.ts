@@ -74,6 +74,12 @@ export const routes: Routes = [
         loadComponent: () => import('./achats/reappro').then((m) => m.Reappro),
       },
       {
+        // Les rapports : ventes, marge, comparaisons.
+        path: 'rapports',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],
+        loadComponent: () => import('./rapports/rapports').then((m) => m.Rapports),
+      },
+      {
         // Ce que rapporte chaque article : classes ABC, couverture, dormants.
         path: 'analyses',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],

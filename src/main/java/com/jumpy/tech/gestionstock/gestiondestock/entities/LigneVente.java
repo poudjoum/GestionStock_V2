@@ -43,6 +43,14 @@ public class LigneVente extends AbstractEntity{
      * Combien d'unites de base vaut une unite de la ligne, figee a la saisie. Le stock bouge de
      * `quantite x contenance` : un carton redefini plus tard ne reecrit pas ce qui est deja sorti.
      */
+    /**
+     * Le cout d'achat moyen de l'unite de base au moment de la vente, fige comme la contenance :
+     * la marge d'une vente ne change pas a la livraison suivante. Nul pour les ventes d'avant le
+     * reporting — leur marge n'est qu'estimee.
+     */
+    @Column(name="cout_unitaire", precision = 19, scale = 4)
+    private BigDecimal coutUnitaire;
+
     @Column(name="contenance", nullable = false)
     private BigDecimal contenance = BigDecimal.ONE;
 }

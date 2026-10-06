@@ -61,6 +61,15 @@
   --gs-defilement: var(--gs-trait-fort);
   --gs-defilement-survol: var(--gs-encre-3);
 
+  /* Les series des graphiques : le chiffre d'affaires dans le vert de la marque, la marge en
+     violet. Paire validee (daltonisme ΔE 22,8 ; contraste >= 3:1 sur la surface). Jamais les
+     couleurs de statut : une marge n'est pas une alerte. La periode precedente, en gris et en
+     pointilles : le motif la distingue, pas seulement la teinte. */
+  --gs-serie-1: #24804f;
+  --gs-serie-2: #4a3aa7;
+  --gs-serie-reference: var(--gs-encre-3);
+  --gs-grille: var(--gs-trait);
+
   /* Les polices, toutes hebergees avec l'application : une caisse sans reseau garde les siennes. */
   --gs-police-titre: 'Bricolage Grotesque Variable', 'Segoe UI', system-ui, sans-serif;
   --gs-police-texte: 'Public Sans', 'Segoe UI', system-ui, sans-serif;
@@ -126,6 +135,10 @@
     --gs-menu-fond: #12301f;
     --gs-menu-encre: #e6ece7;
     --gs-focus: #3f8f63;
+
+    /* Les memes series, choisies pour la surface sombre (ΔE 18,2), et non retournees. */
+    --gs-serie-1: #45a872;
+    --gs-serie-2: #9085e9;
 
     --gs-ombre-1: 0 1px 2px rgb(0 0 0 / 0.4);
     --gs-ombre-2: 0 8px 24px rgb(0 0 0 / 0.5);

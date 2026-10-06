@@ -1589,6 +1589,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/rapports/ventes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ventes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/plateforme/resume": {
         parameters: {
             query?: never;
@@ -3339,8 +3355,8 @@ export interface components {
             username?: string;
             email?: string;
             roles?: string[];
-            accessToken?: string;
             tokenType?: string;
+            accessToken?: string;
         };
         RafraichissementRequest: {
             refreshToken: string;
@@ -3530,6 +3546,58 @@ export interface components {
             /** Format: int32 */
             joursObserves?: number;
             lignes?: components["schemas"]["LigneReappro"][];
+        };
+        Indicateurs: {
+            /** Format: date */
+            debut?: string;
+            /** Format: date */
+            fin?: string;
+            chiffreAffaires?: number;
+            marge?: number;
+            caCouvert?: number;
+            tauxMarge?: number;
+            /** Format: int64 */
+            tickets?: number;
+            panierMoyen?: number;
+            estimee?: boolean;
+        };
+        PointVentes: {
+            cle?: string;
+            chiffreAffaires?: number;
+            marge?: number;
+            /** Format: int64 */
+            tickets?: number;
+        };
+        RapportVentesDto: {
+            /** Format: date */
+            debut?: string;
+            /** Format: date */
+            fin?: string;
+            pas?: string;
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            courant?: components["schemas"]["Indicateurs"];
+            precedent?: components["schemas"]["Indicateurs"];
+            anneePrecedente?: components["schemas"]["Indicateurs"];
+            serie?: components["schemas"]["PointVentes"][];
+            seriePrecedente?: components["schemas"]["PointVentes"][];
+            parCategorie?: components["schemas"]["Repartition"][];
+            parSite?: components["schemas"]["Repartition"][];
+            parVendeur?: components["schemas"]["Repartition"][];
+            parHeure?: components["schemas"]["PointVentes"][];
+            parJourSemaine?: components["schemas"]["PointVentes"][];
+        };
+        Repartition: {
+            /** Format: int64 */
+            id?: number;
+            libelle?: string;
+            chiffreAffaires?: number;
+            marge?: number;
+            tauxMarge?: number;
+            /** Format: int64 */
+            tickets?: number;
+            part?: number;
         };
         ResumePlateformeDto: {
             /** Format: int64 */
@@ -6615,6 +6683,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReapproDto"];
+                };
+            };
+        };
+    };
+    ventes: {
+        parameters: {
+            query: {
+                debut: string;
+                fin: string;
+                tousSites?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RapportVentesDto"];
                 };
             };
         };

@@ -39,6 +39,12 @@ public class Cloisonnement {
         return utilisateur == null ? null : utilisateur.getIdEntreprise();
     }
 
+    /** Le compte de l'appelant, ou `null` hors de toute authentification. */
+    public Long utilisateurCourant() {
+        UserDetailsImpl utilisateur = utilisateur();
+        return utilisateur == null ? null : utilisateur.getId();
+    }
+
     /** Le super-administrateur n'est cloisonne par rien : il cree les entreprises. */
     public boolean estSuperAdmin() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

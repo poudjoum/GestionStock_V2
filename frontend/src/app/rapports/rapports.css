@@ -1,0 +1,99 @@
+.tuiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--gs-esp-3);
+  margin-bottom: var(--gs-esp-4);
+}
+
+.tuile {
+  padding: var(--gs-esp-4);
+}
+
+/* Le chiffre qu'on vient chercher : le plus gros de l'ecran. */
+.chiffre {
+  margin: 6px 0 2px;
+  font: 700 var(--gs-chiffre) / 1.1 var(--gs-police-titre);
+  color: var(--gs-encre);
+}
+
+.unite {
+  font-size: var(--gs-texte-lg);
+  font-weight: 600;
+  color: var(--gs-encre-2);
+}
+
+.detail {
+  margin: 0 0 6px;
+  font-size: var(--gs-texte-sm);
+  color: var(--gs-encre-2);
+}
+
+.ecarts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  font-size: var(--gs-texte-xs);
+}
+
+/* La hausse et la baisse : une icone et un signe, jamais la couleur seule. */
+.ecart {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--gs-encre-2);
+}
+
+.ecart mat-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
+.ecart.hausse {
+  color: var(--gs-succes);
+}
+
+.ecart.baisse {
+  color: var(--gs-danger);
+}
+
+.reference {
+  color: var(--gs-encre-3);
+}
+
+.grille-2 {
+  display: grid;
+  gap: var(--gs-esp-4);
+  margin-top: var(--gs-esp-4);
+}
+
+@media (min-width: 1024px) {
+  .grille-2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+gs-section {
+  display: block;
+}
+
+/* L'espace entre les blocs, sans toucher a leur affichage : la grille doit rester une grille. */
+gs-section + gs-section,
+gs-section + .grille-2,
+.grille-2 + gs-section {
+  margin-top: var(--gs-esp-4);
+}
+
+/* Dans la grille, les cartes cote a cote partent de la meme ligne. */
+.grille-2 > gs-section {
+  margin-top: 0;
+}
+
+/* Pendant qu'une autre periode se charge, l'ancienne reste, estompee : la page ne saute pas. */
+.recharge {
+  opacity: 0.55;
+  transition: opacity 120ms ease;
+}
