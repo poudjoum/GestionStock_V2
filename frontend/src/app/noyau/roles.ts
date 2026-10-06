@@ -30,13 +30,14 @@ export const LIBELLE_DES_ROLES: Record<Role, string> = {
  * les pense : ce qu'on vend, ce qu'on a en rayon, ce qu'on commande, ses clients, et les reglages
  * du commerce. `null` : l'entree se place au-dessus des groupes (l'accueil).
  */
-export type GroupeDeMenu = 'plateforme' | 'ventes' | 'stock' | 'achats' | 'clients' | 'reglages';
+export type GroupeDeMenu = 'plateforme' | 'ventes' | 'stock' | 'achats' | 'rapports' | 'clients' | 'reglages';
 
 export const GROUPES: { id: GroupeDeMenu; libelle: string }[] = [
   { id: 'plateforme', libelle: 'Plateforme' },
   { id: 'ventes', libelle: 'Ventes' },
   { id: 'stock', libelle: 'Stock' },
   { id: 'achats', libelle: 'Achats' },
+  { id: 'rapports', libelle: 'Rapports' },
   { id: 'clients', libelle: 'Clients et promos' },
   { id: 'reglages', libelle: 'Réglages' },
 ];
@@ -108,8 +109,16 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_MAGASINIER'],
   },
   {
+    chemin: '/rapports',
+    groupe: 'rapports',
+    libelle: 'Ventes et marge',
+    icone: 'query_stats',
+    // Est-ce que je gagne, et ca monte ou ca baisse : une lecture de gestion.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
+  },
+  {
     chemin: '/analyses',
-    groupe: 'stock',
+    groupe: 'rapports',
     libelle: 'Analyses',
     icone: 'insights',
     // Ce que rapporte chaque article : une lecture de gestion, comme la caisse.

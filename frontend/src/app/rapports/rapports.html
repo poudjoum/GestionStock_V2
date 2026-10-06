@@ -1,0 +1,124 @@
+@let r = rapport();
+
+<div class="page">
+  <gs-en-tete-page titre="Ventes et marge" [sousTitre]="periode() ? periode() + (r?.nomSite ? ' · ' + r?.nomSite : tousSites() ? ' · tous les sites' : '') : 'Ce que le commerce vend, et ce qu’il gagne.'">
+    @if (peutVoirTout()) {
+      <gs-selecteur aria-label="Rapport de" [options]="portees()" [valeur]="portee()" (valeurChange)="changerPortee($event)" />
+    }
+  </gs-en-tete-page>
+
+  <div class="barre-outils">
+    <gs-selecteur aria-label="Période" [options]="presets" [valeur]="preset()" (valeurChange)="choisirPreset($event)" />
+    @if (preset() === 'libre') {
+      <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+        <mat-label>Du</mat-label>
+        <input matInput type="date" [ngModel]="debut()" (ngModelChange)="changerDates($event, fin())" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+        <mat-label>Au</mat-label>
+        <input matInput type="date" [ngModel]="fin()" (ngModelChange)="changerDates(debut(), $event)" />
+      </mat-form-field>
+    }
+  </div>
+
+  @if (erreur(); as message) {
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  } @else if (chargement() && !r) {
+    <div class="tuiles">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="squelette h-28"></div>
+      }
+    </div>
+    <div class="squelette h-72"></div>
+  } @else if (r) {
+    <div [class.recharge]="chargement()">
+      <!-- Les quatre chiffres, et comment ils ont bouge. -->
+      <div class="tuiles">
+        @for (t of tuiles(); track t.libelle) {
+          <section class="carte tuile">
+            <h2 class="gs-etiquette m-0">{{ t.libelle }}</h2>
+            <p class="chiffre nombre">{{ t.valeur | number: '1.0-0' }}@if (t.unite) {<span class="unite"> {{ t.unite }}</span>}</p>
+            @if (t.detail) {
+              <p class="detail">{{ t.detail }}</p>
+            }
+            <p class="ecarts">
+              <span [class]="'ecart ' + (t.vsPrecedent == null ? '' : t.vsPrecedent >= 0 ? 'hausse' : 'baisse')">
+                @if (t.vsPrecedent != null) {
+                  <mat-icon aria-hidden="true">{{ t.vsPrecedent >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+                }
+                {{ variation(t.vsPrecedent) }}
+              </span>
+              <span class="reference">vs période précédente</span>
+            </p>
+            <p class="ecarts">
+              <span [class]="'ecart ' + (t.vsAnnee == null ? '' : t.vsAnnee >= 0 ? 'hausse' : 'baisse')">
+                @if (t.vsAnnee != null) {
+                  <mat-icon aria-hidden="true">{{ t.vsAnnee >= 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+                }
+                {{ variation(t.vsAnnee) }}
+              </span>
+              <span class="reference">vs l’an dernier</span>
+            </p>
+          </section>
+        }
+      </div>
+
+      @if (r.courant?.estimee || couverture() != null) {
+        <p class="note">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          <span>
+            @if (r.courant?.estimee) {
+              Marge <b>estimée</b> pour une partie de la période : les ventes enregistrées avant le
+              reporting n’avaient pas leur coût d’achat figé, elles sont comptées au coût moyen actuel.
+            }
+            @if (couverture() != null) {
+              La marge porte sur {{ couverture() }} % du chiffre d’affaires : certains articles n’ont
+              jamais été reçus par une commande fournisseur, leur coût est inconnu.
+            }
+          </span>
+        </p>
+      }
+
+      @if (vide()) {
+        <gs-section>
+          <gs-etat-vide icone="query_stats" titre="Aucune vente sur la période" texte="Choisissez une autre période, ou un autre site." />
+        </gs-section>
+      } @else {
+        <gs-section titre="Au fil de la période">
+          <gs-courbe [series]="series()" [libelles]="libelles()" [libellesCourts]="libellesCourts()"
+                     [titreAbscisse]="r.pas === 'MOIS' ? 'Mois' : 'Jour'"
+                     description="Chiffre d’affaires et marge sur la période, comparés à la période précédente" />
+        </gs-section>
+
+        <div class="grille-2">
+          <gs-section titre="Par rayon" description="Le chiffre de chaque catégorie, et sa marge.">
+            <gs-barres [barres]="parCategorie()" />
+          </gs-section>
+          <gs-section titre="Par vendeur" description="Les ventes d’avant le reporting ne sont pas attribuées.">
+            <gs-barres [barres]="parVendeur()" couleur="var(--gs-serie-2)" />
+          </gs-section>
+        </div>
+
+        @if (tousSites() && parSite().length > 1) {
+          <gs-section titre="Par site">
+            <gs-barres [barres]="parSite()" />
+          </gs-section>
+        }
+
+        <div class="grille-2">
+          <gs-section titre="Heures de la journée"
+                      [description]="heureForte() ? 'Le plus fort : ' + heureForte()!.libelle + '.' : null">
+            <gs-colonnes [colonnes]="parHeure()" [pasDesGraduations]="3" />
+          </gs-section>
+          <gs-section titre="Jours de la semaine"
+                      [description]="jourFort() ? 'Le plus fort : ' + jourFort()!.libelle + '.' : null">
+            <gs-colonnes [colonnes]="parJour()" />
+          </gs-section>
+        </div>
+      }
+    </div>
+  }
+</div>

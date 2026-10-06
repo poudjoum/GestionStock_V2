@@ -80,6 +80,8 @@ public class VenteServiceImpl implements VenteService {
     private final Conditionnements conditionnements;
     private final SiteCourant siteCourant;
 
+    private final com.jumpy.tech.gestionstock.gestiondestock.stock.CoutsMoyens coutsMoyens;
+
     public VenteServiceImpl(VenteRepository venteRepository, ArticleRepository articleRepository,
                             LigneVenteRepository ligneVenteRepository,
                             FactureRepository factureRepository,
@@ -91,7 +93,9 @@ public class VenteServiceImpl implements VenteService {
                             FactureService factureService,
                             PrixDuJour prixDuJour,
                             Conditionnements conditionnements,
-                            SiteCourant siteCourant) {
+                            SiteCourant siteCourant,
+                            com.jumpy.tech.gestionstock.gestiondestock.stock.CoutsMoyens coutsMoyens) {
+        this.coutsMoyens = coutsMoyens;
         this.siteCourant = siteCourant;
         this.conditionnements = conditionnements;
         this.factureService = factureService;
@@ -247,6 +251,7 @@ public class VenteServiceImpl implements VenteService {
         aEnregistrer.setSite(magasin);
         aEnregistrer.setSiteExpedition(magasin);
         aEnregistrer.setCodeTicket(codeDeTicket(dto.getCodeTicket()));
+        aEnregistrer.setIdVendeur(cloisonnement.utilisateurCourant());
         // Le client est facultatif : la vente de comptoir anonyme reste le cas ordinaire.
         if (dto.getClient() != null && dto.getClient().getId() != null) {
             aEnregistrer.setClient(client(dto.getClient().getId()));
@@ -270,6 +275,8 @@ public class VenteServiceImpl implements VenteService {
         Map<Long, PromotionArticle> promotions = prixDuJour.promotions(savedVente.getIdEntreprise(),
                 savedVente.getDatevente());
         List<String> avertissements = new ArrayList<>();
+        // Le cout de chaque article, fige sur sa ligne : la marge de cette vente ne bougera plus.
+        Map<Long, BigDecimal> coutsDeLaVente = coutsMoyens.de(articlesCharges.keySet());
         for (LigneVenteDto ligneDto : lignes) {
             LigneVente ligne = LigneVenteDto.toEntity(ligneDto);
             Article article = articlesCharges.get(ligneDto.getArticle().getId());
@@ -302,6 +309,7 @@ public class VenteServiceImpl implements VenteService {
             // taux de TVA propre a l'article.
             ligne.setArticles(article);
             ligne.setVente(savedVente);
+            ligne.setCoutUnitaire(coutsDeLaVente.get(article.getId()));
             ligneVenteRepository.save(ligne);
             avertissements.addAll(sortirDuStock(ligne, ligneDto.getIdLot(), savedVente, quand));
         }
@@ -449,6 +457,7 @@ public class VenteServiceImpl implements VenteService {
         nouvelle.setQuantite(quantite);
         nouvelle.setConditionnement(conditionnement);
         nouvelle.setContenance(contenance);
+        nouvelle.setCoutUnitaire(coutsMoyens.de(article.getId()));
         nouvelle.setPrixUnitaire(PrixDuJour.pourLigne(ligne.getPrixUnitaire(),
                 Conditionnements.prixCatalogue(article, conditionnement),
                 prixDuJour.promotions(vente.getIdEntreprise(), null).get(article.getId()),
@@ -548,6 +557,7 @@ public class VenteServiceImpl implements VenteService {
         vente.setClient(commande.getClient());
         // Son ticket rapporte des points comme un autre : il porte donc son code.
         vente.setCodeTicket(CodeTicket.nouveau());
+        vente.setIdVendeur(cloisonnement.utilisateurCourant());
         Vente enregistree = venteRepository.save(vente);
 
         for (LigneCmndeClient ligneCommande : lignesCommande) {
@@ -565,6 +575,7 @@ public class VenteServiceImpl implements VenteService {
             ligneVente.setConditionnement(ligneCommande.getConditionnement());
             ligneVente.setContenance(ligneCommande.getContenance());
             ligneVente.setIdEntreprise(commande.getIdEntreprise());
+            ligneVente.setCoutUnitaire(coutsMoyens.de(ligneCommande.getArticles().getId()));
             ligneVenteRepository.save(ligneVente);
 
             mvtStkService.sortieStock(MvtStkDto.builder()

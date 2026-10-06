@@ -336,7 +336,7 @@ public class SecurityConfiguration {
                             .hasAnyRole(ADMIN, MANAGER, MAGASINIER)
                         // Les analyses disent ce que rapporte chaque article : une lecture de
                         // gestion, comme la caisse, pas une information de rayon.
-                        .requestMatchers(HttpMethod.GET, API + "/analyses/**")
+                        .requestMatchers(HttpMethod.GET, API + "/analyses/**", API + "/rapports/**")
                             .hasAnyRole(ADMIN, MANAGER, COMPTABLE)
 
                         // L'inventaire.

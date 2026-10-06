@@ -12,3 +12,5 @@ export { Selecteur, type OptionSelecteur } from './selecteur';
 export { Statut, type TonStatut } from './statut';
 export { Tuile } from './tuile';
 export { ScanCamera, cameraDisponible } from './scan-camera';
+export { Courbe, type SerieCourbe } from './courbe';
+export { Barres, Colonnes, type Barre, type Colonne } from './barres';

@@ -29,6 +29,7 @@ describe('groupesPour', () => {
       'Ventes',
       'Stock',
       'Achats',
+      'Rapports',
       'Clients et promos',
       // L'equipe : le gerant y ajoute ses caissiers et ses magasiniers.
       'Réglages',

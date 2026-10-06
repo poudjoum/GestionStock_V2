@@ -31,6 +31,11 @@ public class Calendrier {
         this.horloge = horloge;
     }
 
+    /** Le fuseau du magasin : c'est lui qui decoupe les journees des rapports. */
+    public ZoneId fuseau() {
+        return fuseau;
+    }
+
     public LocalDate aujourdhui() {
         return LocalDate.now(horloge.withZone(fuseau));
     }
