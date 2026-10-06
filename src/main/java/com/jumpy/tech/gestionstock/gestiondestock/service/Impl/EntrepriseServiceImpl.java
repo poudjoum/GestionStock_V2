@@ -233,6 +233,12 @@ public class EntrepriseServiceImpl implements EntrepriseService {
             }
             entreprise.setJoursCouverture(dto.getJoursCouverture());
         }
+        if (dto.getResumeHebdo() != null) {
+            entreprise.setResumeHebdo(dto.getResumeHebdo());
+        }
+        if (dto.getResumeQuotidien() != null) {
+            entreprise.setResumeQuotidien(dto.getResumeQuotidien());
+        }
         if (dto.getMontantParPoint() != null) {
             if (dto.getMontantParPoint().signum() <= 0) {
                 throw new InvalidEntityException("Le montant pour un point doit être positif",

@@ -79,6 +79,14 @@ public class Entreprise extends AbstractEntity{
     /** Combien de jours de ventes la proposition de reapprovisionnement couvre. */
     @Column(name="jours_couverture", nullable = false)
     private int joursCouverture = 15;
+
+    /** Le resume de la semaine, chaque lundi matin, aux administrateurs et gerants. */
+    @Column(name="resume_hebdo", nullable = false)
+    private boolean resumeHebdo = true;
+
+    /** Le resume de la veille, chaque matin ; a la demande. */
+    @Column(name="resume_quotidien", nullable = false)
+    private boolean resumeQuotidien;
     /**
      * L'echeance de l'abonnement annuel. Nulle pour un commerce qui n'en a pas encore.
      *

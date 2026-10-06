@@ -137,6 +137,12 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public void mettreEnFile(String destination, String sujet, String corps, Long idEntreprise) {
+        mettreEnFile(destination, sujet, corps, null, idEntreprise);
+    }
+
+    @Override
+    @Transactional
+    public void mettreEnFile(String destination, String sujet, String corps, String corpsHtml, Long idEntreprise) {
         if (!StringUtils.hasText(destination)) {
             // Un client sans adresse ne recoit rien, et ce n'est pas une erreur : la facture est
             // emise, le ticket est imprime. Refuser la facture pour cela serait absurde.
@@ -148,6 +154,7 @@ public class NotificationServiceImpl implements NotificationService {
         envoi.setDestination(destination);
         envoi.setSujet(sujet);
         envoi.setCorps(corps);
+        envoi.setCorpsHtml(corpsHtml);
         envoi.setEtat(EtatEnvoi.A_ENVOYER);
         envoi.setTentatives(0);
         // Tout de suite : l'expediteur prendra ce qui attend a son prochain passage.

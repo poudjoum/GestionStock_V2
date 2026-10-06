@@ -74,6 +74,13 @@ public class Envoi extends AbstractEntity {
     @Column(name = "sensible", nullable = false)
     private boolean sensible;
 
+    /**
+     * La version mise en forme d'un courriel ; nulle, il part en texte seul. Le texte de `corps`
+     * l'accompagne toujours, pour les messageries qui n'affichent pas le HTML.
+     */
+    @Column(name = "corps_html", columnDefinition = "text")
+    private String corpsHtml;
+
     public void reussi(Instant quand) {
         this.etat = EtatEnvoi.ENVOYE;
         this.envoyeLe = quand;

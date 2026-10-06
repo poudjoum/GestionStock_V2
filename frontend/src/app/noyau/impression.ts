@@ -36,6 +36,28 @@ export const SUPPORT = 'support-impression';
  * complete des sa creation — rien a attendre avant d'imprimer.
  */
 export function imprimerLeTicket(contenu: HTMLElement): void {
+  imprimer(contenu, ROULEAU_80);
+}
+
+/**
+ * Un document de bureau sur A4 portrait — le rapport du mois —, avec ses marges.
+ *
+ * `titre` devient, le temps de l'impression, celui de la page : c'est le nom que le navigateur
+ * propose au fichier quand on choisit « Enregistrer en PDF ». Sans lui, tous les rapports
+ * s'appelleraient « GestionStock.pdf ».
+ */
+export function imprimerEnA4(contenu: HTMLElement, titre?: string): void {
+  const avant = document.title;
+  if (titre) {
+    document.title = titre;
+  }
+  imprimer(contenu, A4, () => (document.title = avant));
+}
+
+/** Le format de bureau : A4 portrait, 12 mm de marge. */
+const A4 = '@page { size: A4 portrait; margin: 12mm; }';
+
+function imprimer(contenu: HTMLElement, regleDePage: string, apres?: () => void): void {
   const support = document.createElement('div');
   support.className = SUPPORT;
   support.appendChild(contenu.cloneNode(true));
@@ -43,13 +65,19 @@ export function imprimerLeTicket(contenu: HTMLElement): void {
 
   const regle = document.createElement('style');
   regle.media = 'print';
-  regle.textContent = ROULEAU_80;
+  regle.textContent = regleDePage;
   document.head.appendChild(regle);
 
+  let fait = false;
   const nettoyer = () => {
+    if (fait) {
+      return;
+    }
+    fait = true;
     support.remove();
     regle.remove();
     window.removeEventListener('afterprint', nettoyer);
+    apres?.();
   };
   window.addEventListener('afterprint', nettoyer);
 

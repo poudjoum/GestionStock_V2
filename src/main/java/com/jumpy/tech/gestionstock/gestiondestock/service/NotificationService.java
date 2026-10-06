@@ -39,6 +39,9 @@ public interface NotificationService {
     /** Met un courriel dans la file. Il partira au prochain passage de l'expediteur. */
     void mettreEnFile(String destination, String sujet, String corps, Long idEntreprise);
 
+    /** Le meme, avec une version mise en forme ; le texte reste pour les messageries sans HTML. */
+    void mettreEnFile(String destination, String sujet, String corps, String corpsHtml, Long idEntreprise);
+
     /** Mes notifications, les plus recentes d'abord. `nonLuesSeulement` pour la pastille. */
     Page<NotificationDto> mesNotifications(boolean nonLuesSeulement, Pageable pageable);
 

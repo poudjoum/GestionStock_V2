@@ -2826,6 +2826,8 @@ export interface components {
             delaiAlertePeremption?: number;
             /** Format: int32 */
             joursCouverture?: number;
+            resumeHebdo?: boolean;
+            resumeQuotidien?: boolean;
             fideliteActive?: boolean;
             montantParPoint?: number;
             adresseTickets?: string;
@@ -3403,8 +3405,8 @@ export interface components {
             username?: string;
             email?: string;
             roles?: string[];
-            tokenType?: string;
             accessToken?: string;
+            tokenType?: string;
         };
         RafraichissementRequest: {
             refreshToken: string;

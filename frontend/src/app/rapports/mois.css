@@ -1,0 +1,227 @@
+.choix-mois {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nom-mois {
+  min-width: 160px;
+  text-align: center;
+  font: 600 var(--gs-texte-lg) var(--gs-police-titre);
+  text-transform: capitalize;
+}
+
+/*
+ * La feuille : a l'ecran, une page A4 posee sur le fond ; a l'impression, la page elle-meme. Elle
+ * garde des couleurs claires en mode sombre aussi — c'est un document papier qu'on previsualise.
+ */
+.feuille {
+  --gs-surface: #ffffff;
+  --gs-encre: #17211b;
+  --gs-encre-2: #47544c;
+  --gs-encre-3: #66736b;
+  --gs-trait: #d9dfd9;
+  --gs-grille: #d9dfd9;
+  --gs-serie-1: #24804f;
+  --gs-serie-2: #4a3aa7;
+  --gs-serie-reference: #66736b;
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 14mm 14mm 10mm;
+  background: #ffffff;
+  color: #17211b;
+  border: 1px solid var(--gs-trait);
+  border-radius: 4px;
+  box-shadow: var(--gs-ombre-2);
+  font-size: 12px;
+  line-height: 1.45;
+  color-scheme: light;
+}
+
+.feuille-squelette {
+  max-width: 210mm;
+  height: 297mm;
+  margin: 0 auto;
+}
+
+.entete {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid #1d6b43;
+}
+
+.logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.commerce {
+  font-weight: 600;
+  color: #1d6b43;
+}
+
+.entete h1 {
+  margin: 2px 0;
+  font: 700 22px / 1.2 var(--gs-police-titre);
+  text-transform: none;
+}
+
+.meta,
+.leger {
+  color: #66736b;
+}
+
+.bloc {
+  margin-top: 16px;
+  break-inside: avoid;
+}
+
+.bloc h2 {
+  margin: 0 0 8px;
+  font: 700 14px var(--gs-police-titre);
+  color: #1d6b43;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bloc h3 {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.chiffres th {
+  padding: 4px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: right;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #66736b;
+  border-bottom: 1px solid #b8c2bb;
+}
+
+.chiffres td {
+  padding: 5px 6px;
+  text-align: right;
+  border-bottom: 1px solid #eef1ec;
+}
+
+.chiffres td:first-child,
+.chiffres th:first-child {
+  text-align: left;
+}
+
+.fort {
+  font-weight: 700;
+}
+
+.liste td {
+  padding: 4px 4px;
+  border-bottom: 1px solid #eef1ec;
+}
+
+.liste td.nombre {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.liste tr.total td {
+  font-weight: 700;
+  border-top: 1px solid #b8c2bb;
+}
+
+.graphique {
+  margin: 12px 0 4px;
+}
+
+/* Le tableau des valeurs de la courbe sert a l'ecran, pas sur le papier. */
+.graphique details {
+  display: none;
+}
+
+.deux {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.trois {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.encadre {
+  padding: 10px 12px;
+  border: 1px solid #d9dfd9;
+  border-radius: 6px;
+  background: #f0f7f2;
+}
+
+.etiquette {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #47544c;
+}
+
+.montant {
+  margin: 2px 0;
+  font: 700 18px var(--gs-police-titre);
+}
+
+.note {
+  margin-top: 14px;
+  font-size: 10px;
+  color: #66736b;
+}
+
+.pied {
+  margin-top: 16px;
+  padding-top: 6px;
+  border-top: 1px solid #d9dfd9;
+  font-size: 10px;
+  color: #66736b;
+  text-align: center;
+}
+
+.recharge {
+  opacity: 0.55;
+}
+
+@media (max-width: 640px) {
+  .feuille {
+    padding: 16px;
+  }
+  .deux,
+  .trois {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sur le papier : plus d'ombre ni de cadre, la page porte deja ses marges. */
+@media print {
+  .feuille {
+    max-width: none;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .deux {
+    grid-template-columns: 1fr 1fr;
+  }
+  .trois {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
