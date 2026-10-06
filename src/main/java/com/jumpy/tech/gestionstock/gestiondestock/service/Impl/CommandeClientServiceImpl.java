@@ -125,6 +125,8 @@ public class CommandeClientServiceImpl implements CommandeClientService {
                 ligneCmndeClient.setArticles(article);
                 conditionner(ligneCmndeClient, article, ligCmdClt.getConditionnement());
                 ligneCmndeClient.setCommandeClient(saveCmndClt);
+                // Comme les lignes ajoutees apres coup : l'entreprise de leur commande.
+                ligneCmndeClient.setIdEntreprise(saveCmndClt.getIdEntreprise());
                 ligneCmndeClientRepository.save(ligneCmndeClient);
             });
         }
