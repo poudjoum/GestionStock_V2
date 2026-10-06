@@ -61,13 +61,16 @@ public class MvtStkServiceImpl implements MvtStkService {
     private final LotRepository lotRepository;
     private final Calendrier calendrier;
     private final com.jumpy.tech.gestionstock.gestiondestock.reservation.Reservations reservations;
+    private final com.jumpy.tech.gestionstock.gestiondestock.stock.CoutsMoyens coutsMoyens;
 
     public MvtStkServiceImpl(MvtStkRepository mvtStkRepository, ArticleRepository articleRepository,
                              Cloisonnement cloisonnement, NotificationService notifications,
                              Conditionnements conditionnements, SiteCourant siteCourant,
                              SiteRepository siteRepository, ArticleSiteRepository articleSiteRepository,
                              Lots lots, LotRepository lotRepository, Calendrier calendrier,
-                             com.jumpy.tech.gestionstock.gestiondestock.reservation.Reservations reservations) {
+                             com.jumpy.tech.gestionstock.gestiondestock.reservation.Reservations reservations,
+                             com.jumpy.tech.gestionstock.gestiondestock.stock.CoutsMoyens coutsMoyens) {
+        this.coutsMoyens = coutsMoyens;
         this.reservations = reservations;
         this.lots = lots;
         this.lotRepository = lotRepository;
@@ -329,6 +332,7 @@ public class MvtStkServiceImpl implements MvtStkService {
         mvtStk.setArticles(article);
         mvtStk.setSite(site);
         mvtStk.setLot(lot);
+        mvtStk.setCoutUnitaire(coutsMoyens.de(article.getId()));
         mvtStk.setIdVente(dto.getIdVente());
         mvtStk.setIdTransfert(dto.getIdTransfert());
         mvtStk.setQuantite(quantite);

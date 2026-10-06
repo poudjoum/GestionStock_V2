@@ -52,6 +52,13 @@ public class MvtStk extends  AbstractEntity{
     @JoinColumn(name="id_lot")
     private Lot lot;
 
+    /**
+     * Le cout d'achat moyen de l'unite de base au moment du mouvement, fige : la demarque d'une
+     * casse de mars ne se revalorise pas a la livraison suivante. Nul pour les mouvements d'avant.
+     */
+    @Column(name="cout_unitaire", precision = 19, scale = 4)
+    private java.math.BigDecimal coutUnitaire;
+
     /** La vente qui l'a fait bouger : on retrouve ainsi a qui un lot rappele a ete vendu. */
     @Column(name="id_vente")
     private Long idVente;

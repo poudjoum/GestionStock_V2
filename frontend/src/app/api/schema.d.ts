@@ -1605,6 +1605,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/rapports/pertes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pertes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/plateforme/resume": {
         parameters: {
             query?: never;
@@ -3355,8 +3371,8 @@ export interface components {
             username?: string;
             email?: string;
             roles?: string[];
-            tokenType?: string;
             accessToken?: string;
+            tokenType?: string;
         };
         RafraichissementRequest: {
             refreshToken: string;
@@ -3598,6 +3614,80 @@ export interface components {
             /** Format: int64 */
             tickets?: number;
             part?: number;
+        };
+        ArticleDormant: {
+            /** Format: int64 */
+            idArticle?: number;
+            designation?: string;
+            stock?: number;
+            valeur?: number;
+        };
+        ClientDebiteur: {
+            /** Format: int64 */
+            idClient?: number;
+            nom?: string;
+            telephone?: string;
+            du?: number;
+            /** Format: int64 */
+            factures?: number;
+            /** Format: date-time */
+            plusAncienne?: string;
+            /** Format: int64 */
+            joursDeRetard?: number;
+        };
+        Demarque: {
+            valeur?: number;
+            valeurPrecedente?: number;
+            tauxDuChiffre?: number;
+            chiffreAffaires?: number;
+            estimee?: boolean;
+            /** Format: int64 */
+            sansCout?: number;
+            parMotif?: components["schemas"]["Poste"][];
+            parArticle?: components["schemas"]["Poste"][];
+        };
+        Dormants: {
+            /** Format: int32 */
+            jours?: number;
+            /** Format: int64 */
+            nombre?: number;
+            valeur?: number;
+            articles?: components["schemas"]["ArticleDormant"][];
+        };
+        Impayes: {
+            total?: number;
+            /** Format: int64 */
+            factures?: number;
+            /** Format: int64 */
+            clients?: number;
+            parAnciennete?: components["schemas"]["Tranche"][];
+            parClient?: components["schemas"]["ClientDebiteur"][];
+        };
+        Poste: {
+            cle?: string;
+            libelle?: string;
+            valeur?: number;
+            quantite?: number;
+            /** Format: int64 */
+            mouvements?: number;
+        };
+        RapportPertesDto: {
+            /** Format: date */
+            debut?: string;
+            /** Format: date */
+            fin?: string;
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            demarque?: components["schemas"]["Demarque"];
+            impayes?: components["schemas"]["Impayes"];
+            dormants?: components["schemas"]["Dormants"];
+        };
+        Tranche: {
+            libelle?: string;
+            montant?: number;
+            /** Format: int64 */
+            factures?: number;
         };
         ResumePlateformeDto: {
             /** Format: int64 */
@@ -6707,6 +6797,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RapportVentesDto"];
+                };
+            };
+        };
+    };
+    pertes: {
+        parameters: {
+            query: {
+                debut: string;
+                fin: string;
+                tousSites?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RapportPertesDto"];
                 };
             };
         };
