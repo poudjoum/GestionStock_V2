@@ -40,6 +40,7 @@
           <li><a href="#commandes-clients">Commandes clients</a></li>
           <li><a href="#achats">Commander et recevoir</a></li>
           <li><a href="#rapports">Ventes et marge</a></li>
+          <li><a href="#pertes">Pertes et impayés</a></li>
           <li><a href="#analyses">Analyses</a></li>
           <li><a href="#factures">Factures et caisse</a></li>
           <li><a href="#repertoire">Clients et fournisseurs</a></li>
@@ -438,6 +439,17 @@
             <svg aria-hidden="true"><use href="/images/icones.svg#info" /></svg>
             <p>La marge se calcule avec le coût d’achat moyen <strong>figé au moment de chaque vente</strong> : une livraison plus chère ne change pas ce que les ventes passées ont rapporté. Les ventes enregistrées avant la mise en service des rapports (octobre 2026) n’ont pas ce coût : leur marge est <strong>estimée</strong> au coût actuel, et l’écran le signale. Un article jamais reçu par une commande fournisseur n’a pas de coût : il compte dans le chiffre, pas dans la marge.</p>
           </div>
+        </section>
+
+        <section id="pertes">
+          <h2><span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#alerte" /></svg></span>Pertes et impayés</h2>
+          <ul class="qui"><li>Gérant</li><li>Comptable</li></ul>
+          <p><strong>Rapports › Pertes et impayés</strong> répond à « où est-ce que je perds ? » :</p>
+          <ul>
+            <li><strong>La démarque</strong> de la période : ce qui est sorti sans être vendu — casse, perte ou vol, péremption, usage interne, manquants d’inventaire —, au coût d’achat figé au moment de chaque mouvement, et sa part du chiffre d’affaires. Un surplus d’inventaire vient en déduction ; un retour au fournisseur n’en fait pas partie, il est remboursé.</li>
+            <li><strong>Les impayés</strong>, à ce jour : ce que chaque client doit, depuis quand, et son téléphone pour l’appeler. Les plus anciens, au-delà de 60 jours, sont signalés.</li>
+            <li><strong>Le stock qui dort</strong> : ce qui est en rayon sans une vente depuis trois mois, et ce que ça a coûté.</li>
+          </ul>
         </section>
 
         <section id="analyses">

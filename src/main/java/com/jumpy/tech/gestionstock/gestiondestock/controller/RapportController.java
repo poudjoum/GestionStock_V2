@@ -1,5 +1,7 @@
 package com.jumpy.tech.gestionstock.gestiondestock.controller;
 
+import com.jumpy.tech.gestionstock.gestiondestock.rapport.RapportPertesDto;
+import com.jumpy.tech.gestionstock.gestiondestock.rapport.RapportPertesService;
 import com.jumpy.tech.gestionstock.gestiondestock.rapport.RapportVentesDto;
 import com.jumpy.tech.gestionstock.gestiondestock.rapport.RapportVentesService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,9 +20,11 @@ import static com.jumpy.tech.gestionstock.gestiondestock.utils.Constants.APP_ROO
 public class RapportController {
 
     private final RapportVentesService rapportVentesService;
+    private final RapportPertesService rapportPertesService;
 
-    public RapportController(RapportVentesService rapportVentesService) {
+    public RapportController(RapportVentesService rapportVentesService, RapportPertesService rapportPertesService) {
         this.rapportVentesService = rapportVentesService;
+        this.rapportPertesService = rapportPertesService;
     }
 
     /** Les ventes du `debut` au `fin` inclus, comparees a la periode precedente et a l'an dernier. */
@@ -31,5 +35,14 @@ public class RapportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin,
             @RequestParam(defaultValue = "false") boolean tousSites) {
         return ResponseEntity.ok(rapportVentesService.ventes(debut, fin, tousSites));
+    }
+
+    /** La demarque de la periode, et ce que les clients doivent et ce qui dort aujourd'hui. */
+    @GetMapping(value = APP_ROOT + "/rapports/pertes", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RapportPertesDto> pertes(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate debut,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fin,
+            @RequestParam(defaultValue = "false") boolean tousSites) {
+        return ResponseEntity.ok(rapportPertesService.pertes(debut, fin, tousSites));
     }
 }

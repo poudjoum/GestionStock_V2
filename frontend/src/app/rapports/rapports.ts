@@ -9,6 +9,7 @@ import { environnement } from '../../environnements/environnement';
 import type { components } from '../api/schema';
 import { Sites } from '../noyau/sites';
 import { messageDErreur } from '../noyau/erreurs';
+import { Preset, PRESETS, bornes, debutDuMois, ecart, enDate, iso, jourLisible, variation } from './periodes';
 import {
   Barre,
   Barres,
@@ -26,7 +27,6 @@ import {
 type RapportVentesDto = components['schemas']['RapportVentesDto'];
 type Indicateurs = components['schemas']['Indicateurs'];
 type Repartition = components['schemas']['Repartition'];
-type Preset = 'jour' | 'semaine' | 'mois' | 'mois-dernier' | 'annee' | 'libre';
 
 const RACINE = `${environnement.api}/gestiondestock/v1/rapports/ventes`;
 const JOURS = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.'];
@@ -82,14 +82,7 @@ export class Rapports implements OnInit {
   protected readonly fin = signal(iso(new Date()));
   protected readonly tousSites = signal(false);
 
-  protected readonly presets: OptionSelecteur<Preset>[] = [
-    { valeur: 'jour', libelle: 'Aujourd’hui' },
-    { valeur: 'semaine', libelle: '7 jours' },
-    { valeur: 'mois', libelle: 'Ce mois' },
-    { valeur: 'mois-dernier', libelle: 'Mois dernier' },
-    { valeur: 'annee', libelle: 'Cette année' },
-    { valeur: 'libre', libelle: 'Dates…' },
-  ];
+  protected readonly presets = PRESETS;
   protected readonly peutVoirTout = computed(() => this.sites.tousLesSites() && this.sites.plusieurs());
   protected readonly portee = computed<'site' | 'tous'>(() => (this.tousSites() ? 'tous' : 'site'));
   protected readonly portees = computed<OptionSelecteur<'site' | 'tous'>[]>(() => [
@@ -195,11 +188,7 @@ export class Rapports implements OnInit {
     this.charger();
   }
 
-  protected variation(v: number | null): string {
-    if (v == null) return '—';
-    const signe = v > 0 ? '+' : '';
-    return `${signe}${v.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %`;
-  }
+  protected readonly variation = variation;
 
   private charger(): void {
     if (this.debut() > this.fin()) {
@@ -235,12 +224,6 @@ function tuile(libelle: string, valeur: number | undefined, precedent: number | 
   };
 }
 
-/** L'ecart en pourcentage ; nul quand la reference est nulle — « +∞ % » ne dit rien. */
-function ecart(valeur: number | undefined, reference: number | undefined): number | null {
-  if (valeur == null || !reference) return null;
-  return Math.round(((valeur - reference) / Math.abs(reference)) * 1000) / 10;
-}
-
 function barres(parts: Repartition[] | undefined): Barre[] {
   return (parts ?? []).map((p) => ({
     libelle: p.libelle ?? '—',
@@ -258,37 +241,6 @@ function plusFort(colonnes: Colonne[]): Colonne | null {
   return avecVentes.length === 0 ? null : avecVentes.reduce((a, b) => (b.valeur > a.valeur ? b : a));
 }
 
-function bornes(preset: Preset, aujourdhui: Date): [Date, Date] {
-  const jour = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
-  switch (preset) {
-    case 'jour':
-      return [aujourdhui, aujourdhui];
-    case 'semaine':
-      return [jour(aujourdhui, -6), aujourdhui];
-    case 'mois-dernier':
-      return [new Date(aujourdhui.getFullYear(), aujourdhui.getMonth() - 1, 1), new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), 0)];
-    case 'annee':
-      return [new Date(aujourdhui.getFullYear(), 0, 1), aujourdhui];
-    default:
-      return [debutDuMois(aujourdhui), aujourdhui];
-  }
-}
-
-function debutDuMois(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), 1);
-}
-
-/** AAAA-MM-JJ dans le fuseau de l'appareil : c'est le jour que le gerant a sous les yeux. */
-function iso(d: Date): string {
-  const p = (n: number) => `${n}`.padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-function enDate(cle: string): Date {
-  const [a, m, j] = cle.split('-').map(Number);
-  return new Date(a, (m ?? 1) - 1, j ?? 1);
-}
-
 function libelleLong(cle: string, parMois: boolean): string {
   const d = enDate(cle);
   return parMois
@@ -301,6 +253,3 @@ function libelleCourt(cle: string, parMois: boolean): string {
   return parMois ? d.toLocaleDateString('fr-FR', { month: 'short' }) : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
 
-function jourLisible(date: string | undefined): string {
-  return date ? enDate(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-}

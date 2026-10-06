@@ -117,6 +117,13 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
   },
   {
+    chemin: '/pertes',
+    groupe: 'rapports',
+    libelle: 'Pertes et impayés',
+    icone: 'money_off',
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
+  },
+  {
     chemin: '/analyses',
     groupe: 'rapports',
     libelle: 'Analyses',

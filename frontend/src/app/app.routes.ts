@@ -80,6 +80,12 @@ export const routes: Routes = [
         loadComponent: () => import('./rapports/rapports').then((m) => m.Rapports),
       },
       {
+        // Ou le commerce perd : demarque, impayes, stock qui dort.
+        path: 'pertes',
+        canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],
+        loadComponent: () => import('./rapports/pertes').then((m) => m.Pertes),
+      },
+      {
         // Ce que rapporte chaque article : classes ABC, couverture, dormants.
         path: 'analyses',
         canActivate: [gardeRoles('ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE')],

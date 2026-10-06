@@ -1,0 +1,181 @@
+@let r = rapport();
+@let d = demarque();
+@let i = impayes();
+@let z = dormants();
+
+<div class="page">
+  <gs-en-tete-page titre="Pertes et impayés" [sousTitre]="periode() ? 'Démarque du ' + periode() + (r?.nomSite ? ' · ' + r?.nomSite : tousSites() ? ' · tous les sites' : '') : 'Ce que le commerce perd sans le vendre, et ce qu’on lui doit.'">
+    @if (peutVoirTout()) {
+      <gs-selecteur aria-label="Rapport de" [options]="portees()" [valeur]="portee()" (valeurChange)="changerPortee($event)" />
+    }
+  </gs-en-tete-page>
+
+  <div class="barre-outils">
+    <gs-selecteur aria-label="Période de la démarque" [options]="presets" [valeur]="preset()" (valeurChange)="choisirPreset($event)" />
+    @if (preset() === 'libre') {
+      <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+        <mat-label>Du</mat-label>
+        <input matInput type="date" [ngModel]="debut()" (ngModelChange)="changerDates($event, fin())" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+        <mat-label>Au</mat-label>
+        <input matInput type="date" [ngModel]="fin()" (ngModelChange)="changerDates(debut(), $event)" />
+      </mat-form-field>
+    }
+  </div>
+
+  @if (erreur(); as message) {
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  } @else if (chargement() && !r) {
+    <div class="tuiles">
+      @for (k of [1, 2, 3]; track k) {
+        <div class="squelette h-28"></div>
+      }
+    </div>
+    <div class="squelette h-72"></div>
+  } @else if (r && d && i && z) {
+    <div [class.recharge]="chargement()">
+      <div class="tuiles">
+        <section class="carte tuile">
+          <h2 class="gs-etiquette m-0">Démarque</h2>
+          <p class="chiffre nombre">{{ d.valeur | number: '1.0-0' }}<span class="unite"> F</span></p>
+          <p class="detail">
+            @if (d.tauxDuChiffre != null) {
+              {{ d.tauxDuChiffre | number: '1.0-1' }} % du chiffre d’affaires
+            } @else {
+              Aucune vente sur la période
+            }
+          </p>
+          <!-- Une hausse de la demarque est une mauvaise nouvelle : la couleur se lit a l'envers. -->
+          <p class="ecarts">
+            <span [class]="'ecart ' + (ecartDemarque() == null ? '' : ecartDemarque()! > 0 ? 'baisse' : 'hausse')">
+              @if (ecartDemarque() != null) {
+                <mat-icon aria-hidden="true">{{ ecartDemarque()! > 0 ? 'trending_up' : 'trending_down' }}</mat-icon>
+              }
+              {{ variation(ecartDemarque()) }}
+            </span>
+            <span class="reference">vs période précédente</span>
+          </p>
+        </section>
+
+        <section class="carte tuile">
+          <h2 class="gs-etiquette m-0">Impayés aujourd’hui</h2>
+          <p class="chiffre nombre">{{ i.total | number: '1.0-0' }}<span class="unite"> F</span></p>
+          <p class="detail">{{ i.factures }} facture{{ (i.factures ?? 0) > 1 ? 's' : '' }} · {{ i.clients }} client{{ (i.clients ?? 0) > 1 ? 's' : '' }}</p>
+          @if (duAncien() > 0) {
+            <p class="ecarts">
+              <span class="ecart baisse"><mat-icon aria-hidden="true">schedule</mat-icon>{{ duAncien() | number: '1.0-0' }} F</span>
+              <span class="reference">dus depuis plus de 60 jours</span>
+            </p>
+          }
+        </section>
+
+        <section class="carte tuile">
+          <h2 class="gs-etiquette m-0">Stock qui dort</h2>
+          <p class="chiffre nombre">{{ z.valeur | number: '1.0-0' }}<span class="unite"> F</span></p>
+          <p class="detail">{{ z.nombre }} article{{ (z.nombre ?? 0) > 1 ? 's' : '' }} en stock sans une vente depuis {{ z.jours }} jours</p>
+        </section>
+      </div>
+
+      @if (d.estimee || (d.sansCout ?? 0) > 0) {
+        <p class="note">
+          <mat-icon aria-hidden="true">info</mat-icon>
+          <span>
+            @if (d.estimee) {
+              Démarque <b>estimée</b> en partie : les mouvements d’avant les rapports sont valorisés au coût moyen actuel.
+            }
+            @if ((d.sansCout ?? 0) > 0) {
+              {{ d.sansCout }} mouvement{{ (d.sansCout ?? 0) > 1 ? 's' : '' }} d’articles jamais reçus par une commande fournisseur ne {{ (d.sansCout ?? 0) > 1 ? 'sont' : 'est' }} pas valorisé{{ (d.sansCout ?? 0) > 1 ? 's' : '' }}.
+            }
+          </span>
+        </p>
+      }
+
+      <!-- La demarque de la periode. -->
+      @if (parMotif().length === 0 && !surplus()) {
+        <gs-section titre="Démarque">
+          <gs-etat-vide icone="verified" titre="Aucune démarque sur la période"
+                        texte="Ni casse, ni perte, ni péremption, ni écart d’inventaire n’a été déclaré." />
+        </gs-section>
+      } @else {
+        <div class="grille-2">
+          <gs-section titre="Démarque, par cause" [description]="surplus() ? 'Surplus d’inventaire déduit : ' + ((surplus()!.valeur ?? 0) | number: '1.0-0') + ' F.' : 'Au coût d’achat, figé au moment de chaque mouvement.'">
+            <gs-barres [barres]="parMotif()" />
+          </gs-section>
+          <gs-section titre="Les articles qui coûtent le plus" description="Les dix plus grosses démarques de la période.">
+            <gs-barres [barres]="parArticle()" couleur="var(--gs-serie-2)" [maximum]="10" />
+          </gs-section>
+        </div>
+      }
+
+      <!-- Ce qu'on doit au commerce, aujourd'hui. -->
+      <gs-section titre="Ce que les clients doivent" description="Les factures non réglées à ce jour, quelle que soit la période choisie.">
+        @if ((i.factures ?? 0) === 0) {
+          <gs-etat-vide icone="task_alt" titre="Aucune facture impayée" texte="Toutes les factures sont réglées." />
+        } @else {
+          <div class="grille-2 !mt-0">
+            <div>
+              <h3 class="gs-etiquette mb-2 mt-0">Depuis l’émission</h3>
+              <gs-colonnes [colonnes]="tranches()" couleur="var(--gs-serie-2)" />
+            </div>
+            <div class="tableau-cadre">
+              <table class="gs-tableau">
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th class="gs-num">Doit</th>
+                    <th class="gs-num">Retard</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of i.parClient ?? []; track $index) {
+                    <tr>
+                      <td>
+                        <span class="designation">{{ c.nom }}</span>
+                        <span class="code">
+                          {{ c.factures }} facture{{ (c.factures ?? 0) > 1 ? 's' : '' }}
+                          @if (c.telephone) { · <a [href]="'tel:' + c.telephone">{{ c.telephone }}</a> }
+                        </span>
+                      </td>
+                      <td class="gs-num valeur">{{ c.du | number: '1.0-0' }} F</td>
+                      <td class="gs-num nombre" [class.danger]="(c.joursDeRetard ?? 0) > 60">
+                        {{ c.joursDeRetard }} j
+                        <span class="code">depuis le {{ depuis(c.plusAncienne) }}</span>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <a mat-button routerLink="/factures" class="mt-2">Encaisser depuis les factures</a>
+        }
+      </gs-section>
+
+      <!-- Ce qui dort. -->
+      <gs-section titre="Le stock qui dort" [description]="'Du stock payé, et pas une vente depuis ' + z.jours + ' jours.'">
+        @if ((z.nombre ?? 0) === 0) {
+          <gs-etat-vide icone="task_alt" titre="Rien ne dort" texte="Tout article en stock s’est vendu sur les trois derniers mois." />
+        } @else {
+          <ul class="cartes">
+            @for (a of z.articles ?? []; track a.idArticle) {
+              <li>
+                <span class="infos">
+                  <span class="designation">{{ a.designation }}</span>
+                  <span class="code">{{ a.stock | number: '1.0-2' }} en stock</span>
+                </span>
+                <span class="chiffres">
+                  <span class="nombre font-semibold">{{ a.valeur != null ? (a.valeur | number: '1.0-0') + ' F' : 'coût inconnu' }}</span>
+                </span>
+              </li>
+            }
+          </ul>
+          <a mat-button routerLink="/analyses" class="mt-2">Voir tous les dormants dans les analyses</a>
+        }
+      </gs-section>
+    </div>
+  }
+</div>
