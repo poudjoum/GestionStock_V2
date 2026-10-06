@@ -309,6 +309,9 @@ public class VenteServiceImpl implements VenteService {
             // taux de TVA propre a l'article.
             ligne.setArticles(article);
             ligne.setVente(savedVente);
+            // L'entreprise de la vente, et non celle que dirait la requete : une ligne se lit parfois
+            // seule, et sans elle elle echapperait au cloisonnement.
+            ligne.setIdEntreprise(savedVente.getIdEntreprise());
             ligne.setCoutUnitaire(coutsDeLaVente.get(article.getId()));
             ligneVenteRepository.save(ligne);
             avertissements.addAll(sortirDuStock(ligne, ligneDto.getIdLot(), savedVente, quand));
