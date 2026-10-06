@@ -3,46 +3,18 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environnement } from '../../environnements/environnement';
 import type { EntrepriseDto } from '../noyau/api';
+import type { components } from '../api/schema';
 
 const API = `${environnement.api}/gestiondestock/v1`;
 
 /**
- * Les formes de la plateforme.
- *
- * Ecrites a la main, et c'est provisoire : `npm run api:types` lit la specification du serveur
- * deploye, qui ne connait pas encore ces routes. Elles descendront dans `api/schema.d.ts` a la
- * prochaine regeneration, et ce bloc pourra tomber.
+ * Les formes de la plateforme, lues dans la specification du serveur comme toutes les autres. Elles
+ * etaient ecrites a la main en attendant que les routes soient deployees — c'est fait, et une copie
+ * a la main aurait ignore en silence l'activite des commerces ajoutee depuis.
  */
-export type StatutAbonnement = 'ACTIF' | 'ECHU' | 'SUSPENDU';
-
-export interface CommerceDto {
-  id?: number;
-  nom?: string;
-  ville?: string;
-  tel?: string;
-  email?: string;
-  abonnementEcheance?: string;
-  suspendue?: boolean;
-  statut?: StatutAbonnement;
-  /** Négatif quand l'échéance est passée, nul quand il n'y a pas d'abonnement. */
-  joursRestants?: number | null;
-  comptes?: number;
-  articles?: number;
-  ventes?: number;
-  chiffreFacture?: number;
-  derniereVente?: string;
-}
-
-export interface ResumePlateformeDto {
-  commerces?: number;
-  actifs?: number;
-  echus?: number;
-  suspendus?: number;
-  aRelancer?: number;
-  comptes?: number;
-  ventes?: number;
-  chiffreFacture?: number;
-}
+export type CommerceDto = components['schemas']['CommerceDto'];
+export type ResumePlateformeDto = components['schemas']['ResumePlateformeDto'];
+export type StatutAbonnement = NonNullable<CommerceDto['statut']>;
 
 /** Ce qu'il faut pour ouvrir un commerce : la maison, et la personne qui y entrera. */
 export interface InscriptionDto {

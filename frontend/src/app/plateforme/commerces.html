@@ -20,6 +20,21 @@
           <div class="nombre text-3xl font-medium">{{ r.actifs | number: '1.0-0' }}</div>
           <div class="text-xs uppercase tracking-wide opacity-60">actifs</div>
         </div>
+        <div class="carte min-w-36 flex-1 p-4">
+          <div class="nombre text-3xl font-medium">{{ r.chiffre30j | number: '1.0-0' }} F</div>
+          <div class="text-xs uppercase tracking-wide opacity-60">vendus sur 30 j, toute la plateforme</div>
+        </div>
+        <div
+          class="carte min-w-36 flex-1 p-4"
+          [style.background]="(r.decrochent ?? 0) > 0 ? 'var(--gs-danger-fond)' : ''"
+        >
+          <div class="nombre text-3xl font-medium" [style.color]="(r.decrochent ?? 0) > 0 ? 'var(--gs-danger)' : ''">
+            {{ r.decrochent | number: '1.0-0' }}
+          </div>
+          <div class="text-xs uppercase tracking-wide opacity-60">
+            décroche{{ (r.decrochent ?? 0) > 1 ? 'nt' : '' }} · {{ r.ralentissent }} ralenti{{ (r.ralentissent ?? 0) > 1 ? 'ssent' : 't' }}
+          </div>
+        </div>
         <div
           class="carte min-w-36 flex-1 p-4"
           [style.background]="(r.aRelancer ?? 0) > 0 ? 'var(--mat-sys-tertiary-container)' : ''"
@@ -100,12 +115,12 @@
             style="border-color: var(--mat-sys-outline-variant)"
           >
             <th class="px-3 py-2 text-left font-medium">Commerce</th>
+            <th class="px-3 py-2 text-left font-medium">Activité</th>
+            <th class="px-3 py-2 text-left font-medium">8 semaines</th>
+            <th class="px-3 py-2 text-right font-medium">30 derniers jours</th>
+            <th class="px-3 py-2 text-right font-medium">Comptes actifs</th>
             <th class="px-3 py-2 text-left font-medium">Abonnement</th>
-            <th class="px-3 py-2 text-right font-medium">Comptes</th>
-            <th class="px-3 py-2 text-right font-medium">Articles</th>
-            <th class="px-3 py-2 text-right font-medium">Ventes</th>
-            <th class="px-3 py-2 text-right font-medium">Facturé</th>
-            <th class="px-3 py-2 text-left font-medium">Dernière vente</th>
+            <th class="px-3 py-2 text-right font-medium">Depuis le début</th>
             <th class="px-3 py-2"></th>
           </tr>
         </thead>
@@ -124,6 +139,29 @@
               </td>
 
               <td class="px-3 py-2.5">
+                <gs-statut [ton]="sante(c).ton" [icone]="sante(c).icone">{{ sante(c).libelle }}</gs-statut>
+                <span class="block text-xs opacity-60">dernière vente {{ depuis(c.derniereVente) }}</span>
+              </td>
+
+              <td class="px-3 py-2.5">
+                <gs-tendance [valeurs]="c.semaines ?? []" />
+              </td>
+
+              <td class="nombre px-3 py-2.5 text-right">
+                <span class="block font-medium">{{ c.chiffre30j | number: '1.0-0' }} F</span>
+                <span class="block text-xs opacity-60">
+                  {{ c.ventes30j | number: '1.0-0' }} ticket{{ (c.ventes30j ?? 0) > 1 ? 's' : '' }}
+                  @if (c.tendance != null) {
+                    · <span [style.color]="c.tendance >= 0 ? 'var(--gs-succes)' : 'var(--gs-danger)'">{{ c.tendance >= 0 ? '▲ +' : '▼ ' }}{{ c.tendance | number: '1.0-1' }} %</span>
+                  }
+                </span>
+              </td>
+
+              <td class="nombre px-3 py-2.5 text-right">
+                {{ c.comptesActifs | number: '1.0-0' }}<span class="opacity-60"> / {{ c.comptes | number: '1.0-0' }}</span>
+              </td>
+
+              <td class="px-3 py-2.5">
                 <span
                   class="pastille"
                   [style.background]="statuts[c.statut!].fond"
@@ -139,19 +177,9 @@
                 </span>
               </td>
 
-              <td class="nombre px-3 py-2.5 text-right">{{ c.comptes | number: '1.0-0' }}</td>
-              <td class="nombre px-3 py-2.5 text-right">{{ c.articles | number: '1.0-0' }}</td>
-              <td class="nombre px-3 py-2.5 text-right">{{ c.ventes | number: '1.0-0' }}</td>
               <td class="nombre px-3 py-2.5 text-right">
-                {{ c.chiffreFacture | number: '1.0-0' }} F
-              </td>
-              <td class="px-3 py-2.5 text-xs opacity-70">
-                @if (c.derniereVente) {
-                  {{ c.derniereVente | date: 'dd/MM/yyyy' }}
-                } @else {
-                  <!-- Un client qui n'a jamais vendu n'a jamais vraiment commencé. -->
-                  <span class="opacity-60">jamais</span>
-                }
+                <span class="block">{{ c.chiffreFacture | number: '1.0-0' }} F</span>
+                <span class="block text-xs opacity-60">{{ c.ventes | number: '1.0-0' }} ventes · {{ c.articles | number: '1.0-0' }} articles</span>
               </td>
 
               <td class="whitespace-nowrap px-3 py-2.5 text-right">

@@ -3,6 +3,7 @@ package com.jumpy.tech.gestionstock.gestiondestock.service.Impl;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.Cloisonnement;
 import com.jumpy.tech.gestionstock.gestiondestock.config.security.jwt.ServiceDeRafraichissement;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.CommerceDto;
+import com.jumpy.tech.gestionstock.gestiondestock.dto.SanteCommerce;
 import com.jumpy.tech.gestionstock.gestiondestock.dto.ResumePlateformeDto;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.Entreprise;
 import com.jumpy.tech.gestionstock.gestiondestock.entities.StatutAbonnement;
@@ -40,6 +41,7 @@ public class PlateformeServiceImpl implements PlateformeService {
     private final FactureRepository factureRepository;
     private final ServiceDeRafraichissement rafraichissement;
     private final Cloisonnement cloisonnement;
+    private final ActivitePlateforme activite;
 
     public PlateformeServiceImpl(EntrepriseRepository entrepriseRepository,
                                  UtilisateurRepository utilisateurRepository,
@@ -47,7 +49,9 @@ public class PlateformeServiceImpl implements PlateformeService {
                                  VenteRepository venteRepository,
                                  FactureRepository factureRepository,
                                  ServiceDeRafraichissement rafraichissement,
-                                 Cloisonnement cloisonnement) {
+                                 Cloisonnement cloisonnement,
+                                 ActivitePlateforme activite) {
+        this.activite = activite;
         this.entrepriseRepository = entrepriseRepository;
         this.utilisateurRepository = utilisateurRepository;
         this.articleRepository = articleRepository;
@@ -74,13 +78,20 @@ public class PlateformeServiceImpl implements PlateformeService {
             ventes.put(id, ((Number) ligne[1]).longValue());
             dernieres.put(id, (Instant) ligne[2]);
         }
+        Instant maintenant = Instant.now();
+        Map<Long, ActivitePlateforme.Activite> recentes = activite.parEntreprise(maintenant);
+        Map<Long, Long> actifs = nombres(utilisateurRepository.comptesActifsParEntreprise(maintenant.minus(30, java.time.temporal.ChronoUnit.DAYS)));
         Map<Long, BigDecimal> chiffres = new HashMap<>();
         for (Object[] ligne : factureRepository.chiffreFactureParEntreprise()) {
             chiffres.put((Long) ligne[0], (BigDecimal) ligne[1]);
         }
 
         return entrepriseRepository.findAll().stream()
-                .map(entreprise -> new CommerceDto(
+                .map(entreprise -> {
+                    ActivitePlateforme.Activite a = recentes.getOrDefault(entreprise.getId(), ActivitePlateforme.Activite.vide());
+                    long ventesTotales = ventes.getOrDefault(entreprise.getId(), 0L);
+                    Instant derniere = dernieres.get(entreprise.getId());
+                    return new CommerceDto(
                         entreprise.getId(),
                         entreprise.getNom(),
                         entreprise.getAdresse() == null ? null : entreprise.getAdresse().getVille(),
@@ -94,9 +105,23 @@ public class PlateformeServiceImpl implements PlateformeService {
                         articles.getOrDefault(entreprise.getId(), 0L),
                         ventes.getOrDefault(entreprise.getId(), 0L),
                         chiffres.getOrDefault(entreprise.getId(), BigDecimal.ZERO),
-                        dernieres.get(entreprise.getId())))
-                // Le plus recemment inscrit d'abord : c'est celui dont on suit l'installation.
-                .sorted(Comparator.comparing(CommerceDto::id).reversed())
+                        derniere,
+                        a.ventes30j(),
+                        a.chiffre30j().setScale(0, java.math.RoundingMode.HALF_UP),
+                        a.chiffre30jPrecedents().setScale(0, java.math.RoundingMode.HALF_UP),
+                        a.chiffre30jPrecedents().signum() == 0 ? null
+                                : a.chiffre30j().subtract(a.chiffre30jPrecedents()).multiply(BigDecimal.valueOf(100))
+                                        .divide(a.chiffre30jPrecedents(), 1, java.math.RoundingMode.HALF_UP),
+                        java.util.Arrays.stream(a.semaines()).boxed().toList(),
+                        actifs.getOrDefault(entreprise.getId(), 0L),
+                        SanteCommerce.de(ventesTotales, ActivitePlateforme.joursDepuis(derniere, maintenant),
+                                a.chiffre30j(), a.chiffre30jPrecedents()));
+                })
+                // Ceux qui decrochent d'abord : ce sont ceux a rappeler aujourd'hui. A urgence
+                // egale, le plus gros chiffre du mois — c'est le client qu'on ne veut pas perdre.
+                .sorted(Comparator.comparing(CommerceDto::sante)
+                        .thenComparing(CommerceDto::chiffre30j, Comparator.reverseOrder())
+                        .thenComparing(CommerceDto::id, Comparator.reverseOrder()))
                 .toList();
     }
 
@@ -117,7 +142,12 @@ public class PlateformeServiceImpl implements PlateformeService {
                 tous.stream().mapToLong(CommerceDto::comptes).sum(),
                 tous.stream().mapToLong(CommerceDto::ventes).sum(),
                 tous.stream().map(CommerceDto::chiffreFacture)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add));
+                        .reduce(BigDecimal.ZERO, BigDecimal::add),
+                tous.stream().filter(c -> c.sante() == SanteCommerce.ACTIF).count(),
+                tous.stream().filter(c -> c.sante() == SanteCommerce.RALENTIT).count(),
+                tous.stream().filter(c -> c.sante() == SanteCommerce.DECROCHE).count(),
+                tous.stream().filter(c -> c.sante() == SanteCommerce.PAS_DEMARRE).count(),
+                tous.stream().map(CommerceDto::chiffre30j).reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 
     @Override

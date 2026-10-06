@@ -17,5 +17,12 @@ public record ResumePlateformeDto(
         long aRelancer,
         long comptes,
         long ventes,
-        BigDecimal chiffreFacture) {
+        BigDecimal chiffreFacture,
+        /** L'activite : ceux qui vendent, ceux qui ralentissent, ceux qui decrochent. */
+        long enActivite,
+        long ralentissent,
+        long decrochent,
+        long pasDemarres,
+        /** Le chiffre d'affaires HT de toute la plateforme sur 30 jours. */
+        BigDecimal chiffre30j) {
 }

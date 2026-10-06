@@ -55,4 +55,19 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur,Long> {
             "select u.entreprise.id, count(u) from Utilisateur u "
             + "where u.entreprise is not null group by u.entreprise.id")
     java.util.List<Object[]> comptesParEntreprise();
+
+    /** Note que ce compte vient de servir. Une requete, sans relire le compte. */
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("update Utilisateur u set u.derniereActivite = :quand where u.id = :id")
+    int noterActivite(@org.springframework.data.repository.query.Param("id") Long id,
+                      @org.springframework.data.repository.query.Param("quand") java.time.Instant quand);
+
+    /** Les comptes actifs qui ont servi depuis cette date, par entreprise : entreprise, nombre. */
+    @org.springframework.data.jpa.repository.Query(
+            "select u.entreprise.id, count(u) from Utilisateur u "
+            + "where u.actif = true and u.derniereActivite >= :depuis and u.entreprise is not null "
+            + "group by u.entreprise.id")
+    java.util.List<Object[]> comptesActifsParEntreprise(
+            @org.springframework.data.repository.query.Param("depuis") java.time.Instant depuis);
 }

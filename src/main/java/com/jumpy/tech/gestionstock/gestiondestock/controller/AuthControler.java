@@ -67,6 +67,7 @@ public class AuthControler {
          String jwt = jwtUtils.generateJwtToken(authentication);
 
          UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+         noterActivite(userDetails.getId());
 
          return ResponseEntity.ok(reponse(jwt,
                  rafraichissement.creer(userDetails.getId()),
@@ -82,10 +83,26 @@ public class AuthControler {
      * Aucune authentification n'est demandee ici — c'est justement parce que le jeton d'acces a
      * expire qu'on appelle cette route.
      */
+    /**
+     * La derniere activite du compte, pour le suivi des commerces par l'editeur. Un echec ici ne
+     * refuse pas la connexion : c'est une statistique, pas une condition d'acces.
+     */
+    private void noterActivite(Long idUtilisateur) {
+        try {
+            if (idUtilisateur != null) {
+                userRepository.noterActivite(idUtilisateur, java.time.Instant.now());
+            }
+        } catch (RuntimeException e) {
+            org.slf4j.LoggerFactory.getLogger(AuthControler.class)
+                    .warn("Derniere activite du compte {} non notee : {}", idUtilisateur, e.getMessage());
+        }
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<JwtResponse> rafraichir(@Valid @RequestBody RafraichissementRequest requete) {
         ServiceDeRafraichissement.Rafraichi rafraichi = rafraichissement.echanger(requete.getRefreshToken());
         String jwt = jwtUtils.genererJetonPour(rafraichi.details());
+        noterActivite(rafraichi.details().getId());
         return ResponseEntity.ok(reponse(jwt, rafraichi.jeton(), rafraichi.details()));
     }
 

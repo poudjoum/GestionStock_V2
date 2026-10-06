@@ -14,3 +14,4 @@ export { Tuile } from './tuile';
 export { ScanCamera, cameraDisponible } from './scan-camera';
 export { Courbe, type SerieCourbe } from './courbe';
 export { Barres, Colonnes, type Barre, type Colonne } from './barres';
+export { Tendance } from './tendance';

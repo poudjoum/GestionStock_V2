@@ -42,6 +42,10 @@ public class Utilisateur extends AbstractEntity{
     @Builder.Default
     @Column(name="actif", nullable = false)
     private boolean actif = true;
+
+    /** La derniere connexion ou le dernier renouvellement de session ; nulle pour les comptes d'avant. */
+    @Column(name="derniere_activite")
+    private java.time.Instant derniereActivite;
     /**
      * Le mot de passe est provisoire et doit etre change avant toute autre chose.
      *

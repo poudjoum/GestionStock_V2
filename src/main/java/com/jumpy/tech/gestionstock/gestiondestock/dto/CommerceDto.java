@@ -29,5 +29,16 @@ public record CommerceDto(
         long ventes,
         BigDecimal chiffreFacture,
         /** La derniere vente enregistree : le signe de vie le plus simple qui soit. */
-        Instant derniereVente) {
+        Instant derniereVente,
+        /** Les tickets et le chiffre d'affaires HT des 30 derniers jours, et des 30 d'avant. */
+        long ventes30j,
+        BigDecimal chiffre30j,
+        BigDecimal chiffre30jPrecedents,
+        /** L'evolution du chiffre sur 30 jours, en pourcentage ; nulle sans mois precedent. */
+        BigDecimal tendance,
+        /** Les tickets des huit dernieres semaines glissantes, de la plus ancienne a la plus recente. */
+        java.util.List<Long> semaines,
+        /** Les comptes qui se sont servis de l'outil dans les 30 derniers jours. */
+        long comptesActifs,
+        SanteCommerce sante) {
 }
