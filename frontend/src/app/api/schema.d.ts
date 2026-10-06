@@ -3172,6 +3172,16 @@ export interface components {
             chiffreFacture?: number;
             /** Format: date-time */
             derniereVente?: string;
+            /** Format: int64 */
+            ventes30j?: number;
+            chiffre30j?: number;
+            chiffre30jPrecedents?: number;
+            tendance?: number;
+            semaines?: number[];
+            /** Format: int64 */
+            comptesActifs?: number;
+            /** @enum {string} */
+            sante?: "DECROCHE" | "RALENTIT" | "PAS_DEMARRE" | "ACTIF";
         };
         AbonnementPushDto: {
             endpoint?: string;
@@ -3797,6 +3807,15 @@ export interface components {
             /** Format: int64 */
             ventes?: number;
             chiffreFacture?: number;
+            /** Format: int64 */
+            enActivite?: number;
+            /** Format: int64 */
+            ralentissent?: number;
+            /** Format: int64 */
+            decrochent?: number;
+            /** Format: int64 */
+            pasDemarres?: number;
+            chiffre30j?: number;
         };
         PageNotificationDto: {
             /** Format: int32 */

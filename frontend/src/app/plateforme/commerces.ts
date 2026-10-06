@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,6 +9,8 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { messageDErreur } from '../noyau/erreurs';
+import { Statut, Tendance } from '../design';
+import type { StatutAffiche } from '../noyau/statuts';
 import {
   CommerceDto,
   InscriptionDto,
@@ -16,6 +18,17 @@ import {
   ResumePlateformeDto,
   StatutAbonnement,
 } from './plateforme.service';
+
+/**
+ * Ce que l'activite d'un commerce appelle. Le danger pour celui qui decroche : c'est un client a
+ * rappeler aujourd'hui ; l'alerte pour celui qui ralentit ; le neutre pour celui qui n'a pas demarre.
+ */
+const SANTES: Record<string, StatutAffiche> = {
+  DECROCHE: { libelle: 'Décroche', ton: 'danger', icone: 'trending_down' },
+  RALENTIT: { libelle: 'Ralentit', ton: 'alerte', icone: 'trending_flat' },
+  PAS_DEMARRE: { libelle: 'Pas démarré', ton: 'neutre', icone: 'hourglass_empty' },
+  ACTIF: { libelle: 'Actif', ton: 'ok', icone: 'trending_up' },
+};
 
 /** Ce que chaque statut dit, et de quelle couleur. Une seule table, lue par tout l'écran. */
 const STATUTS: Record<StatutAbonnement, { libelle: string; fond: string; texte: string }> = {
@@ -63,7 +76,6 @@ function brouillonVierge(): InscriptionDto {
 @Component({
   selector: 'app-commerces',
   imports: [
-    DatePipe,
     DecimalPipe,
     FormsModule,
     MatButtonModule,
@@ -72,11 +84,24 @@ function brouillonVierge(): InscriptionDto {
     MatInputModule,
     MatProgressBarModule,
     MatTooltipModule,
+    Statut,
+    Tendance,
   ],
   templateUrl: './commerces.html',
 })
 export class Commerces implements OnInit {
   private readonly service = inject(Plateforme);
+
+  protected sante(c: CommerceDto): StatutAffiche {
+    return SANTES[c.sante ?? 'PAS_DEMARRE'];
+  }
+
+  /** « il y a 3 j », « aujourd'hui » : depuis quand le commerce n'a pas vendu. */
+  protected depuis(instant: string | undefined): string {
+    if (!instant) return 'jamais';
+    const jours = Math.floor((Date.now() - new Date(instant).getTime()) / 86_400_000);
+    return jours <= 0 ? 'aujourd’hui' : jours === 1 ? 'hier' : `il y a ${jours} j`;
+  }
   private readonly snack = inject(MatSnackBar);
 
   protected readonly chargement = signal(true);
