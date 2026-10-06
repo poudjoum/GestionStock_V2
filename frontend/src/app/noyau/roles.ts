@@ -124,6 +124,14 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
   },
   {
+    chemin: '/comptabilite',
+    groupe: 'rapports',
+    libelle: 'Comptabilité',
+    icone: 'account_balance',
+    // La TVA a declarer et les journaux : le comptable d'abord.
+    roles: ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_COMPTABLE'],
+  },
+  {
     chemin: '/analyses',
     groupe: 'rapports',
     libelle: 'Analyses',

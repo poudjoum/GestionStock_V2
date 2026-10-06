@@ -1,0 +1,184 @@
+@let r = rapport();
+
+<div class="page">
+  <gs-en-tete-page titre="Comptabilité" [sousTitre]="periode() ? periode() + (r?.nomSite ? ' · ' + r?.nomSite : tousSites() ? ' · tous les sites' : '') : 'La TVA à déclarer et les journaux du mois.'">
+    @if (peutVoirTout()) {
+      <gs-selecteur aria-label="Comptabilité de" [options]="portees()" [valeur]="portee()" (valeurChange)="changerPortee($event)" />
+    }
+    <button mat-flat-button (click)="telecharger()" [disabled]="telechargement() || !r">
+      <mat-icon>download</mat-icon>
+      {{ telechargement() ? 'Préparation…' : 'Télécharger pour le comptable' }}
+    </button>
+  </gs-en-tete-page>
+
+  <div class="barre-outils">
+    <gs-selecteur aria-label="Période" [options]="presets" [valeur]="preset()" (valeurChange)="choisirPreset($event)" />
+    @if (preset() === 'libre') {
+      <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+        <mat-label>Du</mat-label>
+        <input matInput type="date" [ngModel]="debut()" (ngModelChange)="changerDates($event, fin())" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="w-40" subscriptSizing="dynamic">
+        <mat-label>Au</mat-label>
+        <input matInput type="date" [ngModel]="fin()" (ngModelChange)="changerDates(debut(), $event)" />
+      </mat-form-field>
+    }
+  </div>
+
+  @if (erreur(); as message) {
+    <p class="message-erreur" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </p>
+  } @else if (chargement() && !r) {
+    <div class="tuiles">
+      @for (k of [1, 2, 3, 4]; track k) {
+        <div class="squelette h-28"></div>
+      }
+    </div>
+    <div class="squelette h-72"></div>
+  } @else if (r) {
+    <div [class.recharge]="chargement()">
+      <div class="tuiles">
+        <section class="carte tuile">
+          <h2 class="gs-etiquette m-0">Chiffre d’affaires HT</h2>
+          <p class="chiffre nombre">{{ r.totalHt | number: '1.0-0' }}<span class="unite"> F</span></p>
+          <p class="detail">{{ r.factures }} facture{{ (r.factures ?? 0) > 1 ? 's' : '' }} émise{{ (r.factures ?? 0) > 1 ? 's' : '' }}@if ((r.facturesAnnulees ?? 0) > 0) {, {{ r.facturesAnnulees }} annulée{{ (r.facturesAnnulees ?? 0) > 1 ? 's' : '' }}}</p>
+        </section>
+        <section class="carte tuile">
+          <h2 class="gs-etiquette m-0">TVA collectée</h2>
+          <p class="chiffre nombre">{{ r.totalTva | number: '1.0-2' }}<span class="unite"> F</span></p>
+          <p class="detail">À reverser pour la période</p>
+        </section>
+        <section class="carte tuile">
+          <h2 class="gs-etiquette m-0">Chiffre d’affaires TTC</h2>
+          <p class="chiffre nombre">{{ r.totalTtc | number: '1.0-0' }}<span class="unite"> F</span></p>
+          <p class="detail">Facturé aux clients</p>
+        </section>
+        <section class="carte tuile">
+          <h2 class="gs-etiquette m-0">Encaissé</h2>
+          <p class="chiffre nombre">{{ r.totalEncaisse | number: '1.0-0' }}<span class="unite"> F</span></p>
+          <p class="detail">Règlements reçus sur la période, toutes factures confondues</p>
+        </section>
+      </div>
+
+      <div class="grille-2">
+        <gs-section titre="TVA collectée par taux" description="Lue sur les factures émises, hors factures annulées.">
+          @if ((r.tva ?? []).length === 0) {
+            <gs-etat-vide icone="receipt_long" titre="Aucune facture émise sur la période" />
+          } @else {
+            <div class="tableau-cadre">
+              <table class="gs-tableau">
+                <thead>
+                  <tr>
+                    <th>Taux</th>
+                    <th class="gs-num">Base HT</th>
+                    <th class="gs-num">TVA</th>
+                    <th class="gs-num">TTC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (t of r.tva; track t.libelle) {
+                    <tr>
+                      <td>{{ t.libelle }} <span class="code">{{ t.factures }} facture{{ (t.factures ?? 0) > 1 ? 's' : '' }}</span></td>
+                      <td class="gs-num nombre">{{ t.baseHt | number: '1.2-2' }}</td>
+                      <td class="gs-num nombre valeur">{{ t.tva | number: '1.2-2' }}</td>
+                      <td class="gs-num nombre">{{ t.ttc | number: '1.2-2' }}</td>
+                    </tr>
+                  }
+                  <tr class="ligne-total">
+                    <td>Total</td>
+                    <td class="gs-num nombre">{{ r.totalHt | number: '1.2-2' }}</td>
+                    <td class="gs-num nombre">{{ r.totalTva | number: '1.2-2' }}</td>
+                    <td class="gs-num nombre">{{ r.totalTtc | number: '1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          }
+        </gs-section>
+
+        <gs-section titre="Encaissements par mode" description="Ce qui est entré en caisse et en banque.">
+          <gs-barres [barres]="parMode()" vide="Aucun règlement reçu sur la période." />
+        </gs-section>
+      </div>
+
+      <gs-section>
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <gs-selecteur aria-label="Journal" [options]="journaux()" [valeur]="journal()" (valeurChange)="journal.set($event)" />
+          @if ((journal() === 'ventes' ? r.journalVentes?.length : r.journalEncaissements?.length) ?? 0; as total) {
+            @if (total > lignesAlEcran) {
+              <span class="gs-encre-3 text-sm">Les {{ lignesAlEcran }} premières lignes sur {{ total }} — le classeur les contient toutes.</span>
+            }
+          }
+        </div>
+
+        @if (journal() === 'ventes') {
+          @if (ventes().length === 0) {
+            <gs-etat-vide icone="receipt_long" titre="Aucune facture émise sur la période" />
+          } @else {
+            <div class="tableau-cadre">
+              <table class="gs-tableau">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Facture</th>
+                    <th>Client</th>
+                    <th class="gs-num">HT</th>
+                    <th class="gs-num">TVA</th>
+                    <th class="gs-num">TTC</th>
+                    <th class="gs-num">Reste dû</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (v of ventes(); track v.numero) {
+                    <tr [class.annulee]="v.annulee">
+                      <td class="nombre">{{ v.date | date: 'dd/MM/yyyy HH:mm' }}</td>
+                      <td><span class="gs-code">{{ v.numero }}</span>@if (v.annulee) { <span class="code">annulée</span> }</td>
+                      <td>{{ v.client }}</td>
+                      <td class="gs-num nombre">{{ v.totalHt | number: '1.2-2' }}</td>
+                      <td class="gs-num nombre">{{ v.totalTva | number: '1.2-2' }}</td>
+                      <td class="gs-num nombre">{{ v.totalTtc | number: '1.2-2' }}</td>
+                      <td class="gs-num nombre" [class.danger]="(v.reste ?? 0) > 0">{{ v.reste | number: '1.2-2' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        } @else {
+          @if (encaissements().length === 0) {
+            <gs-etat-vide icone="payments" titre="Aucun règlement reçu sur la période" />
+          } @else {
+            <div class="tableau-cadre">
+              <table class="gs-tableau">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Facture</th>
+                    <th>Client</th>
+                    <th>Mode</th>
+                    <th class="gs-num">Montant</th>
+                    <th>Référence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (e of encaissements(); track $index) {
+                    <tr>
+                      <td class="nombre">{{ e.date | date: 'dd/MM/yyyy HH:mm' }}</td>
+                      <td><span class="gs-code">{{ e.numeroFacture }}</span></td>
+                      <td>{{ e.client }}</td>
+                      <td>{{ mode(e.mode) }}</td>
+                      <td class="gs-num nombre valeur">{{ e.montant | number: '1.2-2' }}</td>
+                      <td class="gs-encre-3">{{ e.reference }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        }
+      </gs-section>
+    </div>
+  }
+</div>

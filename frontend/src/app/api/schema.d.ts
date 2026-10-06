@@ -1621,6 +1621,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/gestiondestock/v1/rapports/comptabilite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["comptabilite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/gestiondestock/v1/rapports/comptabilite.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["comptabiliteExcel"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/gestiondestock/v1/plateforme/resume": {
         parameters: {
             query?: never;
@@ -3371,8 +3403,8 @@ export interface components {
             username?: string;
             email?: string;
             roles?: string[];
-            accessToken?: string;
             tokenType?: string;
+            accessToken?: string;
         };
         RafraichissementRequest: {
             refreshToken: string;
@@ -3688,6 +3720,64 @@ export interface components {
             montant?: number;
             /** Format: int64 */
             factures?: number;
+        };
+        EncaissementParMode: {
+            mode?: string;
+            libelle?: string;
+            montant?: number;
+            /** Format: int64 */
+            nombre?: number;
+        };
+        LigneJournalEncaissements: {
+            /** Format: date-time */
+            date?: string;
+            numeroFacture?: string;
+            client?: string;
+            mode?: string;
+            montant?: number;
+            reference?: string;
+        };
+        LigneJournalVentes: {
+            /** Format: date-time */
+            date?: string;
+            numero?: string;
+            client?: string;
+            totalHt?: number;
+            totalTva?: number;
+            totalTtc?: number;
+            regle?: number;
+            reste?: number;
+            annulee?: boolean;
+        };
+        LigneTva: {
+            libelle?: string;
+            taux?: number;
+            baseHt?: number;
+            tva?: number;
+            ttc?: number;
+            /** Format: int64 */
+            factures?: number;
+        };
+        RapportComptableDto: {
+            /** Format: date */
+            debut?: string;
+            /** Format: date */
+            fin?: string;
+            /** Format: int64 */
+            idSite?: number;
+            nomSite?: string;
+            tva?: components["schemas"]["LigneTva"][];
+            totalHt?: number;
+            totalTva?: number;
+            totalTtc?: number;
+            /** Format: int64 */
+            factures?: number;
+            /** Format: int64 */
+            facturesAnnulees?: number;
+            totalEncaisse?: number;
+            encaissementsParMode?: components["schemas"]["EncaissementParMode"][];
+            journalVentes?: components["schemas"]["LigneJournalVentes"][];
+            journalEncaissements?: components["schemas"]["LigneJournalEncaissements"][];
         };
         ResumePlateformeDto: {
             /** Format: int64 */
@@ -6821,6 +6911,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RapportPertesDto"];
+                };
+            };
+        };
+    };
+    comptabilite: {
+        parameters: {
+            query: {
+                debut: string;
+                fin: string;
+                tousSites?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RapportComptableDto"];
+                };
+            };
+        };
+    };
+    comptabiliteExcel: {
+        parameters: {
+            query: {
+                debut: string;
+                fin: string;
+                tousSites?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
         };
