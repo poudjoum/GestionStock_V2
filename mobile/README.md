@@ -41,7 +41,7 @@ mise à jour.
 https://gestionstock.tontinepro.uk :
 
 ```bash
-scp build/app/outputs/flutter-apk/app-release.apk     jumpy@192.168.1.100:apps/gestionstock/telechargements/gestionstock-fidelite.apk
+scp build/app/outputs/flutter-apk/app-release.apk     jumpy@192.168.1.21:apps/gestionstock/telechargements/gestionstock-fidelite.apk
 ```
 
 Penser à augmenter `version:` dans `pubspec.yaml` à chaque publication.
