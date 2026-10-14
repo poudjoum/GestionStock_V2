@@ -28,7 +28,7 @@
 # rangees ailleurs — voir le README.
 
 param(
-    [string]$Serveur = 'jumpy@192.168.1.100',
+    [string]$Serveur = 'jumpy@192.168.1.21',
     [string]$Distant = 'apps/gestionstock/sauvegardes',
     [string]$Local = 'D:\Sauvegardes\GestionStock',
     # Les quotidiennes au-dela de ce delai sont purgees ; celles du 1er du mois sont gardees.
