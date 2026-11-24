@@ -58,6 +58,7 @@ class InventaireTest extends AbstractIntegrationTest {
 
     private Long idCiment;
     private Long idFil;
+    private CategoryDto categorie;
 
     @BeforeEach
     void unMagasinDeDeuxArticles() {
@@ -69,7 +70,7 @@ class InventaireTest extends AbstractIntegrationTest {
                 .build()).getId();
         connecteChez(idEntreprise);
 
-        CategoryDto categorie = categoryService.save(CategoryDto.builder()
+        categorie = categoryService.save(CategoryDto.builder()
                 .codeCategorie("CAT-" + UUID.randomUUID())
                 .designation("Matériaux")
                 .build());
@@ -189,6 +190,42 @@ class InventaireTest extends AbstractIntegrationTest {
                 seance.id(), "CODE-INEXISTANT", BigDecimal.ONE))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("CODE-INEXISTANT");
+    }
+
+    @Test
+    void un_article_cree_apres_l_ouverture_rejoint_la_seance() {
+        SeanceInventaireDto seance = inventaireService.ouvrir(null);
+        // Scanne dans les rayons, inconnu du catalogue, cree sur-le-champ.
+        Long idNouveau = articleService.save(ArticleDto.builder()
+                .codeArticle("ART-" + UUID.randomUUID())
+                .designation("Truelle")
+                .prixUnitaireHt(new BigDecimal("2500"))
+                .category(categorie)
+                .build()).getId();
+
+        LigneComptageDto ligne = inventaireService.ajouterArticle(seance.id(), idNouveau);
+
+        assertThat(ligne.idArticle()).isEqualTo(idNouveau);
+        assertThat(ligne.quantiteTheorique()).isEqualByComparingTo("0");
+        assertThat(ligne.quantiteComptee()).isNull();
+        assertThat(inventaireService.seance(seance.id()).articles()).isEqualTo(3);
+
+        inventaireService.compter(seance.id(), idNouveau, new BigDecimal("4"));
+        inventaireService.valider(seance.id());
+        // Le stock de depart de l'article neuf entre par la validation, comme les autres.
+        assertThat(stock(idNouveau)).isEqualByComparingTo("4");
+    }
+
+    @Test
+    void ajouter_deux_fois_le_meme_article_ne_fait_qu_une_ligne() {
+        SeanceInventaireDto seance = inventaireService.ouvrir(null);
+
+        LigneComptageDto premiere = inventaireService.ajouterArticle(seance.id(), idCiment);
+        LigneComptageDto seconde = inventaireService.ajouterArticle(seance.id(), idCiment);
+
+        assertThat(seconde.id()).isEqualTo(premiere.id());
+        assertThat(premiere.quantiteTheorique()).isEqualByComparingTo("10");
+        assertThat(inventaireService.seance(seance.id()).articles()).isEqualTo(2);
     }
 
     @Test

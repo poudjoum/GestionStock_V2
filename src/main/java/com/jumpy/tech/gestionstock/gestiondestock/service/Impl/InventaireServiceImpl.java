@@ -182,6 +182,34 @@ public class InventaireServiceImpl implements InventaireService {
 
     @Override
     @Transactional
+    public LigneComptageDto ajouterArticle(Long idSeance, Long idArticle) {
+        SeanceInventaire seance = seanceOuverteOuErreur(idSeance);
+        Optional<LigneComptage> deja = ligneRepository.findBySeanceIdAndArticleId(idSeance, idArticle);
+        if (deja.isPresent()) {
+            return LigneComptageDto.fromEntity(deja.get());
+        }
+        Article article = articleRepository.findById(idArticle)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Aucun article avec l'identifiant " + idArticle, ErrorCodes.ARTICLE_NOT_FOUND));
+        // L'article d'un autre commerce ne se glisse pas dans cette seance.
+        cloisonnement.verifierAcces(article.getIdEntreprise(), "article", idArticle);
+
+        Site site = seance.getSite();
+        LigneComptage ligne = new LigneComptage();
+        ligne.setSeance(seance);
+        ligne.setArticle(article);
+        ligne.setCodeArticle(article.getCodeArticle());
+        ligne.setDesignation(article.getDesignation());
+        ligne.setQuantiteTheorique(site == null
+                ? mvtStkService.stockReelArticle(idArticle)
+                : mvtStkService.stockReelDansSite(idArticle, site.getId()));
+        ligne.setIdEntreprise(article.getIdEntreprise());
+        log.info("Article {} ajouté à la séance d'inventaire {}", article.getCodeArticle(), seance.getReference());
+        return LigneComptageDto.fromEntity(ligneRepository.save(ligne));
+    }
+
+    @Override
+    @Transactional
     public LigneComptageDto annulerComptage(Long idSeance, Long idLigne) {
         seanceOuverteOuErreur(idSeance);
         LigneComptage ligne = ligneRepository.findById(idLigne)

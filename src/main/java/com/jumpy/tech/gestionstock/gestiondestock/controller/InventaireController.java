@@ -63,6 +63,11 @@ public class InventaireController implements InventaireApi {
     }
 
     @Override
+    public ResponseEntity<LigneComptageDto> ajouterArticle(Long idSeance, Long idArticle) {
+        return ResponseEntity.ok(inventaireService.ajouterArticle(idSeance, idArticle));
+    }
+
+    @Override
     public ResponseEntity<LigneComptageDto> annulerComptage(Long idSeance, Long idLigne) {
         return ResponseEntity.ok(inventaireService.annulerComptage(idSeance, idLigne));
     }

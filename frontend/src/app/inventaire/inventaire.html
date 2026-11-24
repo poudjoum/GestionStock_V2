@@ -253,8 +253,11 @@
             role="alert"
             style="background: var(--mat-sys-error-container); color: var(--mat-sys-on-error-container)"
           >
-            Aucun article de cette séance ne porte le code <strong>{{ code }}</strong>. S’il vient
-            d’être créé, il sera compté au prochain inventaire.
+            Aucun article du catalogue ne porte le code <strong>{{ code }}</strong>.
+            <button mat-stroked-button class="mt-2 !flex" type="button" (click)="creerLArticle(code)">
+              <mat-icon>add</mat-icon>
+              Créer l’article et le compter
+            </button>
           </p>
         }
       }

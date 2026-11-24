@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { environnement } from '../../environnements/environnement';
 import type { ArticleDto, Page } from '../noyau/api';
 import type { components } from '../api/schema';
-import type { CodeBarresDto, ConditionnementDto } from '../noyau/conditionnements';
+import type { CodeBarresDto, ConditionnementDto, ResultatScanDto } from '../noyau/conditionnements';
 
 export type CategoryDto = components['schemas']['CategoryDto'];
 export type { ArticleDto };
@@ -64,6 +64,11 @@ export class Catalogue {
   }
 
   // --- Conditionnements et codes-barres ---------------------------------------------------
+
+  /** L'article et le conditionnement que designe un code lu : code-barres, ou code de l'article. */
+  scanner(code: string): Observable<ResultatScanDto> {
+    return this.http.get<ResultatScanDto>(`${API}/articles/scan`, { params: { code } });
+  }
 
   conditionnements(idArticle: number): Observable<ConditionnementDto[]> {
     return this.http.get<ConditionnementDto[]>(`${API}/articles/${idArticle}/conditionnements`);
