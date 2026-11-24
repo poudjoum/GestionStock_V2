@@ -3,14 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>GestionStock — le stock, la caisse et la fidélité de votre magasin</title>
+    <title>GestionStock — le stock, la caisse et la fidélité de votre commerce</title>
     <meta
       name="description"
-      content="GestionStock réunit la caisse, le stock, les achats, les factures et la fidélité des clients d’un magasin. Une application qui vend même sans internet, et une appli Android pour vos clients."
+      content="GestionStock réunit la caisse, le stock, les achats, les rapports et la fidélité des clients, pour un magasin ou plusieurs sites. Une caisse qui vend même sans internet, et une appli Android pour vos clients. Tarifs sur devis."
     />
     <meta name="theme-color" content="#0f3d26" />
     <meta property="og:title" content="GestionStock" />
-    <meta property="og:description" content="Le stock, la caisse et la fidélité de votre magasin, au même endroit." />
+    <meta property="og:description" content="Le stock, la caisse, les rapports et la fidélité de votre commerce, au même endroit." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://gestionstock.tontinepro.uk/" />
     <link rel="icon" href="/images/logo.svg" type="image/svg+xml" />
@@ -28,11 +28,13 @@
         </a>
         <nav class="navigation" aria-label="Sections">
           <a href="#fonctionnalites">Fonctionnalités</a>
-          <a href="#clients">Application clients</a>
-          <a href="#equipe">Votre équipe</a>
-          <a href="/docs/">Documentation</a>
+          <a href="#sites">Plusieurs sites</a>
+          <a href="#rapports">Rapports</a>
+          <a href="#clients">Appli clients</a>
+          <a href="#tarifs">Tarifs</a>
         </nav>
-        <a class="bouton" href="https://stock.tontinepro.uk/">Ouvrir GestionStock</a>
+        <a class="lien-connexion" href="https://stock.tontinepro.uk/">Se connecter</a>
+        <a class="bouton" href="#tarifs">Demander un devis</a>
       </div>
     </header>
 
@@ -41,27 +43,28 @@
       <section class="ouverture">
         <div class="conteneur">
           <div>
-            <p class="surtitre">Pour les quincailleries et les commerces de détail</p>
-            <h1>Le stock, la caisse et la fidélité de votre magasin, au même endroit.</h1>
+            <p class="surtitre">Quincailleries, alimentation, pharmacies, commerce de détail</p>
+            <h1>Le stock, la caisse et la fidélité de votre commerce, au même endroit.</h1>
             <p class="chapeau">
-              Vendez au comptoir, même quand internet tombe. Sachez ce qui manque avant que le rayon
-              soit vide. Faites revenir vos clients avec des promotions et des points qu’ils
-              suivent sur leur téléphone.
+              Vendez au comptoir, même quand internet tombe. Sachez ce qui manque et ce qu’il faut
+              commander, dans un magasin ou dans dix. Voyez ce que vous gagnez, et où vous perdez.
+              Faites revenir vos clients avec des promotions et des points qu’ils suivent sur leur
+              téléphone.
             </p>
             <div class="actions">
-              <a class="bouton bouton--clair bouton--grand" href="https://stock.tontinepro.uk/">
-                Ouvrir GestionStock
-                <svg aria-hidden="true"><use href="/images/icones.svg#fleche" /></svg>
+              <a class="bouton bouton--clair bouton--grand" href="#tarifs">
+                Demander un devis
+                <svg aria-hidden="true"><use href="/images/icones.svg?v=2#fleche" /></svg>
               </a>
-              <a class="bouton bouton--contour bouton--grand" href="/docs/">
-                <svg aria-hidden="true"><use href="/images/icones.svg#livre" /></svg>
-                Lire la documentation
+              <a class="bouton bouton--contour bouton--grand" href="https://stock.tontinepro.uk/">
+                Déjà client ? Se connecter
               </a>
             </div>
             <ul class="preuves">
-              <li><svg aria-hidden="true"><use href="/images/icones.svg#coche" /></svg>Fonctionne sans internet</li>
-              <li><svg aria-hidden="true"><use href="/images/icones.svg#coche" /></svg>Sur ordinateur, tablette et téléphone</li>
-              <li><svg aria-hidden="true"><use href="/images/icones.svg#coche" /></svg>En francs CFA, TVA comprise</li>
+              <li><svg aria-hidden="true"><use href="/images/icones.svg?v=2#coche" /></svg>Fonctionne sans internet</li>
+              <li><svg aria-hidden="true"><use href="/images/icones.svg?v=2#coche" /></svg>Un magasin ou plusieurs sites</li>
+              <li><svg aria-hidden="true"><use href="/images/icones.svg?v=2#coche" /></svg>Sur ordinateur, tablette et téléphone</li>
+              <li><svg aria-hidden="true"><use href="/images/icones.svg?v=2#coche" /></svg>En francs CFA, TVA comprise</li>
             </ul>
           </div>
 
@@ -104,9 +107,9 @@
 
           <div class="grille">
             <article class="carte">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#caisse" /></svg></span>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#caisse" /></svg></span>
               <h3>Vendre au comptoir</h3>
-              <p>Une grille d’articles, un ticket toujours visible, le rendu de monnaie calculé.</p>
+              <p>Un tableau d’articles, un ticket toujours visible, le rendu de monnaie calculé.</p>
               <ul>
                 <li>Espèces, Mobile Money, virement, chèque, bon d’achat</li>
                 <li>Ticket imprimé sur rouleau de 80 mm, avec son QR</li>
@@ -114,27 +117,57 @@
               </ul>
             </article>
             <article class="carte">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#carton" /></svg></span>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#code-barres" /></svg></span>
+              <h3>Cartons et codes-barres</h3>
+              <p>À l’unité, au carton, au kilo : chaque article se vend comme vous le vendez.</p>
+              <ul>
+                <li>Un prix par conditionnement : la bouteille, le carton de 24</li>
+                <li>Douchette, ou caméra du téléphone pour scanner</li>
+                <li>Étiquettes à code-barres imprimées pour le vrac</li>
+              </ul>
+            </article>
+            <article class="carte">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#carton" /></svg></span>
               <h3>Suivre le stock</h3>
               <p>Ce qui est en rupture, ce qui passe sous le seuil, ce que vaut le magasin.</p>
               <ul>
                 <li>Seuil d’alerte par article, alertes sur le téléphone</li>
                 <li>Inventaire à la douchette, écarts rattrapés en un geste</li>
-                <li>Catalogue, clients et fournisseurs importés depuis Excel</li>
+                <li>Casse, vol, usage interne : chaque sortie a son motif</li>
               </ul>
             </article>
             <article class="carte">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#camion" /></svg></span>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#camion" /></svg></span>
               <h3>Commander et recevoir</h3>
-              <p>Les commandes aux fournisseurs, de la préparation au déchargement.</p>
+              <p>Ce qu’il faut commander, calculé sur vos ventes, et reçu carton par carton.</p>
               <ul>
+                <li><strong>Réapprovisionnement</strong> : les commandes proposées, fournisseur par fournisseur</li>
                 <li>Prix d’achat saisis : le coût moyen reste juste</li>
                 <li>Réception partielle, reliquat suivi ou clôturé</li>
-                <li>Fournisseurs particuliers ou entreprises</li>
               </ul>
             </article>
             <article class="carte">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#facture" /></svg></span>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#presse-papiers" /></svg></span>
+              <h3>Commandes clients</h3>
+              <p>Trente sacs pour la semaine prochaine : la marchandise est mise de côté.</p>
+              <ul>
+                <li>Valider la commande réserve le stock</li>
+                <li>Livraison en plusieurs fois, reliquat toujours réservé</li>
+                <li>Servie par le magasin ou par l’entrepôt</li>
+              </ul>
+            </article>
+            <article class="carte">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#sablier" /></svg></span>
+              <h3>Lots et péremption</h3>
+              <p>Pour l’alimentaire et la pharmacie : ce qui périme le premier sort le premier.</p>
+              <ul>
+                <li>DLC dépassée : la vente est refusée, et dit pourquoi</li>
+                <li>Code GS1 des emballages lu à la douchette</li>
+                <li>Un lot rappelé : où il en reste, à qui il a été vendu</li>
+              </ul>
+            </article>
+            <article class="carte">
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#facture" /></svg></span>
               <h3>Factures et caisse</h3>
               <p>Ce qui a été encaissé, ce qui reste dû, et par quel moyen.</p>
               <ul>
@@ -144,7 +177,7 @@
               </ul>
             </article>
             <article class="carte">
-              <span class="pastille-icone pastille-icone--petrole"><svg aria-hidden="true"><use href="/images/icones.svg#porte-voix" /></svg></span>
+              <span class="pastille-icone pastille-icone--petrole"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#porte-voix" /></svg></span>
               <h3>Campagnes et fidélité</h3>
               <p>Des promotions qui passent en caisse, des points qui font revenir.</p>
               <ul>
@@ -154,14 +187,110 @@
               </ul>
             </article>
             <article class="carte">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#graphique" /></svg></span>
-              <h3>L’accueil du gérant</h3>
-              <p>En arrivant : la recette, ce qui attend d’être encaissé, ce qui manque en rayon, ce que vaut le stock.</p>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#equipe" /></svg></span>
+              <h3>Mise en place rapide</h3>
+              <p>Six cents articles ne se saisissent pas à la main : ils s’importent.</p>
               <ul>
-                <li>Chaque rôle arrive sur son écran de travail</li>
+                <li>Catalogue, clients et fournisseurs depuis Excel</li>
+                <li>Un rapport ligne par ligne avant que rien n’entre</li>
                 <li>Installable comme une application, sur PC ou téléphone</li>
               </ul>
             </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Plusieurs sites : le stock de chacun, et ce qui circule entre eux. -->
+      <section class="section section--surface" id="sites">
+        <div class="conteneur deux-colonnes">
+          <div>
+            <span class="etiquette">Magasins et entrepôt</span>
+            <h2>Plusieurs magasins, un entrepôt, un seul compte</h2>
+            <p class="introduction">
+              Chaque site a son propre stock et sa propre caisse. Les prix, les clients et la
+              fidélité restent ceux de l’entreprise. Le gérant voit tous les sites d’un coup d’œil ;
+              le caissier ne voit que le sien.
+            </p>
+            <ul class="points">
+              <li>
+                <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#transfert" /></svg></span>
+                <div><strong>Transferts en deux temps</strong><span>La marchandise quitte l’entrepôt, puis entre au magasin quand on l’a comptée à l’arrivée. Un carton manque ? L’écart reste écrit, avec son motif.</span></div>
+              </li>
+              <li>
+                <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#magasin" /></svg></span>
+                <div><strong>Stock et caisse par site, ou tous ensemble</strong><span>La répartition site par site, et le total de l’entreprise.</span></div>
+              </li>
+              <li>
+                <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#camion" /></svg></span>
+                <div><strong>Le client en gros, livré depuis l’entrepôt</strong><span>La commande se prend au magasin, la marchandise sort de l’entrepôt.</span></div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Les sites, dessines : trois stocks et un transfert en route. -->
+          <div class="maquette maquette--claire" role="img" aria-label="Le stock du ciment sur trois sites, et un transfert de 40 sacs en route de l’entrepôt vers le magasin d’Akwa.">
+            <div class="maquette-barre" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="maquette-sites" aria-hidden="true">
+              <p class="maquette-titre">Ciment 50 kg — tous les sites</p>
+              <div class="maquette-site"><b>Entrepôt de Bonabéri</b><i>610 sacs</i></div>
+              <div class="maquette-site"><b>Magasin d’Akwa</b><i>48 sacs</i></div>
+              <div class="maquette-site maquette-site--alerte"><b>Magasin de Bonamoussadi</b><i>12 sacs <em>sous le seuil</em></i></div>
+              <div class="maquette-site maquette-site--total"><b>Toute l’entreprise</b><i>670 sacs</i></div>
+              <div class="maquette-transfert">
+                <small>Transfert en route</small>
+                <b>Entrepôt → Akwa</b>
+                <span>40 sacs de ciment · expédié ce matin</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Les rapports : ce que le gerant et le comptable viennent chercher. -->
+      <section class="section" id="rapports">
+        <div class="conteneur deux-colonnes deux-colonnes--inverse">
+          <div>
+            <span class="etiquette">Rapports</span>
+            <h2>Savoir ce que vous gagnez, et où vous perdez</h2>
+            <p class="introduction">
+              Le chiffre d’affaires ne dit pas tout. GestionStock calcule la marge de chaque vente au
+              coût d’achat du jour, et la compare au mois précédent et à l’an dernier.
+            </p>
+            <ul class="points">
+              <li>
+                <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#graphique" /></svg></span>
+                <div><strong>Ventes et marge</strong><span>Par rayon, par vendeur, par site, par heure. Les articles qui font votre chiffre, et ceux qui dorment en rayon.</span></div>
+              </li>
+              <li>
+                <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#alerte" /></svg></span>
+                <div><strong>Pertes et impayés</strong><span>La casse, les vols, les périmés au coût d’achat ; ce que chaque client doit, et depuis quand.</span></div>
+              </li>
+              <li>
+                <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#facture" /></svg></span>
+                <div><strong>Le classeur du comptable</strong><span>TVA collectée par taux, journal des ventes et des encaissements, dans un classeur Excel prêt à remettre.</span></div>
+              </li>
+              <li>
+                <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#bulle" /></svg></span>
+                <div><strong>Le rapport vient à vous</strong><span>Le résumé de la semaine par courriel chaque lundi, et le rapport du mois en PDF, sur deux pages.</span></div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Les chiffres du mois, dessines : quatre tuiles et leur courbe. -->
+          <div class="maquette maquette--claire" role="img" aria-label="Le rapport Ventes et marge : chiffre d’affaires, marge, tickets et panier moyen du mois, comparés au mois précédent, et leur courbe.">
+            <div class="maquette-barre" aria-hidden="true"><span></span><span></span><span></span></div>
+            <div class="maquette-rapport" aria-hidden="true">
+              <p class="maquette-titre">Ventes et marge — ce mois</p>
+              <div class="maquette-tuiles">
+                <div class="maquette-tuile"><small>Chiffre d’affaires HT</small><b>18,4 M</b><span class="hausse">+12 %</span></div>
+                <div class="maquette-tuile"><small>Marge</small><b>3,9 M</b><span class="hausse">+8 %</span></div>
+                <div class="maquette-tuile"><small>Tickets</small><b>1 284</b><span class="hausse">+5 %</span></div>
+                <div class="maquette-tuile"><small>Panier moyen</small><b>14 330 F</b><span class="baisse">−2 %</span></div>
+              </div>
+              <div class="maquette-courbe">
+                <span style="--h: 42%"></span><span style="--h: 55%"></span><span style="--h: 48%"></span><span style="--h: 63%"></span><span style="--h: 58%"></span><span style="--h: 72%"></span><span style="--h: 66%"></span><span style="--h: 80%"></span><span style="--h: 74%"></span><span style="--h: 88%"></span><span style="--h: 70%"></span><span style="--h: 92%"></span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -172,7 +301,7 @@
           <div>
             <span class="etiquette etiquette--petrole">Application Android pour vos clients</span>
             <h2>Vos clients suivent vos promotions et leurs points</h2>
-            <p class="section-titre" style="margin: 14px 0 0; color: var(--encre-2); font-size: 18px">
+            <p class="introduction">
               GestionStock Fidélité est gratuite pour vos clients. Elle montre les campagnes en cours
               dans les magasins partenaires, et transforme leurs tickets de caisse en bons d’achat.
             </p>
@@ -194,7 +323,7 @@
               <img src="/images/icone-fidelite.png" alt="" width="56" height="56" />
               <div>
                 <a class="bouton bouton--grand" id="lien-apk" href="/telechargements/gestionstock-fidelite.apk" download>
-                  <svg aria-hidden="true"><use href="/images/icones.svg#telecharger" /></svg>
+                  <svg aria-hidden="true"><use href="/images/icones.svg?v=2#telecharger" /></svg>
                   Télécharger pour Android
                 </a>
                 <small id="note-apk">Fichier APK — Android 7 ou plus récent</small>
@@ -214,45 +343,66 @@
           <div class="section-titre">
             <span class="etiquette">Votre équipe</span>
             <h2>Chacun voit ce qui le regarde</h2>
-            <p>Un compte par personne, un rôle par métier. Le caissier ne voit pas la valeur du stock, le magasinier ne touche pas à la caisse.</p>
+            <p>Un compte par personne, un rôle par métier, des sites par collaborateur. Le caissier ne voit pas la valeur du stock, le magasinier ne touche pas à la caisse.</p>
           </div>
           <div class="roles">
             <div class="role">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#reglages" /></svg></span>
-              <div><strong>Administrateur</strong><span>Règle le magasin, ouvre et ferme les comptes de l’équipe.</span></div>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#reglages" /></svg></span>
+              <div><strong>Administrateur</strong><span>Règle le commerce, ouvre et ferme les comptes de l’équipe.</span></div>
             </div>
             <div class="role">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#graphique" /></svg></span>
-              <div><strong>Gérant</strong><span>Voit tout le magasin, ajoute ses caissiers et magasiniers, décide des campagnes et de la fidélité.</span></div>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#graphique" /></svg></span>
+              <div><strong>Gérant</strong><span>Voit tous les sites, ajoute son équipe, décide des achats, des campagnes et de la fidélité.</span></div>
             </div>
             <div class="role">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#caisse" /></svg></span>
-              <div><strong>Caissier</strong><span>Vend au comptoir, encaisse, gère les clients.</span></div>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#caisse" /></svg></span>
+              <div><strong>Caissier</strong><span>Vend au comptoir de son magasin, encaisse, gère les clients.</span></div>
             </div>
             <div class="role">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#carton" /></svg></span>
-              <div><strong>Magasinier</strong><span>Tient le catalogue, reçoit les commandes, fait l’inventaire.</span></div>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#carton" /></svg></span>
+              <div><strong>Magasinier</strong><span>Tient le catalogue, reçoit les commandes, fait l’inventaire et les transferts.</span></div>
             </div>
             <div class="role">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#facture" /></svg></span>
-              <div><strong>Comptable</strong><span>Suit les factures, les encaissements et l’état de caisse.</span></div>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#facture" /></svg></span>
+              <div><strong>Comptable</strong><span>Suit les factures, la caisse, la TVA et les rapports, et télécharge son classeur.</span></div>
             </div>
             <div class="role">
-              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg#cadenas" /></svg></span>
+              <span class="pastille-icone"><svg aria-hidden="true"><use href="/images/icones.svg?v=2#cadenas" /></svg></span>
               <div><strong>Un compte se ferme, il ne s’efface pas</strong><span>L’employé parti reste l’auteur de ses ventes : l’historique reste lisible.</span></div>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="section" style="padding-top: 0">
+      <!-- Les tarifs : sur devis, et le moyen de le demander tout de suite. -->
+      <section class="section" id="tarifs" style="padding-top: 0">
         <div class="conteneur">
-          <div class="appel">
-            <h2>Prêt à ouvrir la caisse ?</h2>
-            <p>Connectez-vous avec l’identifiant reçu par courriel. La documentation vous guide pas à pas, du premier article à la première campagne.</p>
-            <div class="actions">
-              <a class="bouton bouton--clair bouton--grand" href="https://stock.tontinepro.uk/">Ouvrir GestionStock</a>
-              <a class="bouton bouton--contour bouton--grand" href="/docs/">Lire la documentation</a>
+          <div class="appel appel--devis">
+            <div>
+              <span class="etiquette etiquette--claire">Tarifs</span>
+              <h2>Un tarif à la mesure de votre commerce</h2>
+              <p>
+                Une boutique seule et un réseau de magasins avec entrepôt n’ont pas les mêmes besoins.
+                Dites-nous qui vous êtes : nous vous répondons avec un devis.
+              </p>
+              <ul class="devis-questions">
+                <li><svg aria-hidden="true"><use href="/images/icones.svg?v=2#coche" /></svg>Votre activité : quincaillerie, alimentation, pharmacie…</li>
+                <li><svg aria-hidden="true"><use href="/images/icones.svg?v=2#coche" /></svg>Combien de magasins, et s’il y a un entrepôt</li>
+                <li><svg aria-hidden="true"><use href="/images/icones.svg?v=2#coche" /></svg>Combien de personnes travailleront dessus</li>
+              </ul>
+            </div>
+            <div class="devis-contact">
+              <a class="bouton bouton--clair bouton--grand" href="https://wa.me/237697853398?text=Bonjour%2C%20je%20souhaite%20un%20devis%20pour%20GestionStock.%20Mon%20commerce%20%3A%20" rel="noopener">
+                <svg aria-hidden="true"><use href="/images/icones.svg?v=2#bulle" /></svg>
+                Demander un devis sur WhatsApp
+              </a>
+              <div class="devis-appel">
+                <span><svg aria-hidden="true"><use href="/images/icones.svg?v=2#appel" /></svg>Ou appelez-nous</span>
+                <a href="tel:+237697853398">697 85 33 98</a>
+                <a href="tel:+237678026373">678 02 63 73</a>
+                <a href="tel:+237690429891">690 42 98 91</a>
+              </div>
+              <small>Déjà client ? <a href="https://stock.tontinepro.uk/">Se connecter</a> · <a href="/docs/">Lire la documentation</a></small>
             </div>
           </div>
         </div>
@@ -264,6 +414,7 @@
         <a class="marque" href="/"><img src="/images/logo.svg" alt="" width="28" height="28" />GestionStock</a>
         <a href="https://jumpytech.tontinepro.uk" target="_blank" rel="noopener">Un produit Jumpytech ↗</a>
         <nav aria-label="Liens utiles">
+          <a href="#tarifs">Tarifs</a>
           <a href="/docs/">Documentation</a>
           <a href="https://stock.tontinepro.uk/confidentialite.html">Confidentialité</a>
           <a href="https://stock.tontinepro.uk/">Se connecter</a>

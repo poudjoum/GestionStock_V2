@@ -97,4 +97,34 @@
     <path d="M3 3v18h18"/>
     <path d="M7 15l4-4 3 3 6-7"/>
   </symbol>
+  <symbol id="magasin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 10v10h16V10"/>
+    <path d="M3 10 5 4h14l2 6c0 1.4-1.1 2.5-2.5 2.5S16 11.4 16 10c0 1.4-1.8 2.5-4 2.5S8 11.4 8 10c0 1.4-1.1 2.5-2.5 2.5S3 11.4 3 10Z"/>
+    <path d="M10 20v-5h4v5"/>
+  </symbol>
+  <symbol id="transfert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 8h14l-4-4"/>
+    <path d="M20 16H6l4 4"/>
+  </symbol>
+  <symbol id="code-barres" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3"/>
+    <path d="M7 8v8M10 8v8M13 8v8M15.5 8v8M17.5 8v8"/>
+  </symbol>
+  <symbol id="sablier" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 3h12M6 21h12"/>
+    <path d="M7 3c0 5 10 5 10 9s-10 4-10 9"/>
+    <path d="M17 3c0 5-10 5-10 9s10 4 10 9"/>
+  </symbol>
+  <symbol id="presse-papiers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="4" width="14" height="17" rx="2"/>
+    <path d="M9 4V3h6v1"/>
+    <path d="m9 13 2 2 4-4"/>
+  </symbol>
+  <symbol id="bulle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 20l1.4-4.2A8 8 0 1 1 8.5 19z"/>
+    <path d="M9 10.5h6M9 13.5h4"/>
+  </symbol>
+  <symbol id="appel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2"/>
+  </symbol>
 </svg>
