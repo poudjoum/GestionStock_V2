@@ -1435,7 +1435,8 @@ Cloudflare, et le trafic des clients y redescend. Aucun port ouvert, aucune adre
 louer, et le certificat est celui de Cloudflare : rien a installer sur les appareils des
 commercants, contrairement a l'autorite interne du reseau local.
 
-L'application est publiee sur **https://stock.tontinepro.uk**, par un tunnel nomme `gestionstock`,
+L'application est publiee sur **https://stock.jumpy-tech.uk** (et toujours, pendant la transition,
+sur https://stock.tontinepro.uk), par un tunnel nomme `gestionstock`,
 sur le meme modele que ceux de tontinepro et de HotSpot : `cloudflared` sur l'hote, une
 configuration par tunnel dans `~/.cloudflared/`, une unite systemd par tunnel.
 
@@ -1444,6 +1445,12 @@ configuration par tunnel dans `~/.cloudflared/`, une unite systemd par tunnel.
 | `tontinepro` | `/etc/cloudflared/config.yml` | `cloudflared.service` |
 | `hotspot` | `~/.cloudflared/hotspot-config.yml` | `cloudflared-hotspot.service` |
 | `gestionstock` | `~/.cloudflared/gestionstock-config.yml` | `cloudflared-gestionstock.service` |
+| `gestionstock-jumpytech` | tableau de bord Cloudflare, jeton dans `/etc/cloudflared/jumpytech.env` | `cloudflared-jumpytech.service` |
+
+`jumpy-tech.uk` vit sur un autre compte Cloudflare que `tontinepro.uk` : un tunnel ne publiant que
+les domaines de son compte, il a le sien. Il est gere depuis le tableau de bord (Zero Trust >
+Networks > Tunnels) : `stock.jumpy-tech.uk` vers `http://127.0.0.1:9093`, `jumpy-tech.uk` vers
+`http://127.0.0.1:9094`. L'installation est decrite en tete de `deploy/cloudflared-jumpytech.service`.
 
 Le relais vise `http://127.0.0.1:9093`, le nginx du front. Il est joint en clair, et ce n'est pas
 une negligence : ce trafic ne quitte pas la machine. Le chiffrement public est assure par

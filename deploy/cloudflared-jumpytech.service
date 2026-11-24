@@ -1,0 +1,46 @@
+# Tunnel Cloudflare qui publie GestionStock sur https://stock.jumpy-tech.uk et https://jumpy-tech.uk.
+#
+# Un tunnel de plus, et non des noms ajoutes a cloudflared-gestionstock : jumpy-tech.uk vit sur un
+# autre compte Cloudflare que tontinepro.uk, et un tunnel ne publie que les domaines de son compte.
+# Les deux tournent cote a cote et visent les memes conteneurs ; l'ancien reste en place tant que
+# les commercants et l'APK utilisent encore stock.tontinepro.uk.
+#
+# Tunnel gere depuis le tableau de bord (Zero Trust > Networks > Tunnels > gestionstock-jumpytech) :
+# les noms publics et leurs cibles se reglent la-bas, pas dans un fichier de ce depot.
+#   stock.jumpy-tech.uk -> http://127.0.0.1:9093  (gestionstock-web : l'application et l'API)
+#   jumpy-tech.uk       -> http://127.0.0.1:9094  (gestionstock-site : le site de presentation)
+#
+# Le jeton du tunnel est un secret : il n'est ni dans ce fichier ni dans le depot, mais dans
+# /etc/cloudflared/jumpytech.env (TUNNEL_TOKEN=...), lisible par root seul. cloudflared lit
+# TUNNEL_TOKEN dans son environnement, il n'apparait donc pas non plus dans `ps`.
+#
+# Ne pas utiliser `cloudflared service install <jeton>` propose par Cloudflare : il ecrit
+# cloudflared.service, qui est deja celui de tontinepro.
+#
+# Installation (demande sudo) :
+#   sudo mkdir -p /etc/cloudflared
+#   sudo nano /etc/cloudflared/jumpytech.env        # une ligne : TUNNEL_TOKEN=<jeton>
+#   sudo chmod 600 /etc/cloudflared/jumpytech.env
+#   sudo cp deploy/cloudflared-jumpytech.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now cloudflared-jumpytech
+
+[Unit]
+Description=Tunnel Cloudflare GestionStock (stock.jumpy-tech.uk et jumpy-tech.uk)
+Documentation=https://github.com/poudjoum/GestionStock_V2
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=jumpy
+Group=jumpy
+# Lu par systemd avant de passer a l'utilisateur jumpy : le fichier peut rester reserve a root.
+EnvironmentFile=/etc/cloudflared/jumpytech.env
+# `--no-autoupdate` : comme pour les autres tunnels, une mise a jour se decide et ne se subit pas.
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate tunnel run
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
