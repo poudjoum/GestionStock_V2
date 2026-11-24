@@ -1091,3 +1091,348 @@ kbd {
 .non {
   color: var(--encre-3);
 }
+
+/* --- Ajouts d'octobre 2026 : sites, rapports, devis ------------------------------------------ */
+
+/* Le lien des clients deja abonnes : discret, le bouton du devis reste l'appel principal. */
+.lien-connexion {
+  display: none;
+  padding: 8px 12px;
+  color: var(--encre-2);
+  font-weight: 500;
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.lien-connexion:hover {
+  color: var(--encre);
+}
+
+@media (min-width: 600px) {
+  .lien-connexion {
+    display: inline-block;
+    margin-left: auto;
+  }
+  .entete .bouton {
+    margin-left: 0;
+  }
+}
+
+@media (min-width: 900px) {
+  .lien-connexion {
+    margin-left: 0;
+  }
+}
+
+/* Cinq liens et deux boutons : sur une ligne, ou pas du tout. En dessous de 1100 px, ils ne
+   tiennent pas ensemble ; les sections restent a portee de defilement. */
+.navigation a,
+.lien-connexion {
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) and (max-width: 1099px) {
+  .navigation {
+    display: none;
+  }
+  .lien-connexion {
+    margin-left: auto;
+  }
+}
+
+.introduction {
+  max-width: 36rem;
+  margin: 14px 0 0;
+  color: var(--encre-2);
+  font-size: 18px;
+}
+
+/* Un texte et sa maquette, cote a cote ; la section suivante les inverse pour rompre la cadence. */
+.deux-colonnes {
+  display: grid;
+  gap: 48px;
+  align-items: center;
+}
+
+@media (min-width: 960px) {
+  .deux-colonnes {
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+  }
+  .deux-colonnes--inverse > :first-child {
+    order: 2;
+  }
+}
+
+.points {
+  display: grid;
+  gap: 20px;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.points li {
+  display: flex;
+  gap: 14px;
+}
+
+.points .pastille-icone {
+  flex-shrink: 0;
+}
+
+.points strong {
+  display: block;
+  font-size: 17px;
+}
+
+.points span:not(.pastille-icone) {
+  color: var(--encre-2);
+}
+
+/* Les maquettes posees sur le fond clair : une ombre plus douce que sur le bandeau vert. */
+.maquette--claire {
+  border: 1px solid #d9dfd9;
+  box-shadow: var(--ombre-2);
+}
+
+.maquette-titre {
+  margin: 0 0 4px;
+  font: 700 15px / 1.3 var(--police-titre);
+}
+
+.maquette-sites,
+.maquette-rapport {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+}
+
+.maquette-site {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #d9dfd9;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.maquette-site b {
+  font-weight: 600;
+}
+
+.maquette-site i {
+  font-style: normal;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.maquette-site em {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9a5b06;
+}
+
+.maquette-site--alerte {
+  border-color: #f0c98a;
+  background: #fdf1dc;
+}
+
+.maquette-site--total {
+  border-style: dashed;
+  background: transparent;
+}
+
+.maquette-transfert {
+  display: grid;
+  gap: 2px;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #d7eef3;
+  color: #0b4f5f;
+}
+
+.maquette-transfert small {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.maquette-transfert b {
+  font: 700 17px / 1.2 var(--police-titre);
+}
+
+.maquette-tuiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.maquette-tuile {
+  padding: 12px 14px;
+  border: 1px solid #d9dfd9;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.maquette-tuile small {
+  display: block;
+  color: #66736b;
+  font-size: 11px;
+}
+
+.maquette-tuile b {
+  display: block;
+  font: 800 22px / 1.2 var(--police-titre);
+  font-variant-numeric: tabular-nums;
+}
+
+.maquette-tuile span {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.maquette-tuile .hausse {
+  color: #1d6b43;
+}
+
+.maquette-tuile .hausse::before {
+  content: '▲ ';
+}
+
+.maquette-tuile .baisse {
+  color: #b42318;
+}
+
+.maquette-tuile .baisse::before {
+  content: '▼ ';
+}
+
+.maquette-courbe {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 110px;
+  padding: 12px 14px 0;
+  border: 1px solid #d9dfd9;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.maquette-courbe span {
+  flex: 1;
+  height: var(--h);
+  border-radius: 4px 4px 0 0;
+  background: #1d6b43;
+  opacity: 0.85;
+}
+
+.maquette-courbe span:last-child {
+  background: #0b6a80;
+}
+
+/* Le devis : l'appel final, en deux colonnes sur grand ecran. */
+.appel--devis {
+  display: grid;
+  gap: 32px;
+  padding: 40px 24px;
+  text-align: left;
+}
+
+@media (min-width: 900px) {
+  .appel--devis {
+    grid-template-columns: 1.3fr 1fr;
+    align-items: center;
+    gap: 56px;
+    padding: 56px;
+  }
+}
+
+.appel--devis p {
+  margin: 14px 0 0;
+  max-width: 34rem;
+}
+
+.etiquette--claire {
+  color: #8fd6ab;
+}
+
+.devis-questions {
+  display: grid;
+  gap: 8px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--bandeau-encre);
+}
+
+.devis-questions li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.devis-questions svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  color: #5cc489;
+}
+
+.devis-contact {
+  display: grid;
+  gap: 16px;
+}
+
+.devis-contact .bouton {
+  white-space: normal;
+  text-align: center;
+}
+
+.devis-appel {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: var(--r-carte);
+}
+
+.devis-appel span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bandeau-encre-2);
+  font-size: 14px;
+}
+
+.devis-appel svg {
+  width: 18px;
+  height: 18px;
+}
+
+.devis-appel a {
+  color: #ffffff;
+  font: 700 20px / 1.4 var(--police-titre);
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.devis-appel a:hover {
+  text-decoration: underline;
+}
+
+.devis-contact small {
+  color: var(--bandeau-encre-2);
+  font-size: 14px;
+}
+
+.devis-contact small a {
+  color: #ffffff;
+}
