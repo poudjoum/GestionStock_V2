@@ -6,7 +6,7 @@ import 'modeles.dart';
 
 /// L'adresse du serveur, fixee a la compilation :
 /// `flutter run --dart-define=API_URL=http://10.0.2.2:9092` sur l'emulateur, la production sinon.
-const String adresseApi = String.fromEnvironment('API_URL', defaultValue: 'https://stock.tontinepro.uk');
+const String adresseApi = String.fromEnvironment('API_URL', defaultValue: 'https://stock.jumpy-tech.uk');
 
 const String _racine = '$adresseApi/gestiondestock/v1';
 

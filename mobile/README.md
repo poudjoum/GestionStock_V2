@@ -12,7 +12,7 @@ Elle ne parle qu'à l'API `/gestiondestock/v1/fidelite/**` du serveur de gestion
 cd mobile
 flutter pub get
 
-# Contre la production (par défaut : https://stock.tontinepro.uk)
+# Contre la production (par défaut : https://stock.jumpy-tech.uk)
 flutter run
 
 # Contre un serveur de développement, depuis l'émulateur Android
@@ -25,7 +25,7 @@ version publiée ne parle qu'en https.
 ## Construire l'APK
 
 ```bash
-flutter build apk --release --dart-define=API_URL=https://stock.tontinepro.uk
+flutter build apk --release --dart-define=API_URL=https://stock.jumpy-tech.uk
 ```
 
 **La signature.** L'APK de release est signé par la clé de publication, lue dans
@@ -38,7 +38,7 @@ de passe se sauvegardent donc hors de cette machine ; les perdre, c'est ne plus 
 mise à jour.
 
 **Publier sur le site.** Déposer l'APK sous ce nom exact, il est aussitôt téléchargeable sur
-https://gestionstock.tontinepro.uk :
+https://jumpy-tech.uk :
 
 ```bash
 scp build/app/outputs/flutter-apk/app-release.apk     jumpy@192.168.1.21:apps/gestionstock/telechargements/gestionstock-fidelite.apk
