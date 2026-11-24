@@ -128,4 +128,7 @@ public interface MvtStkRepository extends JpaRepository<MvtStk, Long> {
     @Query("select m.idVente, coalesce(sum(case when m.typMvt = :sortie then m.quantite else -m.quantite end), 0) " +
             "from MvtStk m where m.lot.id = :idLot and m.idVente is not null group by m.idVente")
     java.util.List<Object[]> ventesDuLot(@Param("idLot") Long idLot, @Param("sortie") TypeMvtStk sortie);
+
+    /** Si le commerce a deja fait entrer ou sortir quoi que ce soit : l'assistant de demarrage. */
+    boolean existsByIdEntreprise(Long idEntreprise);
 }

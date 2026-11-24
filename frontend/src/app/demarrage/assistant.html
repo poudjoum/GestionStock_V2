@@ -1,0 +1,115 @@
+@let e = etat();
+
+<div class="page">
+  <gs-en-tete-page
+    titre="Mettre le magasin en route"
+    sousTitre="Six étapes, de l’inscription à la première vente. Elles se cochent toutes seules au fur et à mesure."
+  >
+    @if (e) {
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="enregistrement()"
+        (click)="basculerAffichage()"
+      >
+        <mat-icon>{{ e.masque ? 'visibility' : 'visibility_off' }}</mat-icon>
+        {{ e.masque ? 'Réafficher sur l’accueil' : 'Masquer de l’accueil' }}
+      </button>
+    }
+  </gs-en-tete-page>
+
+  @if (erreur(); as message) {
+    <p class="erreur" role="alert"><mat-icon aria-hidden="true">error</mat-icon>{{ message }}</p>
+  }
+
+  @if (!e) {
+    @if (!erreur()) {
+      <div class="squelette h-24"></div>
+      <div class="squelette h-96 mt-4"></div>
+    }
+  } @else {
+    <gs-section>
+      <div class="progression">
+        <div class="progression-texte">
+          @if (e.termine) {
+            <span class="gs-titre progression-titre">Le magasin est prêt</span>
+            <span class="gs-encre-2">Toutes les étapes indispensables sont faites.</span>
+          } @else {
+            <span class="gs-titre progression-titre"
+              >{{ faites() }} sur {{ obligatoires().length }} étapes</span
+            >
+            @if (prochaine(); as p) {
+              <span class="gs-encre-2">Prochaine : {{ ETAPES[p.code].titre }}</span>
+            }
+          }
+        </div>
+        <div
+          class="barre"
+          role="progressbar"
+          aria-label="Avancement de la mise en route"
+          [attr.aria-valuenow]="faites()"
+          aria-valuemin="0"
+          [attr.aria-valuemax]="obligatoires().length"
+        >
+          <i [style.width.%]="avancement()"></i>
+        </div>
+      </div>
+    </gs-section>
+
+    @if (e.termine) {
+      <gs-etat-vide
+        class="fin"
+        icone="celebration"
+        titre="Tout est en place"
+        texte="Le magasin vend, compte son stock et imprime ses tickets. Vous pouvez masquer cet assistant : il reste ici, dans les réglages."
+      >
+        <a mat-flat-button routerLink="/accueil">Retour à l’accueil</a>
+      </gs-etat-vide>
+    }
+
+    <ol class="etapes">
+      @for (etape of e.etapes; track etape.code) {
+        @let d = ETAPES[etape.code];
+        @let courante = prochaine()?.code === etape.code;
+        <li class="etape" [class.faite]="etape.faite" [class.courante]="courante">
+          <span class="pastille" aria-hidden="true">
+            @if (etape.faite) {
+              <mat-icon>check</mat-icon>
+            } @else {
+              {{ numero(etape) }}
+            }
+          </span>
+          <div class="corps">
+            <div class="tete">
+              <mat-icon class="icone" aria-hidden="true">{{ d.icone }}</mat-icon>
+              <h2>{{ d.titre }}</h2>
+              @if (etape.faite) {
+                <gs-statut ton="ok" icone="task_alt">Fait</gs-statut>
+              } @else if (etape.facultative) {
+                <gs-statut ton="neutre" icone="more_horiz">Facultatif</gs-statut>
+              } @else if (courante) {
+                <gs-statut ton="alerte" icone="arrow_forward">À faire maintenant</gs-statut>
+              }
+            </div>
+            <p class="texte">{{ d.texte }}</p>
+            @if (d.compte && etape.nombre) {
+              <p class="compte gs-encre-3">{{ d.compte(etape.nombre) }}</p>
+            }
+            <div class="actions">
+              @if (courante) {
+                <a mat-flat-button [routerLink]="d.chemin">{{ d.action }}</a>
+              } @else {
+                <a mat-stroked-button [routerLink]="d.chemin">{{
+                  etape.faite ? 'Revoir' : d.action
+                }}</a>
+              }
+              @if (d.autre && !etape.faite) {
+                <a mat-button [routerLink]="d.autre.chemin">{{ d.autre.action }}</a>
+              }
+            </div>
+          </div>
+        </li>
+      }
+    </ol>
+  }
+</div>

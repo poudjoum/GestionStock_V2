@@ -1,0 +1,192 @@
+/* L'assistant : une barre d'avancement, puis les etapes en colonne, reliees par un fil. */
+
+.page {
+  max-width: 860px;
+}
+
+.erreur {
+  display: flex;
+  align-items: center;
+  gap: var(--gs-esp-2);
+  margin: 0 0 var(--gs-esp-4);
+  padding: var(--gs-esp-3) var(--gs-esp-4);
+  border-radius: var(--gs-r-champ);
+  background: var(--gs-danger-fond);
+  color: var(--gs-danger);
+  font-size: var(--gs-texte-md);
+}
+
+.progression {
+  display: grid;
+  gap: var(--gs-esp-3);
+}
+
+.progression-texte {
+  display: grid;
+  gap: 2px;
+  font-size: var(--gs-texte-md);
+}
+
+.progression-titre {
+  font-size: 1.375rem;
+  color: var(--gs-encre);
+}
+
+.barre {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--gs-surface-2);
+  overflow: hidden;
+}
+
+.barre i {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--gs-vert-600);
+  transition: width 400ms ease;
+}
+
+.fin {
+  margin-top: var(--gs-esp-4);
+}
+
+.etapes {
+  display: grid;
+  margin: var(--gs-esp-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.etape {
+  position: relative;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: var(--gs-esp-4);
+  padding-bottom: var(--gs-esp-5);
+}
+
+/* Le fil entre deux pastilles. */
+.etape:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  bottom: 4px;
+  left: 17px;
+  width: 2px;
+  background: var(--gs-trait);
+}
+
+.etape.faite:not(:last-child)::before {
+  background: var(--gs-vert-200);
+}
+
+.pastille {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--gs-trait-fort);
+  border-radius: 50%;
+  background: var(--gs-surface);
+  color: var(--gs-encre-2);
+  font: 700 var(--gs-texte-md) / 1 var(--gs-police-titre);
+}
+
+.faite .pastille {
+  border-color: var(--gs-vert-600);
+  background: var(--gs-vert-600);
+  color: var(--gs-sur-accent);
+}
+
+.courante .pastille {
+  border-color: var(--gs-accent);
+  color: var(--gs-accent);
+  box-shadow: 0 0 0 4px var(--gs-accent-doux);
+}
+
+.pastille mat-icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+}
+
+.corps {
+  min-width: 0;
+  padding: var(--gs-esp-4) var(--gs-esp-5);
+  border: 1px solid var(--gs-trait);
+  border-radius: var(--gs-r-carte);
+  background: var(--gs-surface);
+}
+
+.courante .corps {
+  border-color: color-mix(in srgb, var(--gs-accent) 45%, var(--gs-trait));
+  box-shadow: var(--gs-ombre-1);
+}
+
+.faite .corps {
+  background: transparent;
+}
+
+.tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gs-esp-2);
+}
+
+.tete .icone {
+  color: var(--gs-encre-3);
+}
+
+.tete h2 {
+  flex: 1;
+  margin: 0;
+  font: 600 var(--gs-texte-lg) / 1.3 var(--gs-police-texte);
+  color: var(--gs-encre);
+}
+
+.texte {
+  margin: var(--gs-esp-2) 0 0;
+  max-width: 62ch;
+  font-size: var(--gs-texte-md);
+  color: var(--gs-encre-2);
+}
+
+.faite .texte {
+  color: var(--gs-encre-3);
+}
+
+.compte {
+  margin: var(--gs-esp-1) 0 0;
+  font-size: var(--gs-texte-sm);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gs-esp-2);
+  margin-top: var(--gs-esp-3);
+}
+
+@media (max-width: 560px) {
+  .etape {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: var(--gs-esp-3);
+  }
+
+  .etape:not(:last-child)::before {
+    left: 13px;
+    top: 32px;
+  }
+
+  .pastille {
+    width: 28px;
+    height: 28px;
+    font-size: var(--gs-texte-sm);
+  }
+
+  .corps {
+    padding: var(--gs-esp-3) var(--gs-esp-4);
+  }
+}

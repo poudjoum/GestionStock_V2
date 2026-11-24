@@ -12,4 +12,6 @@ public interface CategoryRepository extends JpaRepository<Category,Long> {
     java.util.List<Category> findAllByIdEntreprise(Long idEntreprise);
 
     Optional<Category> findCategoriesByCodeCatAndIdEntreprise(String code, Long idEntreprise);
+
+    long countByIdEntreprise(Long idEntreprise);
 }

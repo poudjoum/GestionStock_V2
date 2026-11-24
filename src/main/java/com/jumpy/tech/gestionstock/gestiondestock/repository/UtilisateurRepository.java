@@ -70,4 +70,6 @@ public interface UtilisateurRepository extends JpaRepository<Utilisateur,Long> {
             + "group by u.entreprise.id")
     java.util.List<Object[]> comptesActifsParEntreprise(
             @org.springframework.data.repository.query.Param("depuis") java.time.Instant depuis);
+
+    long countByEntrepriseId(Long idEntreprise);
 }

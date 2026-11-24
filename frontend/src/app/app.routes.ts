@@ -222,6 +222,13 @@ export const routes: Routes = [
           import('./parametres/identite-du-magasin').then((m) => m.IdentiteDuMagasin),
       },
       {
+        // L'assistant de demarrage : les premiers pas d'un commerce qu'on vient d'inscrire. Le
+        // gerant seul, comme la route qui le sert.
+        path: 'demarrage',
+        canActivate: [gardeRoles('ROLE_ADMIN')],
+        loadComponent: () => import('./demarrage/assistant').then((m) => m.AssistantDemarrage),
+      },
+      {
         // La vitrine du design system : les composants communs dans tous leurs etats. Hors du
         // menu ; on y vient en tapant l'adresse, pour juger un composant ou un changement de jeton.
         path: 'design',

@@ -60,4 +60,6 @@ public interface ArticleRepository extends JpaRepository<Article,Long> {
             "select a.idEntreprise, count(a) from Article a "
             + "where a.idEntreprise is not null group by a.idEntreprise")
     java.util.List<Object[]> articlesParEntreprise();
+
+    long countByIdEntreprise(Long idEntreprise);
 }

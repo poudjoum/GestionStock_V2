@@ -104,6 +104,12 @@ public class Entreprise extends AbstractEntity{
     /** Quand la porte a ete fermee la derniere fois. Survit a la reprise. */
     @Column(name="suspendue_le")
     private java.time.Instant suspendueLe;
+    /**
+     * Le gerant a ferme l'assistant de demarrage. Il ne s'ouvre plus de lui-meme sur l'accueil,
+     * mais reste joignable depuis les reglages.
+     */
+    @Column(name="demarrage_masque", nullable = false)
+    private boolean demarrageMasque;
     @OneToMany(mappedBy="entreprise")
     private List<Utilisateur> users;
 

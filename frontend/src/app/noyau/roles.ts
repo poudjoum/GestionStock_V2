@@ -240,6 +240,14 @@ export const MENU: EntreeDeMenu[] = [
     roles: ['ROLE_ADMIN', 'ROLE_MANAGER'],
   },
   {
+    chemin: '/demarrage',
+    groupe: 'reglages',
+    libelle: 'Démarrage',
+    icone: 'rocket_launch',
+    // Les premiers pas du commerce. Toujours joignable ici, meme une fois masque de l'accueil.
+    roles: ['ROLE_ADMIN'],
+  },
+  {
     chemin: '/comptes',
     groupe: 'reglages',
     libelle: 'Équipe',

@@ -230,6 +230,11 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.PUT, API + "/entreprises/mienne")
                             .hasRole(ADMIN)
 
+                        // L'assistant de demarrage : celui qui met le commerce en route. Le
+                        // service ne regarde que l'entreprise du jeton.
+                        .requestMatchers(API + "/entreprises/mienne/demarrage", API + "/entreprises/mienne/demarrage/**")
+                            .hasRole(ADMIN)
+
                         // Rattacher un compte a une entreprise, c'est donner a quelqu'un les
                         // donnees d'un tiers : l'editeur seul.
                         .requestMatchers(HttpMethod.PATCH, API + "/users/*/entreprise/**")

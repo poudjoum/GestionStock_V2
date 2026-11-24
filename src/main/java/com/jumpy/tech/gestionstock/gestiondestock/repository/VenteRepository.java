@@ -39,4 +39,6 @@ public interface VenteRepository extends JpaRepository<Vente,Long> {
             "select v.idEntreprise, count(v), max(v.datevente) from Vente v "
             + "where v.idEntreprise is not null and v.annulee = false group by v.idEntreprise")
     java.util.List<Object[]> ventesParEntreprise();
+
+    boolean existsByIdEntrepriseAndAnnuleeFalse(Long idEntreprise);
 }
