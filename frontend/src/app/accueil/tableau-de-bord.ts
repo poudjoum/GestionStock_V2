@@ -11,6 +11,7 @@ import { libelleDuMode } from '../noyau/reglements';
 import { statutDeFacture, statutDuStock } from '../noyau/statuts';
 import type { CampagneDuJour } from '../comptoir/prix-promotionnel';
 import { EnTetePage, EtatVide, Section, Statut, Tuile } from '../design';
+import { CarteDemarrage } from '../demarrage/carte-demarrage';
 
 /**
  * Ce qu'on voit en arrivant : ce qu'a encaisse la caisse, ce qui attend d'etre encaisse, ce qui
@@ -33,6 +34,7 @@ import { EnTetePage, EtatVide, Section, Statut, Tuile } from '../design';
     Section,
     Statut,
     Tuile,
+    CarteDemarrage,
   ],
   templateUrl: './tableau-de-bord.html',
   styleUrl: './tableau-de-bord.css',
@@ -53,6 +55,8 @@ export class TableauDeBord implements OnInit {
 
   protected readonly peutVoirLaCaisse = signal(false);
   protected readonly peutVoirLeStock = signal(false);
+  /** L'assistant de demarrage est celui de l'administrateur du commerce. */
+  protected readonly estGerant = computed(() => this.session.roles().includes('ROLE_ADMIN'));
 
   protected readonly statutDuStock = statutDuStock;
   protected readonly statutDeFacture = statutDeFacture;

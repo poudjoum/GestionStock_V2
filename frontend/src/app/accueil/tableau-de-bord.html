@@ -11,6 +11,10 @@
     }
   </gs-en-tete-page>
 
+  @if (estGerant()) {
+    <app-carte-demarrage />
+  }
+
   @if (chargement() && !s && !c) {
     <div class="tuiles">
       @for (i of [1, 2, 3, 4]; track i) {

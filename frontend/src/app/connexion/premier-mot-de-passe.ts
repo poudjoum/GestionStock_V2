@@ -12,6 +12,7 @@ import { environnement } from '../../environnements/environnement';
 import { messageDErreur } from '../noyau/erreurs';
 import { Session } from '../noyau/session';
 import { accueilPour } from '../noyau/roles';
+import { Demarrage } from '../demarrage/demarrage.service';
 import type { UserDto } from '../noyau/api';
 
 /** Ce que le serveur exige aussi, verifie ici pour ne pas faire l'aller-retour pour rien. */
@@ -50,6 +51,7 @@ export class PremierMotDePasse {
   private readonly http = inject(HttpClient);
   private readonly session = inject(Session);
   private readonly router = inject(Router);
+  private readonly demarrage = inject(Demarrage);
 
   protected readonly provisoire = signal('');
   protected readonly nouveau = signal('');
@@ -103,7 +105,23 @@ export class PremierMotDePasse {
   }
 
   private entrer(): void {
-    this.envoi.set(false);
-    this.router.navigateByUrl(accueilPour(this.session.roles()));
+    const accueil = accueilPour(this.session.roles());
+    if (!this.session.roles().includes('ROLE_ADMIN')) {
+      this.envoi.set(false);
+      this.router.navigateByUrl(accueil);
+      return;
+    }
+    // Le premier mot de passe d'un administrateur, c'est le plus souvent un commerce qui vient
+    // d'etre inscrit : on l'emmene a l'assistant de demarrage, sauf s'il n'a plus rien a y faire.
+    this.demarrage.etat().subscribe({
+      next: (etat) => {
+        this.envoi.set(false);
+        this.router.navigateByUrl(!etat.termine && !etat.masque ? '/demarrage' : accueil);
+      },
+      error: () => {
+        this.envoi.set(false);
+        this.router.navigateByUrl(accueil);
+      },
+    });
   }
 }
