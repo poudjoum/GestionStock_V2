@@ -1,14 +1,24 @@
-# Tunnel Cloudflare qui publie GestionStock sur https://stock.jumpy-tech.uk et https://jumpy-tech.uk.
+# Tunnel Cloudflare qui publie les applications Jumpytech du serveur sous jumpy-tech.uk.
 #
 # Un tunnel de plus, et non des noms ajoutes a cloudflared-gestionstock : jumpy-tech.uk vit sur un
 # autre compte Cloudflare que tontinepro.uk, et un tunnel ne publie que les domaines de son compte.
-# Les deux tournent cote a cote et visent les memes conteneurs ; l'ancien reste en place tant que
-# les commercants et l'APK utilisent encore stock.tontinepro.uk.
+# Les deux tournent cote a cote et visent les memes conteneurs ; les anciens tunnels restent en
+# place tant que des appareils, des APK, des QR codes ou des webhooks visent encore tontinepro.uk.
+#
+# Un seul tunnel pour toutes les applications, et non un par projet comme sous tontinepro.uk : ses
+# routes se reglent dans le tableau de bord, sans redemarrer le service, si bien qu'en modifier une
+# ne coupe pas les autres.
 #
 # Tunnel gere depuis le tableau de bord (Zero Trust > Networks > Tunnels > gestionstock-jumpytech) :
 # les noms publics et leurs cibles se reglent la-bas, pas dans un fichier de ce depot.
-#   stock.jumpy-tech.uk -> http://127.0.0.1:9093  (gestionstock-web : l'application et l'API)
-#   jumpy-tech.uk       -> http://127.0.0.1:9094  (gestionstock-site : le site de presentation)
+#   jumpy-tech.uk                -> http://127.0.0.1:8093  (site Jumpytech)
+#   stock.jumpy-tech.uk          -> http://127.0.0.1:9093  (gestionstock-web : l'application et l'API)
+#   gestionstock.jumpy-tech.uk   -> http://127.0.0.1:9094  (gestionstock-site : le site de presentation)
+#   tontinepro.jumpy-tech.uk     -> http://127.0.0.1:8090  (TontinePro)
+#   hotspot.jumpy-tech.uk        -> http://127.0.0.1:8085  pour ^/api/v1/webhooks/campay/?$ (webhook
+#                                   Campay ; route placee AVANT la suivante)
+#   hotspot.jumpy-tech.uk        -> http://127.0.0.1:8092  (site HotSpot)
+#   qrmark.jumpy-tech.uk         -> http://127.0.0.1:9096  (QRmark)
 #
 # Le jeton du tunnel est un secret : il n'est ni dans ce fichier ni dans le depot, mais dans
 # /etc/cloudflared/jumpytech.env (TUNNEL_TOKEN=...), lisible par root seul. cloudflared lit
@@ -26,7 +36,7 @@
 #   sudo systemctl enable --now cloudflared-jumpytech
 
 [Unit]
-Description=Tunnel Cloudflare GestionStock (stock.jumpy-tech.uk et jumpy-tech.uk)
+Description=Tunnel Cloudflare Jumpytech (*.jumpy-tech.uk)
 Documentation=https://github.com/poudjoum/GestionStock_V2
 After=network-online.target docker.service
 Wants=network-online.target

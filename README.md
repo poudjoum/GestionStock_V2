@@ -1449,8 +1449,9 @@ configuration par tunnel dans `~/.cloudflared/`, une unite systemd par tunnel.
 
 `jumpy-tech.uk` vit sur un autre compte Cloudflare que `tontinepro.uk` : un tunnel ne publiant que
 les domaines de son compte, il a le sien. Il est gere depuis le tableau de bord (Zero Trust >
-Networks > Tunnels) : `stock.jumpy-tech.uk` vers `http://127.0.0.1:9093`, `jumpy-tech.uk` vers
-`http://127.0.0.1:9094`. L'installation est decrite en tete de `deploy/cloudflared-jumpytech.service`.
+Networks > Tunnels) et publie toutes les applications Jumpytech du serveur, dont
+`stock.jumpy-tech.uk` vers `http://127.0.0.1:9093` et `gestionstock.jumpy-tech.uk` (le site) vers
+`http://127.0.0.1:9094`. La racine `jumpy-tech.uk` est le site Jumpytech. L'installation est decrite en tete de `deploy/cloudflared-jumpytech.service`.
 
 Le relais vise `http://127.0.0.1:9093`, le nginx du front. Il est joint en clair, et ce n'est pas
 une negligence : ce trafic ne quitte pas la machine. Le chiffrement public est assure par
