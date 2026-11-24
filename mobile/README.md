@@ -38,7 +38,7 @@ de passe se sauvegardent donc hors de cette machine ; les perdre, c'est ne plus 
 mise à jour.
 
 **Publier sur le site.** Déposer l'APK sous ce nom exact, il est aussitôt téléchargeable sur
-https://jumpy-tech.uk :
+https://gestionstock.jumpy-tech.uk :
 
 ```bash
 scp build/app/outputs/flutter-apk/app-release.apk     jumpy@192.168.1.21:apps/gestionstock/telechargements/gestionstock-fidelite.apk
