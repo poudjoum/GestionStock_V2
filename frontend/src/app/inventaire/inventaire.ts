@@ -17,11 +17,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
 import { Subject, debounceTime, distinctUntilChanged, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { messageDErreur } from '../noyau/erreurs';
 import { ConditionnementDto, ResultatScanDto } from '../noyau/conditionnements';
 import { ScanCamera, cameraDisponible } from '../design';
+import {
+  ArticleCreeRapidement,
+  CreationRapideArticle,
+  DonneesCreationRapide,
+} from '../catalogue/creation-rapide';
 import {
   Inventaire as ServiceInventaire,
   LigneComptageDto,
@@ -65,6 +71,7 @@ import {
 export class InventaireEcran implements OnInit {
   private readonly service = inject(ServiceInventaire);
   private readonly snack = inject(MatSnackBar);
+  private readonly dialogue = inject(MatDialog);
   private readonly frappe = new Subject<void>();
 
   protected readonly chargement = signal(true);
@@ -282,6 +289,9 @@ export class InventaireEcran implements OnInit {
             this.chercher('');
           }
           this.prendreEnMain(ligne, lu);
+        } else if (lu?.article?.id != null) {
+          // L'article existe, mais il a ete cree apres l'ouverture : il rejoint la seance.
+          this.rejoindreLaSeance(lu);
         } else {
           // Dit sans bloquer : on ne perd pas un comptage parce qu'un article manque.
           this.codeInconnu.set(saisi);
@@ -291,6 +301,56 @@ export class InventaireEcran implements OnInit {
       error: () => {
         this.envoiEnCours.set(false);
         this.codeInconnu.set(saisi);
+      },
+    });
+  }
+
+  /**
+   * Le code lu n'est porte par aucun article : on le cree sur place, avec ce code, et on le
+   * compte aussitot. Le reste de sa fiche se complete ensuite dans le catalogue.
+   */
+  protected creerLArticle(code: string): void {
+    this.dialogue
+      .open<CreationRapideArticle, DonneesCreationRapide, ArticleCreeRapidement>(CreationRapideArticle, {
+        data: { code },
+        width: '520px',
+        maxWidth: 'calc(100vw - 32px)',
+        autoFocus: 'first-tabbable',
+      })
+      .afterClosed()
+      .subscribe((cree) => {
+        if (!cree) {
+          this.champCode()?.nativeElement.focus();
+          return;
+        }
+        if (!cree.codeRattache) {
+          this.snack.open(
+            `« ${cree.article.designation} » est créé, mais le code ${code} n’a pas pu lui être rattaché : faites-le depuis le catalogue.`,
+            'Fermer',
+            { duration: 8000 },
+          );
+        }
+        this.rejoindreLaSeance({ article: cree.article });
+      });
+  }
+
+  /** Ajoute a la seance l'article qu'elle ne contient pas, puis le prend en main pour le compter. */
+  private rejoindreLaSeance(lu: ResultatScanDto): void {
+    const seance = this.seance();
+    if (!seance?.id || lu.article?.id == null) {
+      return;
+    }
+    this.envoiEnCours.set(true);
+    this.service.ajouterArticle(seance.id, lu.article.id).subscribe({
+      next: (ligne) => {
+        this.envoiEnCours.set(false);
+        this.seance.update((s) => (s ? { ...s, articles: (s.articles ?? 0) + 1 } : s));
+        this.chercher('');
+        this.prendreEnMain(ligne, lu);
+      },
+      error: (echec: unknown) => {
+        this.envoiEnCours.set(false);
+        this.erreur.set(messageDErreur(echec, 'L’article n’a pas pu être ajouté à la séance.'));
       },
     });
   }

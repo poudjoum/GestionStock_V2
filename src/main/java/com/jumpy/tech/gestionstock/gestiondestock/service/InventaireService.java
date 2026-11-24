@@ -49,6 +49,16 @@ public interface InventaireService {
     /** Le meme geste, par le code-barres : c'est ce que rend la douchette dans les rayons. */
     LigneComptageDto compterParCode(Long idSeance, String codeArticle, BigDecimal quantite);
 
+    /**
+     * Fait entrer dans une seance ouverte un article qui n'y figure pas : celui qu'on vient de
+     * creer en le scannant dans les rayons, apres l'ouverture.
+     *
+     * Son theorique est le stock du logiciel a cet instant — zero pour un article tout neuf. Rend
+     * la ligne existante si l'article y est deja : deux scans du meme article inconnu, sur deux
+     * appareils, ne font pas deux lignes.
+     */
+    LigneComptageDto ajouterArticle(Long idSeance, Long idArticle);
+
     /** Remet une ligne a « pas encore comptee », ce qui n'est pas la meme chose que comptee a zero. */
     LigneComptageDto annulerComptage(Long idSeance, Long idLigne);
 

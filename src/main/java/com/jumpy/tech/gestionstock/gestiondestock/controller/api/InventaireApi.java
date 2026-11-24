@@ -68,6 +68,13 @@ public interface InventaireApi {
     ResponseEntity<LigneComptageDto> compter(@PathVariable Long idSeance,
                                              @RequestBody ComptageDto comptage);
 
+    @Operation(summary = "Ajoute à une séance ouverte un article créé après son ouverture",
+            description = "Rend la ligne existante si l'article y figure déjà.")
+    @PostMapping(value = APP_ROOT + "/inventaires/{idSeance}/lignes/{idArticle}",
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    ResponseEntity<LigneComptageDto> ajouterArticle(@PathVariable Long idSeance,
+                                                    @PathVariable Long idArticle);
+
     @Operation(summary = "Remet une ligne à « pas encore comptée »")
     @DeleteMapping(value = APP_ROOT + "/inventaires/{idSeance}/comptages/{idLigne}",
             produces = MediaType.APPLICATION_JSON_VALUE)

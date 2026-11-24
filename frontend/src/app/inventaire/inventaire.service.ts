@@ -50,6 +50,14 @@ export type VueDesLignes = 'TOUTES' | 'A_COMPTER' | 'ECARTS';
 export class Inventaire {
   private readonly http = inject(HttpClient);
 
+  /**
+   * Fait entrer dans la seance un article cree apres son ouverture — typiquement celui qu'on
+   * vient de creer depuis un code inconnu. Rend la ligne existante s'il y est deja.
+   */
+  ajouterArticle(idSeance: number, idArticle: number): Observable<LigneComptageDto> {
+    return this.http.post<LigneComptageDto>(`${API}/inventaires/${idSeance}/lignes/${idArticle}`, null);
+  }
+
   /** Ce que designe un code d'etiquette : l'article, et le conditionnement s'il s'agit d'un carton. */
   scanner(code: string): Observable<ResultatScanDto> {
     return this.http.get<ResultatScanDto>(`${API}/articles/scan`, { params: { code } });

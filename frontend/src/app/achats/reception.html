@@ -34,6 +34,75 @@
       </p>
     }
 
+    @if (attendu() > 0) {
+      <!-- La douchette tape le code puis Entree ; la camera fait de meme sur telephone. -->
+      <div class="carte mb-3 p-3">
+        <mat-form-field appearance="outline" class="w-full" subscriptSizing="dynamic">
+          <mat-icon matPrefix>qr_code_scanner</mat-icon>
+          <mat-label>Scanner un colis</mat-label>
+          <input
+            #champScan
+            matInput
+            autocomplete="off"
+            autocorrect="off"
+            enterkeyhint="go"
+            [ngModel]="codeLu()"
+            (ngModelChange)="codeLu.set($event)"
+            (keydown.enter)="scanner()"
+            [disabled]="scanEnCours()"
+            placeholder="douchette ou caméra"
+          />
+          @if (cameraDisponible) {
+            <button matSuffix mat-icon-button type="button" (click)="camera.set(true)" aria-label="Scanner à la caméra">
+              <mat-icon>photo_camera</mat-icon>
+            </button>
+          }
+          <mat-hint>Chaque colis scanné s’ajoute à la ligne de son article.</mat-hint>
+        </mat-form-field>
+        @if (camera()) {
+          <gs-scan-camera (lu)="lireALaCamera($event)" (ferme)="camera.set(false)" />
+        }
+
+        @if (annonce(); as a) {
+          <p
+            class="mt-3 mb-0 flex items-center gap-2 rounded px-3 py-2 text-sm"
+            role="status"
+            [style.background]="a.ton === 'ok' ? 'var(--gs-succes-fond)' : 'var(--gs-alerte-fond)'"
+            [style.color]="a.ton === 'ok' ? 'var(--gs-succes)' : 'var(--gs-alerte)'"
+          >
+            <mat-icon aria-hidden="true">{{ a.ton === 'ok' ? 'check_circle' : 'warning' }}</mat-icon>
+            <span>{{ a.texte }}</span>
+          </p>
+        }
+
+        @if (codeInconnu(); as code) {
+          <div
+            class="mt-3 rounded px-3 py-2 text-sm"
+            role="alert"
+            style="background: var(--gs-alerte-fond); color: var(--gs-encre)"
+          >
+            <p class="m-0">
+              Aucun article ne porte le code <span class="gs-code">{{ code }}</span>. De quel
+              article de la commande s’agit-il ? Le code lui sera rattaché, et ce colis compté.
+            </p>
+            <div class="mt-2 flex flex-wrap gap-2">
+              @for (s of saisies(); track s.ligne.id) {
+                @if (reste(s.ligne) > 0) {
+                  <button mat-stroked-button type="button" [disabled]="scanEnCours()" (click)="rattacher(s)">
+                    {{ s.ligne.article?.designation }}
+                    @if (s.ligne.conditionnement; as cond) {
+                      <span class="opacity-60">· {{ cond.libelle }}</span>
+                    }
+                  </button>
+                }
+              }
+              <button mat-button type="button" (click)="ignorerLeCode()">Aucun, ignorer</button>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
     @if (saisies().length === 0) {
       <div class="py-20 text-center opacity-60">
         <mat-icon class="!h-12 !w-12 !text-5xl">inbox</mat-icon>
@@ -42,7 +111,11 @@
     } @else {
       <ul class="flex list-none flex-col gap-2 p-0">
         @for (saisie of saisies(); track saisie.ligne.id; let i = $index) {
-          <li class="carte p-3">
+          <li
+            class="carte p-3"
+            [id]="'ligne-reception-' + saisie.ligne.id"
+            [style.outline]="eclairee() === saisie.ligne.id ? '2px solid var(--gs-accent)' : null"
+          >
             <div class="flex items-start gap-3">
               <span class="min-w-0 flex-1">
                 <span class="block truncate text-sm font-medium">
